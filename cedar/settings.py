@@ -45,7 +45,6 @@ EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 EMAIL_PORT = config("EMAIL_PORT", cast=int)
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
-DEFAULT_FROM_EMAIL_V2 = config("DEFAULT_FROM_EMAIL_V2")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -63,12 +62,21 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
     # third parties
     "django_celery_beat",
     "phonenumber_field",
     "widget_tweaks",
     "sass_processor",
     "notifications",
+    # apps
+    "settings",
+    "accounts",
+    "ajax",
+    "dashboard",
+    "savings",
+    "loans",
+    "shares",
 ]
 
 MIDDLEWARE = [
@@ -220,7 +228,7 @@ if not DEBUG:
             "mail_admins": {
                 "level": "ERROR",
                 "filters": ["require_debug_false"],
-                "class": "nine_mile.reporter.CustomAdminEmailHandler",
+                "class": "cedar.reporter.CustomAdminEmailHandler",
             },
             "celery": {
                 "level": "INFO",

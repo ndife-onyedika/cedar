@@ -1,0 +1,107 @@
+table .pad > div {
+    line-height: 120%;
+    letter-spacing: 0px;
+    /* mso-line-height-alt: 19.2px; */
+}
+
+table .pad > div > p {
+    margin: 0;
+    margin-bottom: 16px;
+}
+
+table.application {
+    table-layout: fixed;
+}
+
+table.application,
+table.surplus {
+    background: #efefef;
+}
+
+.td,
+table.application td:first-child,
+table.application td:last-child {
+    color: #616874;
+    border-bottom: 1px solid #ffffff;
+    line-height: 16px;
+    padding: 4px 10px;
+    word-wrap: break-word;
+}
+
+.td,
+table.application td:first-child {
+    font-weight: 500;
+    background: #e3e3e3;
+}
+
+table.surplus th,
+table.surplus td {
+    color: #616874;
+    line-height: 16px;
+    padding: 4px 10px;
+    border-bottom: 1px solid #ffffff;
+    border-right: 1px solid #ffffff;
+    word-wrap: break-word;
+}
+
+table.surplus th {
+    font-weight: 500;
+    background: #f6f6f6;
+}
+
+table.btn .column {
+    font-weight: 400;
+    text-align: left;
+    padding-left: 10px;
+    padding-right: 5px;
+    vertical-align: top;
+    border-top: 0px;
+    border-right: 0px;
+    border-bottom: 0px;
+    border-left: 0px;
+}
+
+table.btn .pad {
+    text-align: center;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+table.btn .btn-main {
+    width: 100%;
+}
+
+.btn-main {
+    text-decoration: none;
+    display: block;
+    color: #ffffff;
+    border-radius: 4px;
+    width: calc(50% - 2px);
+    font-weight: 400;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    font-family: Arial, Helvetica Neue, Helvetica, sans-serif;
+    text-align: center;
+    /* mso-border-alt: none; */
+    word-break: keep-all;
+}
+
+.btn-main > span {
+    padding-left: 20px;
+    padding-right: 20px;
+    font-size: 16px;
+    display: inline-block;
+    letter-spacing: normal;
+}
+
+.btn-main > span > span {
+    line-height: 32px;
+}
+
+.btn-main.danger {
+    background-color: #ff3300;
+    border-top: 1px solid #ff3300;
+    border-right: 1px solid #ff3300;
+    border-bottom: 1px solid #ff3300;
+    border-left: 1px solid #ff3300;
+}

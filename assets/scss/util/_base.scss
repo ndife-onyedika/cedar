@@ -1,0 +1,195 @@
+$primary: #198754;
+$border-radius: 0.25rem;
+@font-face {
+    font-family: Poppins;
+    src: url(/static/fonts/Poppins-Regular.ttf);
+}
+
+@import "../../vendor/scss/bootstrap/bootstrap.scss";
+
+$bp-xl: 1399.98px; //1200px
+$bp-lg: 1199.98px; //1000px
+$bp-md: 991.98px; //800px
+$bp-sm: 767.98px; //600px
+$bp-xs: 575.98px; //400px
+
+body {
+    font-family: Poppins !important;
+}
+
+.bi {
+    height: 1rem;
+    width: 1rem;
+}
+
+.notify {
+    > span {
+        top: 0.5rem;
+        right: 0.5rem;
+        position: absolute;
+        width: 1.6rem;
+        height: 1.6rem;
+        display: flex;
+        border-radius: var(--border-radius);
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+
+        svg {
+            width: 1.2rem;
+            height: 1.2rem;
+            margin: unset;
+        }
+    }
+}
+
+.status {
+    padding: 1rem;
+    width: 100%;
+    margin: 0 auto;
+    text-align: center;
+    display: inline-flex;
+    justify-content: center;
+    border-radius: var($border-radius-sm);
+
+    &-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 0.5rem;
+        padding: 0.2rem;
+        height: 100%;
+        border-radius: 10rem;
+        cursor: pointer;
+        transition: all 0.5s;
+
+        > svg {
+            width: 1.6rem;
+            height: 1.6rem;
+            fill: currentColor;
+        }
+    }
+
+    @each $color, $value in $theme-colors {
+        &-#{$color} {
+            --bs-bg-opacity: 0.25;
+            // background-color: rgba(to-rgb($value), var(--bs-bg-opacity));
+
+            > svg {
+                fill: #{$value} !important;
+            }
+        }
+
+        &-#{$color} {
+            color: #{$value};
+            --bs-bg-opacity: 0.25;
+            // background-color: rgba(to-rgb($value), var(--bs-bg-opacity));
+        }
+
+        &-icon {
+            --bs-bg-opacity: 0.25;
+            // background-color: rgba(to-rgb($value), var(--bs-bg-opacity));
+            &:hover {
+                background-color: #{$value};
+            }
+        }
+    }
+}
+
+.red {
+    color: var(--color-danger);
+}
+
+.none {
+    display: none;
+}
+
+.make {
+    &-visible {
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    &-hidden {
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+}
+
+#loader {
+    transition: all 0.3s ease-in-out;
+    opacity: 1;
+    visibility: visible;
+    position: fixed;
+    height: 100vh;
+    width: 100%;
+    background: #fff;
+    z-index: 90000;
+
+    &.fadeOut {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    position: absolute;
+    top: calc(50% - 20px);
+    left: calc(50% - 20px);
+    background-color: var(--color-primary-dark);
+    border-radius: 100%;
+    -webkit-animation: sk-scaleout 1s infinite ease-in-out;
+    animation: sk-scaleout 1s infinite ease-in-out;
+}
+
+@-webkit-keyframes sk-scaleout {
+    0% {
+        -webkit-transform: scale(0);
+    }
+
+    100% {
+        -webkit-transform: scale(1);
+        opacity: 0;
+    }
+}
+
+@keyframes sk-scaleout {
+    0% {
+        -webkit-transform: scale(0);
+        transform: scale(0);
+    }
+
+    100% {
+        -webkit-transform: scale(1);
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+.note {
+    padding: 2rem;
+    background-color: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+
+    & * {
+        line-height: 1.2;
+    }
+
+    ul {
+        list-style: none;
+        padding: unset;
+    }
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+}
+input[type="number"] {
+    -moz-appearance: textfield !important;
+}

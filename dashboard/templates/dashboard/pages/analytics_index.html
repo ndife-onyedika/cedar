@@ -1,0 +1,494 @@
+{% extends 'dashboard/pages/analytics_base_layout.html' %}
+{% load static %}
+
+{% block mini_head %}
+<link rel="stylesheet" href="{% static 'vendor/css/daterangepicker.css' %}">
+<link rel="stylesheet" href="{% static 'vendor/css/print.min.css' %}">
+{% endblock mini_head %}
+
+{% block service_block %}
+<div>
+    <div class="p-2 p-md-3">
+        <div class="card shadow border border-white">
+            <div class="card-header bg-white d-flex flex-wrap-reverse flex-sm-nowrap">
+                {% if dashboard.context == "members" or dashboard.context == "loans" or dashboard.context == "savings" %}
+                <div class="btn-group col-12 col-sm-auto" role="group" aria-label="Table Tabs">
+                </div>
+                {% endif %}
+
+                <div class="ms-0 ms-sm-auto mb-2 mb-sm-0 col-12 col-sm-6 col-md-3">
+                    <div class="input-group">
+                        {% if dashboard.context == "members" %}
+
+                        <input type="text" class="form-control" id="search" placeholder="Search..." aria-label="Search">
+                        <span class="input-group-text">
+                            <svg class="bi">
+                                <use xlink:href="{% static 'svg/sprite.svg' %}#icon-search-outline"></use>
+                            </svg>
+                        </span>
+                        {% else %}
+                        <span class="input-group-text">
+                            <svg class="bi">
+                                <use xlink:href="{% static 'svg/sprite.svg' %}#icon-date-outline"></use>
+                            </svg>
+                        </span>
+                        <input type="text" readonly id="search_date" class="form-control" value="" name="daterange"
+                            placeholder="Search by Date" />
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex flex-wrap flex-sm-nowrap">
+                    {% if dashboard.context == "members" %}
+                    <div>
+                        <div class="hstack gap-2">
+                            <label for="sort_by" class="lh-1">Sort by:</label>
+                            <select class="form-select" id="sort_by" aria-label="Sort By">
+                                <option selected value="all">All</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="me-0 me-sm-auto mb-2 mb-sm-0 col-12 col-sm-6 col-md-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="search" placeholder="Search..."
+                                aria-label="Search">
+                            <span class="input-group-text">
+                                <svg class="bi">
+                                    <use xlink:href="{% static 'svg/sprite.svg' %}#icon-search-outline"></use>
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="hstack gap-2 ms-auto">
+                        <button type="button" class="btn btn-primary" id="prtBtn" disabled>Print</button>
+                        {% if dashboard.context != "savings.interest" %}
+                        <button type="button" class="btn btn-danger" id="delBtn" disabled data-bs-toggle="modal"
+                            data-bs-target="#cm" data-value>Delete</button>
+                        {% endif %}
+                    </div>
+
+                </li>
+            </ul>
+            <div class="overflow-auto">
+                <table class="table text-center mb-0">
+                    <thead class="table-light position-sticky top-0"></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-white d-flex justify-content-between">
+                <div>
+                    <div class="hstack gap-2">
+                        <label for="per_page" class="lh-1">Per Page:</label>
+                        <select disabled id="per_page" class="form-select" aria-label="Show per page">
+                            <option selected value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="pagination">
+                    <nav aria-label="Page navigation example">
+                        <ul class="pagination mb-0">
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% block services_hidden %}{% endblock  %}
+{% endblock  %}
+
+{% block dashboard_script %}
+<script src="{% static 'vendor/js/daterangepicker.js' %}"></script>
+<script src="{% static 'vendor/js/print.min.js' %}"></script>
+<script>
+    let printData = [];
+    let member = "{{member.id}}";
+    member = member != "" ? member : null;
+    const table_name = "{{dashboard.context}}";
+    const table_tabs = {
+        members: [
+            ["all", "All"],
+            ["normal", "Normal"],
+            ["staff", "Staff"],
+        ],
+        loans: [
+            ["disbursed", "Disbursed"],
+            ["terminated", "Terminated"]
+        ],
+        savings: [
+            ["all", "All"],
+            ["credit", "Credit"],
+            ["debit", "Debit"]
+        ]
+    }
+    const table_heads = {
+        members: ["Name", "Balance", "Status", "Account Number", "Account Type", "Date Registered"],
+        savings: ["Reason", "Date Created"],
+        "savings.interest": ["Interest", "Compounding Interest?", "Has Started Compounding?",
+            "Disabled?", "Date Created", "Date Updated"
+        ],
+        loans: {
+            disbursed: ["Outstanding Amount", "Rate", "Duration", "Guarantors",
+                "Date Created", "Date Updated", "More"
+            ],
+            terminated: ["Rate", "Duration", "Guarantors", "Date Created",
+                "Date Terminated", "More"
+            ]
+        },
+        "loans.repay": ["Date Paid"],
+        shares: ["Dated Created"],
+        eoy: ["Dated Created"]
+    }
+
+    $('#search_date').daterangepicker({
+        "drops": "down",
+        "opens": "left",
+        "showDropdowns": true,
+        "autoUpdateInput": false,
+        "alwaysShowCalendars": true,
+    }, function (start, end, label) {
+        this.element.val(`${start.format('Do MMM YYYY')} - ${ end.format('Do MMM YYYY')}`)
+        data_parse.search_by = "date";
+        data_parse.search_data = [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
+        tabulate();
+    });
+
+
+    function populateTable(per_page, page, sort_by, context, search_by, search_data, table_name) {
+        if (table_name == "loans") context = context ? context : table_tabs[table_name]
+            [0][0];;
+
+        let table_tab = table_tabs[table_name];
+        let table_head = !context ?
+            table_heads[table_name] : (
+                context && ["members", "savings"].includes(table_name) ?
+                table_heads[table_name] : table_heads[table_name][context]
+            );
+        table_head = [
+            "#",
+            ...(!["members", "loans.repay"].includes(table_name) && !member ? ["Member"] : []),
+            ...(!["members", "shares"].includes(table_name) || table_name == "shares" && member ? ["Amount"] : []),
+            ...(table_name == "shares" && !member ? ["Total Shares"] : []),
+            ...table_head,
+            ...(table_name == "shares" && !member ? ["Date Updated"] : [])
+        ]
+
+        data_parse["head"] = table_name != "loans" ? table_head : table_head.slice(0, -1);
+
+
+        if (table_tab) {
+            context = context ? context : table_tab[0][0];
+            $(".card .btn-group").html(
+                `${(table_tab.map((tab, i) => `
+                    <input type="radio" class="btn-check" value="${tab[0]}" name="tableTab" id="tab${i}" autocomplete="off" ${context == tab[0] ? 'checked' : ''}>
+                    <label class="btn btn-outline-primary px-4" for="tab${i}">${tab[1]}</label>`)).join("")
+                }`
+            )
+        }
+        $(".table thead").html(
+            `<tr>
+                <th scope="col"><input class="form-check-input" type="checkbox" id="tableChkMaster" value="" aria-label="..."></th>
+                ${table_head.map(title => `<th scope="col">${title}</th>`)}
+            </tr>`
+        )
+
+        let urls = {
+            eoy: "{% url 'dashboard:eoy' %}",
+            loans: "{% url 'dashboard:loans' %}",
+            shares: "{% url 'dashboard:shares' %}",
+            savings: "{% url 'dashboard:savings' %}",
+            members: "{% url 'dashboard:members' %}",
+            "savings.interest": "{% url 'dashboard:savings' %}",
+        }
+
+        $.ajax({
+            url: "{% url 'ajax:dt' %}",
+            data: {
+                "page": page,
+                "member": member,
+                "sort_by": sort_by,
+                "per_page": per_page,
+                "search_by": search_by,
+                "table_context": context,
+                "table_name": table_name,
+                "search_data": search_data,
+
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.content.length != 0) {
+                    let table_rows = ``;
+                    for (let i = 0; i < data.content.length; i++) {
+                        table_rows += `
+                            <tr class="align-middle">
+                                <td><input class="form-check-input" type="checkbox" id="tableChk${i}" value="${data.content[i].id}" aria-label="..."></td>
+                                <th scope="row">${i+1}</th>
+                                ${!member 
+                                    ? table_name != "loan.repay" 
+                                        ? table_name != "members"
+                                            ?
+                                                `<td>
+                                                    <a href="${`${urls[table_name]}${data.content[i].mid}${
+                                                            table_name == "savings.interest"
+                                                                ? '/interests/' : ''
+                                                        }`}">
+                                                        ${data.content[i].name}
+                                                    </a>
+                                                </td>`
+                                            : `<td><a href="${urls[table_name]}${data.content[i].id}">${data.content[i].name}</a></td>`
+                                        : '' 
+                                    : ''
+                                }
+                                ${table_name != "members" 
+                                    ? (
+                                        table_name == "savings" 
+                                        ? `<td><span class="text-${data.content[i].amount.startsWith("+")?"primary":"danger"}">${data.content[i].amount.slice(1)}</span></td>` 
+                                        : `<td>${data.content[i].amount}</td>`
+                                    ) : ""
+                                }
+                                ${table_name == "members" 
+                                    ? `<td>${data.content[i].balance}</td>
+                                        <td>
+                                            <span class="badge text-bg-${
+                                                data.content[i].status.toLowerCase() == "active"
+                                                    ? "primary" : "danger"
+                                            }">
+                                                ${data.content[i].status}
+                                            </span>
+                                        </td>
+                                        <td>${data.content[i].acc_no}</td>
+                                        <td>${data.content[i].acc_type}</td>` 
+                                    : ''
+                                }
+                                ${table_name == "savings" ? `<td>${data.content[i].reason}</td>` : ''}
+                                ${table_name == "savings.interest" 
+                                    ? `<td>${data.content[i].interest}</td>
+                                        <td>${data.content[i].isc?'Yes':'No'}</td>
+                                        <td>${data.content[i].sc?'Yes':'No'}</td>
+                                        <td>${data.content[i].disabled?'Yes':'No'}</td>` 
+                                    : ''
+                                }
+                                ${table_name == "loans" && context == "disbursed" ? `<td>${data.content[i].outstanding_amount}</td>` : ''}
+                                ${table_name == "loans" 
+                                    ? `<td>${data.content[i].rate}</td>
+                                        <td>${data.content[i].duration}</td>
+                                        <td class="py-0">
+                                            <ul class="list-group rounded-0">
+                                                ${data.content[i].guarantors.map(guar=>`<li class="list-group-item"><a href="{% url 'dashboard:home' %}members/${guar.mid}">${guar.name}</a></li>`).join("")}
+                                            </ul>
+                                        </td>` 
+                                    : ''
+                                }
+                                <td>${to_local_time(data.content[i].created_at)}</td>
+                                ${table_name == "savings.interest" 
+                                    || table_name == "loans" && context == "disbursed" 
+                                    || table_name == "shares" && !member
+                                    ? `<td>${to_local_time(data.content[i].updated_at)}</td>` : ""
+                                }
+                                ${table_name == "loans" && context == "terminated" ? `<td>${to_local_time(data.content[i].updated_at)}</td>` : ""}
+                                ${table_name == "loans" ? `<td><button data-bs-toggle="modal" data-bs-target="#lsm" class="btn btn-primary lh-1" type="button">View Repayments</button></td>` : ""}
+                            </tr>
+                        `
+                    }
+                    $(".table tbody").html(table_rows);
+                } else {
+                    $("#tableChkMaster").prop("disabled", true)
+                    $(".table tbody").html(
+                        `<tr class="text-center"><td colspan="${table_head.length + 1}"><h6>No data</h6></td></tr>`
+                    );
+                }
+
+                let pagination = `
+                    <li 
+                        class="page-item ${
+                            !(data.attr.has_other_pages && data.attr.has_previous)
+                                ? 'disabled' : ''
+                        }" 
+                        data-page="${
+                            (data.attr.has_other_pages && data.attr.has_previous)
+                            ? data.attr.prev : ''
+                        }"
+                    >
+                        <button type="button" class="page-link" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </button>
+                    </li>
+                    <li class="page-item">
+                        <input style="width:2.5rem" ${!data.attr.has_other_pages?'disabled':''} class="form-control text-center" placeholder="page" type="number" step="1" min="1" value="${data.attr.number}" aria-label="Page Numeber">
+                    </li>
+                    <li
+                        class="page-item ${
+                            !(data.attr.has_other_pages && data.attr.has_next)
+                                ? 'disabled' : ''
+                        }" 
+                        data-page="${
+                            (data.attr.has_other_pages && data.attr.has_next)
+                            ? data.attr.prev : ''
+                        }"
+                    >
+                        <button type="button" class="page-link" aria-label="Previous">
+                            <span aria-hidden="true">&raquo;</span>
+                        </button>
+                    </li>
+                `
+
+                $('.card-footer .pagination').html(pagination)
+
+                $('.card-footer select option').each(function () {
+                    if ($(this).val() == data.attr.per_page) $(this).attr("selected", "selected")
+                });
+                if (data.has_other_pages) $('.card-footer select').removeAttr("disabled");
+            }
+        });
+    }
+
+    var data_parse = JSON.parse($('#attr').val())
+    var data_stringify = null;
+    var start = end = "";
+
+    function tabulate() {
+        populateTable(data_parse.per_page, data_parse.page, data_parse.sort_by, data_parse.context,
+            data_parse.search_by, data_parse.search_data, data_parse.table_name);
+        data_stringify = JSON.stringify(data_parse);
+        $('#attr').val(data_stringify);
+    }
+    $(document).ready(() => tabulate());
+    $(document).on('change', '#sort_by', function () {
+        data_parse.sort_by = $(this).val();
+        tabulate();
+    })
+    $(document).on('click', '.card-header .btn-group input[name="tableTab"]', function () {
+        data_parse.context = $(this).val();
+        tabulate();
+    })
+    $(document).on('click', '#prev, #next', function () {
+        data_parse.page = $(this).attr('data-page');
+        tabulate();
+    })
+    $(document).on('input', '.pagination-item.with_num input', function () {
+        let value = $(this).val().trim();
+        data_parse.page = value;
+        tabulate();
+    })
+    $(document).on('change', '.card-footer select', function () {
+        data_parse.per_page = $(this).val();
+        tabulate();
+    })
+    $("#search").on('input', function () {
+        data_parse.search_by = "text";
+        data_parse.search_data = $(this).val();
+        tabulate();
+    });
+
+    const check = (status, value) => {
+        let id = parseInt(value);
+        let index = data_parse.selected_id.indexOf(id);
+
+        if (status) index < 0 && data_parse.selected_id.push(id);
+        else data_parse.selected_id.splice(index, 1);
+
+        let arrLen = data_parse.selected_id.length;
+
+        $("#tableChkMaster").prop({
+            indeterminate: arrLen != $("td>input[type='checkbox']").length &&
+                arrLen > 0
+        });
+
+        if (arrLen == $("td>input[type='checkbox']").length)
+            $("#tableChkMaster").prop("checked", true);
+
+
+        $("#delBtn").prop("disabled", !(arrLen > 0));
+        $("#prtBtn").prop("disabled", !(arrLen > 0));
+        $("#delBtn").attr("data-value", !(arrLen > 0) ?
+            null : JSON.stringify({
+                context: "delete",
+                sub_context: table_name,
+                id: data_parse.selected_id
+            })
+        )
+
+    }
+
+    $(document).on("change", "#tableChkMaster", function () {
+        let self = $(this);
+        let isChecked = self.is(":checked");
+        $("td>input[type='checkbox']").each(function () {
+            check(isChecked, $(this).val());
+            $(this).prop("checked", isChecked)
+            self.prop("indeterminate", false);
+        })
+    });
+
+    $(document).on("change", "td>input[type='checkbox']", function () {
+        let isChecked = $(this).is(":checked");
+        check(isChecked, $(this).val());
+    });
+
+    $("#prtBtn").on("click", function () {
+        let self = $(this);
+        let rows = [];
+        let head = Object.assign({}, data_parse.head);
+        $("td>input[type='checkbox']").each(function () {
+            let checkbox = $(this);
+            let isChecked = checkbox.is(":checked");
+            if (isChecked) {
+                let row = {};
+                let count = 0;
+                $(checkbox.parents()[1]).each(function () {
+                    let row = {};
+                    console.log($(this).children().slice(1))
+                    $(this).children().slice(1).each(function () {
+                        let child = $(this);
+                        let tagName = child.children().prop('tagName');
+                        if (
+                            !child.children().length || (child.children().length &&
+                                tagName != "BUTTON")
+                        ) {
+                            let column = "";
+                            if (!child.children().length)
+                                column = child.html().trim();
+                            else {
+                                if (tagName == "A" || tagName == "SPAN")
+                                    column = child.children().html().trim();
+                                else if (tagName == "UL") {
+                                    let li = child.children().children();
+                                    let _lst = [];
+                                    li.each(function () {
+                                        _lst.push($(this).children().html()
+                                            .trim())
+                                    })
+                                    let str =
+                                        `<ul style="padding:unset;list-style-position:inside;">${_lst.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                                    column = str;
+                                }
+                            }
+                            row[head[count]] = column;
+                        }
+                        count++;
+                    })
+                    rows.push(row);
+                })
+            };
+        });
+        console.log(rows)
+        printJS({
+            type: 'json',
+            printable: rows,
+            properties: data_parse.head,
+            header: `<h3 class="custom-h3">{{dashboard.title}} ${$('#search_date').val()!="" && ` (${$('#search_date').val()})`}</h3>`,
+            style: "body {font-family: Poppins} table td,table th{text-align:center}"
+        })
+    })
+</script>
+{% endblock  %}

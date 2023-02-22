@@ -7,14 +7,17 @@ from cedar.constants import MONTH_CHOICES
 class AccountChoice(models.Model):
     name = models.CharField(max_length=50)
 
-    lir = models.FloatField("Loan Interest Percentage")
-    sir = models.FloatField("Savings Interest Percentage", default=4)
-    lsr = models.FloatField("Loan Savings Percentage", default=10)
+    lir = models.FloatField("Loan Interest Rate")
+    sir = models.FloatField("Savings Interest Rate", default=4)
+    lsr = models.FloatField("Loan Savings Rate", default=10)
     ld = models.IntegerField("Loan Duration", default=6)
     psisd = models.IntegerField("Pre-Savings Interest Start Duration", default=3)
     aad = models.IntegerField("Account Activity Duration", default=6)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} Member"
 
 
 class BusinessYear(models.Model):

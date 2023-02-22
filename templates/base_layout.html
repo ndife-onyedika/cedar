@@ -1,0 +1,95 @@
+{% load sass_tags %}
+{% load static %}
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{% block title %}{% endblock  %}</title>
+
+    <meta name="title" content="Marafa Cedar Multipurpose Cooperative Society">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://marafacedar.com.ng">
+    <meta property="og:title" content="Marafa Cedar Multipurpose Cooperative Society">
+    <meta property="og:image" content="https://marafacedar.com.ng/static/img/favicon.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://marafacedar.com.ng">
+    <meta property="twitter:title" content="Marafa Cedar Multipurpose Cooperative Society">
+    <meta property="twitter:image" content="https://marafacedar.com.ng/static/img/favicon.png">
+
+    <meta name="keywords" content="Save, Savings, Loan">
+    <meta name="author" content="Ndife Onyedika Michael">
+
+    {% comment %}
+    <link rel="apple-touch-icon" href="{% static 'img/favicon.png' %}"> {% endcomment %}
+    {% comment %}
+    <link rel="shortcut icon" href="{% static 'img/favicon.png' %}" type="image/x-icon"> {% endcomment %}
+    <link rel="stylesheet" href="{% sass_src 'scss/index.scss' %}" type="text/css">
+    {% block head %}{% endblock  %}
+</head>
+
+<body>
+
+    {% block content %}{% endblock  %}
+
+    <script src="{% static 'vendor/js/jquery-3.3.1.min.js' %}"></script>
+    <script src="{% static 'vendor/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'vendor/js/moment.min.js' %}"></script>
+    <script>
+        $(document).ready(function () {
+            $('.none').find("input,select,textarea,button").prop('disabled', true);
+            $('.form .card_body').each(function () {
+                if ($(this).children().hasClass('errorlist')) {
+                    $(this).find('input, textarea, .custom_dropdown-select').addClass(
+                        'error_field');
+                } else {
+                    $(this).find('input, textarea, .custom_dropdown-select').removeClass(
+                        'error_field');
+                }
+            })
+
+            $('.form_input').each(function () {
+                if ($(this).children().hasClass('errorlist')) {
+                    $(this).find(
+                            'input, textarea, .custom_dropdown-select')
+                        .addClass('error_field');
+                } else {
+                    $(this).find(
+                            'input, textarea, .custom_dropdown-select')
+                        .removeClass('error_field');
+                }
+            })
+        });
+
+
+        $('#backBtn').click(() => window.history.back());
+        const to_local_time = (timestamp) => timestamp ?
+            moment.utc(timestamp).local().format("MMM DD, YYYY, hh:mm a") :
+            "-";
+
+        const relative_time = (timestamp) => timestamp ?
+            moment.utc(timestamp).local().fromNow() :
+            "-";
+        const toggle = (element, context) => {
+            if (context == "show") {
+                $(element).slideDown()
+                $(element).find("input, select, textarea, button").prop("disabled", false)
+            } else {
+                $(element).slideUp()
+                $(element).find("input, select, textarea, button").prop("disabled", true)
+            }
+        }
+        const capitalize = str => str.replace(/(?:^|\s|["'([{])+\S/g, match => match.toUpperCase());
+    </script>
+    {% block script %}{% endblock  %}
+    <script src="{% static 'js/index.js' %}"></script>
+</body>
+
+</html>

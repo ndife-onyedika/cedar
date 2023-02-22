@@ -8,8 +8,8 @@ from django.urls import include, path
 from accounts.views import _logout, login_view, password_reset_request
 from cedar.views import index
 
-admin.site.site_header = "9Mile Administration"
-admin.site.site_title = "9Mile"
+admin.site.site_header = "Marafa Cedar Administration"
+admin.site.site_title = "Marafa Cedar"
 admin.site.empty_value_display = "-empty-"
 
 urlpatterns = [
@@ -52,5 +52,4 @@ urlpatterns = [
     # PASSWORD RESET END
 ]
 if settings.DEBUG:
-    urlpatterns += [path("api/", include("api.urls"))]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -21,7 +21,7 @@ from dashboard.forms import (
 )
 from settings.models import AccountChoice
 
-from .models import Member, User
+from .models import Member, NextOfKin, User
 
 
 class MemberForm(forms.ModelForm):
@@ -63,12 +63,13 @@ class MemberForm(forms.ModelForm):
         data["nok_relationship"] = _validate_empty(
             data=data.get("nok_relationship"), field="nok_relationship"
         )
+        return data
 
 
 class RegistrationForm(MemberForm):
     def __init__(self, *args, **kwargs):
         super(MemberForm, self).__init__(*args, **kwargs)
-        self.fields["account_type"].widget = forms.RadioSelect
+        self.fields["account_type"].widget = forms.RadioSelect()
         self.fields["account_type"].choices = get_account_choices(form=False)
 
     def clean(self):
@@ -97,30 +98,47 @@ class RegistrationForm(MemberForm):
             )
         return data
 
+    def save(self):
+        data = self.cleaned_data
+        member = Member.objects.create(
+            name=data.get("name"),
+            phone=data.get("phone"),
+            email=data.get("email"),
+            avatar=data.get("avatar"),
+            address=data.get("address"),
+            occupation=data.get("occupation"),
+            account_type=data.get("account_type"),
+            account_number=data.get("account_number"),
+        )
+        NextOfKin.objects.create(
+            member=member,
+            name=data.get("nok_name"),
+            phone=data.get("nok_phone"),
+            email=data.get("nok_email"),
+            address=data.get("nok_address"),
+            relationship=data.get("nok_relationship"),
+        )
+        return member
+
 
 class EditMemberForm(MemberForm):
     def __init__(self, *args, **kwargs):
         updated_initial = {}
-        initial_arguments = kwargs.get("initial")
-        acc_type = [(_type.id, _type.name) for _type in AccountChoice.objects.all()]
-        if initial_arguments:
-            self.member = initial_arguments.get("member")
-            updated_initial["nok_name"] = self.member.nextofkin.name
-            updated_initial["nok_email"] = self.member.nextofkin.email
-            updated_initial["nok_phone"] = self.member.nextofkin.get_phone
-            updated_initial["nok_address"] = self.member.nextofkin.address
-            updated_initial["nok_relationship"] = self.member.nextofkin.relationship
+        self.member = kwargs.get("instance")
+        updated_initial["nok_name"] = self.member.nextofkin.name
+        updated_initial["nok_email"] = self.member.nextofkin.email
+        updated_initial["nok_phone"] = self.member.nextofkin.get_phone
+        updated_initial["nok_address"] = self.member.nextofkin.address
+        updated_initial["nok_relationship"] = self.member.nextofkin.relationship
 
         # Finally update the kwargs initial reference
         kwargs.update(initial=updated_initial)
         super(EditMemberForm, self).__init__(*args, **kwargs)
-        self.fields["account_type"].widget = forms.ChoiceWidget
-        self.fields["account_type"].choices = get_account_choices()
+        del self.fields["account_type"]
 
     def clean(self):
         data = self.cleaned_data
         name = data["name"] = _validate_name(name=data.get("name"), field="name")
-
         phone = data["phone"] = _validate_phone(
             phone=data.get("phone"), field="phone", ignore_empty=True
         )
@@ -144,20 +162,25 @@ class EditMemberForm(MemberForm):
                 )
 
         data = self.validate(data)
-
-        if name != "" and data["nok_name"] != "" and name == data["nok_name"]:
+        if "" not in (name, data["nok_name"]) and name == data["nok_name"]:
             raise forms.ValidationError({"nok_name": "Identical name with member"})
-        if email != "" and data["nok_email"] != "" and email == data["nok_email"]:
+        if "" not in (email, data["nok_email"]) and email == data["nok_email"]:
             raise forms.ValidationError({"nok_email": "Identical email with member"})
-        if phone != "" and data["nok_phone"] != "" and phone == data["nok_phone"]:
+        if "" not in (phone, data["nok_phone"]) and phone == data["nok_phone"]:
             raise forms.ValidationError(
                 {"nok_phone": "Identical phone number with member"}
             )
         return data
 
-    def save(self, commit=True):
-        instance = super().save(commit)
+    def save(self):
         data = self.cleaned_data
+        instance = self.instance
+        print(instance)
+        instance.name = data.get("name", instance.name)
+        instance.email = data.get("email", instance.email)
+        instance.phone = data.get("phone", instance.phone)
+        instance.address = data.get("address", instance.address)
+        instance.occupation = data.get("occupation", instance.occupation)
         instance.nextofkin.name = data.get("nok_name", instance.nextofkin.name)
         instance.nextofkin.email = data.get("nok_email", instance.nextofkin.email)
         instance.nextofkin.phone = data.get("nok_phone", instance.nextofkin.phone)
@@ -165,6 +188,7 @@ class EditMemberForm(MemberForm):
         instance.nextofkin.relationship = data.get(
             "nok_relationship", instance.nextofkin.relationship
         )
+        instance.save()
         instance.nextofkin.save()
         return instance
 

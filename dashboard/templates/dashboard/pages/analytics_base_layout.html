@@ -1,0 +1,28 @@
+{% extends 'dashboard/index.html' %}
+{% load static %}
+
+{% block sub_title %} {{ dashboard.title }} {% endblock %}
+
+{% block mini-dash_content %}
+<div>
+	<nav class="navbar navbar-expand-lg bg-light">
+		<div class="container-fluid py-1 py-md-2 px-2 px-md-3">
+			<span class="navbar-brand mb-0 h1">{{dashboard.title}}</span>
+			{% if dashboard.buttons %}
+			<div class="hstack gap-2">
+				{% for btn in dashboard.buttons %}
+				{% if btn.url %}
+				<a href="{{btn.url}}" class="btn {{btn.class}}">{{btn.title}}</a>
+				{% else %}
+				<button type="button" class="btn {{btn.class}}" data-bs-toggle="modal"
+					data-bs-target="{{btn.target}}">{{btn.title}}</button>
+				{% endif %}
+				{% endfor %}
+			</div>
+			{% endif %}
+		</div>
+	</nav>
+
+	{% block service_block %}{% endblock service_block %}
+</div>
+{% endblock  %}

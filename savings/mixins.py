@@ -5,7 +5,6 @@ from cedar.mixins import (
     months_between,
     get_last_day_month,
 )
-from savings.models import SavingsTotal
 from django.utils.timezone import make_aware, datetime, timedelta
 from datetime import time
 
@@ -13,7 +12,7 @@ from notifications.signals import notify
 
 
 def update_savings_total(member, date):
-    from .models import SavingsInterest
+    from .models import SavingsInterest, SavingsTotal
 
     savings_intrs = SavingsInterest.objects.filter(
         member=member,

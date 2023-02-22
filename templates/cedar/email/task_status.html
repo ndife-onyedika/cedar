@@ -1,0 +1,56 @@
+{% extends 'cedar/email/index.html' %}
+
+{% block content_block %}
+<table class="paragraph_block block-1" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
+    <tr>
+        <td class="pad">
+            <div>
+                {% if error_list|length > 0 %}
+                <p>There was an error for the following members</p><br />
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" class="application">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Members</th>
+                            <th>Detail</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member, detail in error_list %}
+                        <tr>
+                            <td>{{forloop.counter}}</td>
+                            <td>{{member}}</td>
+                            <td>{{detail}}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                {% if success_list|length > 0 %}
+                <p>Task ran smoothly for the following members</p><br />
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" class="application">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Members</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in success_list %}
+                        <tr>
+                            <td>{{forloop.counter}}</td>
+                            <td>{{member}}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+        </td>
+    </tr>
+</table>
+<div class="card_body email_surp_admin">
+
+</div>
+{% endblock %}

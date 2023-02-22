@@ -1,0 +1,97 @@
+{% extends 'cedar/email/index.html' %}
+{% block content_block %}
+<table class="paragraph_block block-1" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
+    <tr>
+        <td class="pad">
+            <div>
+                {% block email_description %}{% endblock %}
+
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" class="application">
+                    <tbody>
+                        <!-- BEGIN EMAIL -->
+                        <tr>
+                            <td>Member ID</td>
+                            <td>{{member_id}}</td>
+                        </tr>
+                        <tr>
+                            <td>Member Name</td>
+                            <td>{{name}}</td>
+                        </tr>
+                        <tr>
+                            <td>Member Phone Number</td>
+                            <td>{{phone}}</td>
+                        </tr>
+                        <tr>
+                            <td>Member Email</td>
+                            <td>{{email}}</td>
+                        </tr>
+                        <tr>
+                            <td>Currency</td>
+                            <td>{{currency}}</td>
+                        </tr>
+                        <tr>
+                            <td>Mode of Payment</td>
+                            <td>{{mode_payment}}</td>
+                        </tr>
+                        {% block email_table_extra %}
+                        {% endblock %}
+                    </tbody>
+                </table><br />
+
+                {% if mode_payment|lower != "wallet" %}
+                <table class="btn" align="center" width="100%" border="0" cellpadding="0" cellspacing="0"
+                    role="presentation">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <table class="row-content stack" align="center" border="0" cellpadding="0"
+                                    cellspacing="0" role="presentation" style="color: #000000; width: 500px;"
+                                    width="500">
+                                    <tbody>
+                                        <tr>
+                                            <td class="column column-1" width="50%">
+                                                <table class="button_block block-2" width="100%" border="0"
+                                                    cellpadding="0" cellspacing="0" role="presentation" style="">
+                                                    <tr>
+                                                        <td class="pad">
+                                                            <div class="alignment" align="center">
+                                                                <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" style="height:42px;width:300px;v-text-anchor:middle;" arcsize="10%" stroke="false" fillcolor="#8a3c90"><w:anchorlock/><v:textbox inset="0px,0px,0px,0px"><center style="color:#ffffff; font-family:Arial, sans-serif; font-size:16px"><![endif]-->
+                                                                <a href="{{ protocol }}://{{domain}}{% url 'approvals' token=accept_token %}"
+                                                                    target="_blank"
+                                                                    class="btn-main"><span><span>Approve</span></span></a>
+                                                                <!--[if mso]></center></v:textbox></v:roundrect><![endif]-->
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+
+                                            <td class="column column-2" width="50%">
+                                                <table class="button_block block-2" width="100%" border="0"
+                                                    cellpadding="0" cellspacing="0" role="presentation" style="">
+                                                    <tr>
+                                                        <td class="pad">
+                                                            <div class="alignment" align="center">
+                                                                <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" style="height:42px;width:300px;v-text-anchor:middle;" arcsize="10%" stroke="false" fillcolor="#8a3c90"><w:anchorlock/><v:textbox inset="0px,0px,0px,0px"><center style="color:#ffffff; font-family:Arial, sans-serif; font-size:16px"><![endif]-->
+                                                                <a href="{{ protocol }}://{{domain}}{% url 'approvals' token=reject_token %}"
+                                                                    target="_blank"
+                                                                    class="btn-main danger"><span><span>Reject</span></span></a>
+                                                                <!--[if mso]></center></v:textbox></v:roundrect><![endif]-->
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+        </td>
+    </tr>
+</table>
+{% endblock %}

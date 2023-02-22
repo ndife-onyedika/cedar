@@ -1,0 +1,266 @@
+{% extends 'dashboard/index.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block mini-dash_content %}
+<nav class="navbar navbar-expand-lg bg-white position-sticky" style="top:4rem;z-index:2">
+    <div class="container-fluid py-1 py-md-2 px-2 px-md-3">
+        <span class="navbar-brand mb-0 h1 fw-bold">Details - {{member.name}} </span>
+        <div class="hstack gap-2">
+            {% for btn in dashboard.buttons %}
+            {% if btn.id != "editBtn" %}
+            <button type="button" class="btn {{btn.class}}" id="{{btn.id}}" data-bs-toggle="modal"
+                data-bs-target="{{btn.target}}" data-value="{{btn.value}}">{{btn.title}}</button>
+            {% else %}
+            <div>
+                <input type="checkbox" class="btn-check" id="editBtn" autocomplete="off">
+                <label class="btn btn-primary" for="editBtn">Edit</label>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</nav>
+<div class="row h-100 ms-0 w-100">
+    <div class="col-lg-8 col-12 p-0 mt-0">
+        <div class="vstack gap-3 flex-wrap flex-md-nowrap p-3">
+            <div class="card border-0 shadow w-100">
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-4 profile-image">
+                            <img src="{{member.avatar.url}}" alt="Avatar" />
+
+                            <label for="pro-edit-btn">
+                                <svg>
+                                    <use xlink:href="{% static 'svg/sprite.svg' %}#icon-camera-bold"></use>
+                                </svg>
+                                <input type="file" name="avatar" id="pro-edit-btn" accept="image/*" />
+                            </label>
+                        </div>
+                        <div class="col-md-8 mb-auto">
+                            <span class="profile-span d-none d-md-flex mb-2">My Profile</span>
+                            <div class="row g-2">
+                                <h6 class="fw-bold mb-0 col-6">Account Number:</h6>
+                                <p class="mb-0 col-6">{{member.account_number}}</p>
+                                <h6 class="fw-bold mb-0 col-6">Account Type:</h6>
+                                <p class="mb-0 col-6">{{member.account_type}} <button type="button" id="accBtn"
+                                        class="btn btn-primary p-1 lh-1 ms-1" style="font-size:12px;"
+                                        data-bs-toggle="modal" data-bs-target="#cm"
+                                        data-value='{"id":[{{member.id}}],"context":"account"}'>Change</button>
+                                </p>
+                                <h6 class="fw-bold mb-0 col-6">Status:</h6>
+                                <p class="mb-0 col-6"><span
+                                        class="badge bg-{% if member.is_active %}primary{% else %}danger{% endif %}">{% if member.is_active %}Active{% else %}Inactive{% endif %}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-block d-md-none">
+                {% include "dashboard/pages/widget/savings.html" %}
+            </div>
+            <div class="d-block d-md-none">
+                {% include "dashboard/pages/widget/card.html" %}
+            </div>
+            <div class="d-block d-md-none">
+                {% include "dashboard/pages/widget/savings-txn.html" %}
+            </div>
+
+
+            <div class="card border-0 shadow w-100">
+                <div class="card-body">
+                    <form class="row g-2 member">
+                        {% csrf_token %}
+
+                        <span class="profile-span">Personal Information</span>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{form.name|add_class:"form-control-plaintext"|attr:"readonly"|attr:"placeholder:Name"}}
+                                <label for="{{form.name.id_for_label}}">{{form.name.label}}</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{form.account_number|add_class:"form-control-plaintext"|attr:"readonly"|attr:"placeholder:Name"}}
+                                <label for="{{form.account_number.id_for_label}}">{{form.account_number.label}}</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{form.email|add_class:"form-control-plaintext"|attr:"readonly"|attr:"placeholder:name@example.com"}}
+                                <label for="{{form.email.id_for_label}}">{{form.email.label}}</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{form.phone|add_class:"form-control-plaintext"|attr:"readonly"|attr:"placeholder:Phonenumber"}}
+                                <label for="{{form.phone.id_for_label}}">{{form.phone.label}}</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{form.occupation|add_class:"form-control-plaintext"|attr:"readonly"|attr:"placeholder:Occupation"}}
+                                <label for="{{form.occupation.id_for_label}}">{{form.occupation.label}}</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{form.address|add_class:"form-control-plaintext"|attr:"readonly"|attr:"placeholder:Address"}}
+                                <label for="{{form.address.id_for_label}}">{{form.address.label}}</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+
+
+                        <span class="profile-span mt-3">Next of Kin Information</span>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{form.nok_name|add_class:"form-control-plaintext"|attr:"readonly"|attr:"placeholder:Next of Kin Name"}}
+                                <label for="{{form.nok_name.id_for_label}}">{{form.nok_name.label}}</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{form.nok_email|add_class:"form-control-plaintext"|attr:"readonly"|attr:"placeholder:Next of Kin Email address"}}
+                                <label for="{{form.nok_email.id_for_label}}">{{form.nok_email.label}}</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{form.nok_phone|add_class:"form-control-plaintext"|attr:"readonly"|attr:"placeholder:Next of Kin Phone number"}}
+                                <label for="{{form.nok_phone.id_for_label}}">{{form.nok_phone.label}}</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{form.nok_relationship|add_class:"form-control-plaintext"|attr:"disabled"}}
+                                <label
+                                    for="{{form.nok_relationship.id_for_label}}">{{form.nok_relationship.label}}</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-floating">
+                                {{form.nok_address|add_class:"form-control-plaintext"|attr:"readonly"}}
+                                <label for="{{form.nok_address.id_for_label}}">{{form.nok_address.label}}</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-12 none">
+                            <button type="submit" id="saveBtn" class="btn btn-primary btn-lg mx-auto">Update</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-4 bg-white p-0 mt-0 d-none d-lg-block">
+        <div class="px-2 px-md-3 my-3">
+            {% include "dashboard/pages/widget/savings.html" %}
+        </div>
+
+        <div class="px-2 px-md-3 my-3">
+            {% include "dashboard/pages/widget/savings-txn.html" %}
+        </div>
+
+        <div class="px-2 px-md-3 my-3">
+            {% include "dashboard/pages/widget/card.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block dashboard_script %}
+<script>
+    const toggleForm = status => {
+        $("form.member").find(`
+            select,
+            textarea,
+            input:not([name='csrfmiddlewaretoken'])
+        `).each(function () {
+            $(this).prop({
+                readonly: !status,
+                disabled: !status,
+                class: !status ?
+                    "form-control-plaintext" : (
+                        $(this).prop('tagName') != "SELECT" ?
+                        "form-control" : "form-select"
+                    ),
+            })
+        })
+        $("#saveBtn").prop("disabled", !status)
+        toggle($("#saveBtn").parent(), status ? "show" : "hide")
+    }
+
+    $("#editBtn").on("change", function () {
+        toggleForm($(this).is(":checked"))
+    });
+
+    var updateFormSubmit = {
+        ValidateSubmit: form_data => {
+            // send request to handler
+            return $.ajax({
+                type: "POST",
+                cache: false,
+                data: form_data,
+                contentType: false,
+                processData: false,
+                url: "/ajax/um/{{member.id}}",
+                success: res => { // <----- make sure you use .then
+                    $("form.member .is-invalid").removeClass("is-invalid");
+                    $("form.member .invalid-feedback").removeClass("d-block");
+                    $("form.member .invalid-feedback").html();
+                    console.log(res.status)
+                    if (res.status == "success") {
+                        toggleForm(false);
+                        toast(res.status, res.message);
+                        setTimeout(() => window.location.reload(), 500);
+                    } else {
+                        if (res.message) toast(res.status, res.message);
+                        else Object.entries(res.data).forEach(field => {
+                            let _name = field[0];
+                            let _error = field[1];
+                            let target = $(`form.member #id_${_name}`);
+                            target.addClass("is-invalid");
+                            target.parent().find(".invalid-feedback").html(
+                                _error);
+                            target.parent().find(".invalid-feedback").addClass(
+                                "d-block");
+                        });
+                    }
+                }
+            });
+        }
+    }
+
+    $("form.member").submit(function (e) {
+        console.log($(this))
+        e.preventDefault();
+        var form = this;
+        var self = $(this);
+        let form_data = new FormData();
+        form_data.append('csrfmiddlewaretoken', self.find("input[name='csrfmiddlewaretoken']").val());
+        self.find(
+            `select,
+            textarea,
+            input:not([name='csrfmiddlewaretoken'])
+            `
+        ).each(function () {
+            form_data.append($(this).attr("name"), $(this).val())
+        });
+
+        return updateFormSubmit.ValidateSubmit(form_data);
+    });
+</script>
+{% endblock  %}

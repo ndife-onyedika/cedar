@@ -1,0 +1,183 @@
+.services {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+
+    &-wallet > .card:first-child {
+        grid-row: 1 / span 2;
+        @media (max-width: $bp-md) {
+            grid-row: unset;
+            grid-column: 1 / span 2;
+        }
+
+        .card-body {
+            > .hstack:last-child {
+                > h6 {
+                    &:first-child {
+                        background-color: rgba(25, 135, 84, 0.3) !important;
+                    }
+                    &:last-child {
+                        background-color: rgba(220, 53, 69, 0.3) !important;
+                    }
+                }
+            }
+        }
+    }
+    &-wallet {
+        grid-template-columns: repeat(3, 1fr);
+
+        @media (max-width: $bp-md) {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        > div:nth-child(2),
+        > div:nth-child(4) {
+            h5 {
+                color: $primary;
+            }
+        }
+        > div:nth-child(3),
+        > div:nth-child(5) {
+            h5 {
+                color: $danger;
+            }
+        }
+    }
+}
+.services-wallet > .card:first-child,
+.wallet-card {
+    background-color: $gray-800 !important;
+    h5,
+    h6 {
+        color: #fff !important;
+    }
+
+    h5 {
+        font-size: xx-large;
+    }
+
+    .span-icon {
+        color: #fff !important;
+        background-color: rgba(255, 255, 255, 0.5) !important;
+    }
+}
+.notification {
+    &-main {
+        padding: 1.5rem;
+        margin-bottom: 6rem;
+
+        > .card {
+            overflow: hidden;
+
+            &:not(:last-child) {
+                margin-bottom: 1rem;
+            }
+
+            > .card_body {
+                transition: background-color 0.5s ease;
+                overflow-y: hidden;
+                border-bottom: 0.1rem solid var(--color-grey-light);
+                cursor: pointer;
+
+                &.read {
+                    font-style: italic;
+
+                    &:hover {
+                        background-color: var(--color-grey-light);
+                    }
+
+                    h6 {
+                        font-weight: normal;
+                    }
+                }
+
+                &.unread {
+                    background-color: var(--color-grey-light);
+
+                    &:hover {
+                        background-color: var(--color-grey-light-2);
+                    }
+
+                    h6 {
+                        font-weight: bold;
+                    }
+                }
+
+                > div {
+                    width: 100%;
+
+                    &:first-child {
+                        display: grid;
+                        grid-template-columns: max-content 1fr;
+                        grid-template-rows: repeat(2, min-content);
+                        position: relative;
+                        padding: 1rem 0.5rem;
+                        gap: 0.5rem;
+
+                        > span {
+                            top: 0;
+                            right: 0;
+                            position: absolute;
+                            width: 1.6rem;
+                            height: 1.6rem;
+                            display: flex;
+                            border-radius: var(--border-radius);
+                            align-items: center;
+                            justify-content: center;
+                            cursor: pointer;
+
+                            svg {
+                                width: 1.2rem;
+                                height: 1.2rem;
+                                margin: unset;
+                            }
+
+                            &:hover {
+                                background-color: var(--color-grey-dark-light);
+                            }
+                        }
+
+                        h6 {
+                            font-size: inherit;
+                            margin: unset;
+                        }
+
+                        small {
+                            color: var(--color-grey);
+                            grid-column: -2 / -1;
+                        }
+
+                        div {
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            grid-row: -1 / -3;
+                            padding: 0.5rem;
+                            border-radius: 10rem;
+                            width: 100%;
+                            height: 3.5rem;
+
+                            > svg {
+                                width: 2.5rem;
+                                height: 2.5rem;
+                                margin: unset;
+                            }
+                        }
+                    }
+
+                    &:nth-child(2) {
+                        overflow-y: auto;
+                        padding: 0.5rem;
+                        display: none;
+                    }
+                }
+            }
+        }
+    }
+}

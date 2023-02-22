@@ -1,0 +1,46 @@
+{% load static %}
+
+{% load notifications_tags %}
+{% notifications_unread as unread_count %}
+<!-- routes -->
+<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap shadow pe-md-0 pe-3">
+  <span class="navbar-brand col-md-3 col-lg-2 me-0 px-3 h3 mb-0">Marafa Cedar</span>
+  <div class="hstack gap-2">
+    <ul class="nav col-md-auto justify-content-center text-small">
+      <li id="notify" class="dropdown d-flex align-items-center">
+        <span
+          class="rounded-circle p-2 d-flex align-items-center justify-content-center link-dark text-decoration-none dropdown-toggle position-relative"
+          data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+          <svg class="d-block mx-auto" width="24" height="24">
+            <use xlink:href="{% static 'svg/sprite.svg' %}#icon-notification-outline" />
+          </svg>
+          <span id="bubble" style="top:30%;left:70%;"
+            class="position-absolute translate-middle p-1 bg-danger border border-light rounded-circle">
+            <span class="visually-hidden">New alerts</span>
+          </span>
+        </span>
+
+        <ul style="width:25rem;" class="dropdown-menu dropdown-menu-end py-3 text-small shadow border-0">
+          <li>
+            <h6 class="fs-5 dropdown-header fw-bold">Notifications</h6>
+          </li>
+          <li>
+            <hr class="dropdown-divider">
+          </li>
+          <li>
+            <ul class="list-group rounded-0 overflow-auto" style="max-height: 30rem;" id="notifications"></ul>
+          </li>
+        </ul>
+      </li>
+      <li class="d-none d-md-block">
+        <a class="nav-link px-3 link-light" href="{% url 'sign_out' %}">Sign out</a>
+      </li>
+    </ul>
+    <div class="vr bg-white"></div>
+    <button class="navbar-toggler d-md-none collapsed" type="button" data-bs-toggle="collapse"
+      data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+  </div>
+
+</header>

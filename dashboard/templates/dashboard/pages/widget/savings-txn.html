@@ -1,0 +1,54 @@
+{% load static %}
+
+<div class="card mb-0 mb-md-3 border-0">
+    <div class="card-header border-0" data-bs-toggle="collapse" data-bs-target="#rwtc" aria-expanded="false"
+        aria-controls="rwtc">
+        <h6 class="fw-bold">Recent Savings Transactions</h6>
+    </div>
+    <div class="card-body p-1 collapse show overflow-auto" style="max-height: 300px" id="rwtc">
+        {% if savings.txn %}
+        {% for txn in savings.txn %}
+        <div class="hstack gap-2 mb-2">
+            <div class="card align-self-stretch">
+                <div
+                    class="card-body h-100 d-flex align-items-center justify-content-cneter p-1 text-{% if txn.amount|slice:":1" == "+" %}primary{% else %}danger{% endif %}">
+                    <svg style="width:1rem;height:1rem;fill:currentColor;">
+                        <use
+                            xlink:href="{% static 'svg/sprite.svg' %}#icon-{% if txn.amount|slice:":1" == "+" %}credit{% else %}debit{% endif %}-outline">
+                        </use>
+                    </svg>
+                </div>
+            </div>
+            <div class="vstack gap-1">
+                {% if member %}
+                <span class="lh-1 fw-bold">{{txn.reason}}</span>
+                {% else %}
+                <span class="lh-1 fw-bold">{{txn.member}}</span>
+                <span class="lh-1">{{txn.reason}}</span>
+                {% endif %}
+                <span class="text-muted lh-1">{{txn.timestamp}}</span>
+            </div>
+            <div class="text-{% if txn.amount|slice:":1" == "+" %}primary{% else %}danger{% endif %}">
+                {{txn.amount|slice:"1:"}}
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="hstack gap-2 mb-2 align-items-center">
+            <div class="card align-self-stretch ">
+                <div class="card-body p-1 text-muted d-flex align-items-center justify-content-cneter h-100">
+                    <svg style="width:1rem;height:1rem;fill:currentColor;">
+                        <use xlink:href="{% static 'svg/sprite.svg' %}#icon-error-bold">
+                        </use>
+                    </svg>
+                </div>
+            </div>
+            <div class="vstack gap-1">
+                <span class="fw-bold lh-1">No Transactions</span>
+                <small class="text-muted lh-1">----</small>
+            </div>
+            <div>-</div>
+        </div>
+        {% endif %}
+    </div>
+</div>

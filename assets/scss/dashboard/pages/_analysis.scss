@@ -1,0 +1,254 @@
+// .loan_analysis,
+// .invest_analysis {
+//     >main {
+//         display: grid;
+//         grid-template-columns: repeat(2, 1fr);
+//         gap: 2rem;
+//         overflow-y: auto;
+
+//         >section:first-child>div,
+//         >section:nth-child(2) {
+//             &.table {
+//                 h5 {
+//                     margin: unset;
+//                 }
+
+//                 >div {
+//                     display: flex;
+//                     flex-direction: row;
+//                 }
+
+//                 .table_head {
+//                     flex-basis: 55%;
+
+//                     >div {
+//                         padding: .5rem;
+//                         display: flex;
+//                         align-items: center;
+
+//                         >span {
+//                             margin-right: 1rem;
+//                             display: flex;
+//                             align-items: center;
+//                             justify-content: center;
+//                             width: 2.5rem;
+//                             height: 2.5rem;
+//                             border-radius: 10rem;
+
+//                             >svg {
+//                                 width: 1.5rem;
+//                                 height: 1.5rem;
+//                             }
+//                         }
+//                     }
+//                 }
+
+//                 .table_body {
+//                     flex: 1;
+
+//                     >div {
+//                         height: 100%;
+
+//                         #mem_stat {
+//                             display: flex;
+//                             align-items: center;
+
+//                             >svg {
+//                                 width: 2rem;
+//                                 height: 2rem;
+//                                 margin-left: .5rem;
+//                             }
+
+//                             .btn {
+//                                 margin: unset;
+//                                 border-radius: 10rem;
+//                                 padding: .2rem;
+//                                 margin-left: .5rem;
+
+//                                 svg {
+//                                     width: 1.5rem;
+//                                     height: 1.5rem;
+//                                     margin-right: unset;
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+
+//         >section:first-child {
+//             display: grid;
+//             grid-template-rows: repeat(2, min-content);
+//             gap: 2rem;
+
+//             @media (max-width:$bp-lg) {
+//                 grid-template-rows: unset;
+//                 grid-template-columns: repeat(2, 1fr);
+
+//             }
+
+//             @media (max-width:$bp-lg) {
+//                 grid-template-columns: unset;
+//                 grid-template-rows: repeat(2, min-content);
+
+//             }
+//         }
+
+//         >section:nth-child(3) {
+//             grid-column: 1 / -1;
+
+//             &.table {
+
+//                 .table_head,
+//                 .table_body>div {
+//                     grid-template-columns: repeat(6, 1fr);
+//                 }
+//             }
+//         }
+
+//         >section:nth-child(4) {
+//             grid-column: 1 / -1;
+
+//             &.table {
+
+//                 .table_head,
+//                 .table_body>div {
+//                     grid-template-columns: 5rem repeat(5, 1fr);
+//                 }
+
+//                 .table_body>div>div {
+//                     display: flex;
+//                     align-items: center;
+//                 }
+//             }
+//         }
+
+//         @media (max-width:$bp-lg) {
+//             grid-template-columns: unset;
+//             grid-template-rows: repeat(2, min-content);
+
+//         }
+//     }
+
+// }
+
+// .loan_repay_analysis {
+//     >main {
+//         padding: 2rem;
+//         display: grid;
+//         grid-template-rows: repeat(2, min-content);
+//         gap: 2rem;
+//         overflow-y: auto;
+
+//         >section:first-child {
+//             display: grid;
+//             grid-template-columns: repeat(2, 1fr);
+//             gap: 2rem;
+
+//             // @media (max-width:$bp-lg) {
+//             //     grid-template-rows: unset;
+//             //     grid-template-columns: repeat(2, 1fr);
+
+//             // }
+
+//             // @media (max-width:$bp-lg) {
+//             //     grid-template-columns: unset;
+//             //     grid-template-rows: repeat(2, min-content);
+
+//             // }
+//             >div {
+//                 &.table {
+//                     h5 {
+//                         margin: unset;
+//                     }
+
+//                     >div {
+//                         display: flex;
+//                         flex-direction: row;
+//                     }
+
+//                     .table_head {
+//                         flex-basis: 55%;
+
+//                         >div {
+//                             padding: .5rem;
+//                             display: flex;
+//                             align-items: center;
+
+//                             >span {
+//                                 margin-right: 1rem;
+//                                 display: flex;
+//                                 align-items: center;
+//                                 justify-content: center;
+//                                 width: 2.5rem;
+//                                 height: 2.5rem;
+//                                 border-radius: 10rem;
+
+//                                 >svg {
+//                                     width: 1.5rem;
+//                                     height: 1.5rem;
+//                                 }
+//                             }
+//                         }
+//                     }
+
+//                     .table_body {
+//                         flex: 1;
+
+//                         >div {
+//                             height: 100%;
+
+//                             #mem_stat {
+//                                 display: flex;
+//                                 align-items: center;
+
+//                                 >svg {
+//                                     width: 2rem;
+//                                     height: 2rem;
+//                                     margin-left: .5rem;
+//                                 }
+
+//                                 .btn {
+//                                     margin: unset;
+//                                     border-radius: 10rem;
+//                                     padding: .2rem;
+//                                     margin-left: .5rem;
+
+//                                     svg {
+//                                         width: 1.5rem;
+//                                         height: 1.5rem;
+//                                         margin-right: unset;
+//                                     }
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+
+//         >section:last-child {
+
+//             &.table {
+
+//                 .table_head,
+//                 .table_body>div {
+//                     grid-template-columns: 5rem repeat(4, 1fr);
+//                 }
+
+//                 .table_body>div>div {
+//                     display: flex;
+//                     align-items: center;
+//                 }
+//             }
+//         }
+
+//         @media (max-width:$bp-lg) {
+//             grid-template-columns: unset;
+//             grid-template-rows: repeat(2, min-content);
+
+//         }
+//     }
+
+// }

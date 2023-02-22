@@ -1,3 +1,4 @@
+from re import T
 from django.db import models
 
 from accounts.models import Member, User
@@ -20,7 +21,9 @@ class LoanRequest(models.Model):
 
     duration = models.IntegerField()
     interest_rate = models.FloatField()
-    status = models.CharField(max_length=50, choices=LOAN_STATUS_CHOICES)
+    status = models.CharField(
+        max_length=50, choices=LOAN_STATUS_CHOICES, default="disbursed"
+    )
 
     guarantor_1 = models.ForeignKey(
         Member, null=True, related_name="guarantor_1", on_delete=models.SET_NULL
@@ -31,7 +34,7 @@ class LoanRequest(models.Model):
 
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(default=timezone.now)
-    terminated_at = models.DateTimeField()
+    terminated_at = models.DateTimeField(blank=True, null=True)
 
 
 class LoanRepayment(models.Model):
@@ -45,6 +48,10 @@ class LoanRepayment(models.Model):
 @receiver(post_save, sender=LoanRequest)
 def post_loan_save(sender, instance: LoanRequest, **kwargs):
     admin = User.objects.get(is_superuser=True)
+    if kwargs["created"]:
+        instance.outstanding_amount = instance.amount
+        instance.save()
+
     if instance.status == "terminated" and not instance.terminated_at:
         instance.terminated_at = timezone.now()
         instance.save()
@@ -52,7 +59,7 @@ def post_loan_save(sender, instance: LoanRequest, **kwargs):
             admin,
             level="info",
             verb="Loan: Termination",
-            recipients=User.objects.exclude(is_superuser=False),
+            recipient=User.objects.exclude(is_superuser=False),
             description="{}'s loan has completed payment for loan and is hereby terminated.".format(
                 instance.member.name
             ),
@@ -77,7 +84,7 @@ def post_loan_repay_save(sender, instance: LoanRepayment, **kwargs):
                     admin,
                     level="info",
                     verb="Loan: Repayment",
-                    recipients=User.objects.exclude(is_superuser=False),
+                    recipient=User.objects.exclude(is_superuser=False),
                     description="{} has made a repayment of {} for his/her {} loan. Outstanding Balance is {}.".format(
                         member.name,
                         get_amount(instance.amount),

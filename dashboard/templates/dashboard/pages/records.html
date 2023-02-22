@@ -1,0 +1,14 @@
+{% extends 'dashboard/pages/analytics_index.html' %}
+
+{% block services_hidden %}
+<input type="hidden" id="attr" value='{
+    "page":1,
+    "per_page":50,
+    "sort_by":null,
+    "search_by":null,
+    "selected_id":[],
+    "search_data":null,
+    "table_context":null,
+    "table_name":"{{dashboard.context}}"
+}' />
+{% endblock  %}

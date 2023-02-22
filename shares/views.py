@@ -3,12 +3,14 @@ from django.shortcuts import get_object_or_404, render
 from django.views.generic import TemplateView
 
 from accounts.models import Member
+from shares.forms import ShareAddForm
 
 
 # Create your views here.
 class ShareListView(LoginRequiredMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         context = {
+            "asf": ShareAddForm(),
             "dashboard": {
                 "context": "shares",
                 "title": "Shares",
@@ -19,9 +21,9 @@ class ShareListView(LoginRequiredMixin, TemplateView):
                         "class": "btn-primary",
                     },
                 ],
-            }
+            },
         }
-        template = f"dashboard/records/index.html"
+        template = f"dashboard/pages/records.html"
         return render(request, template, context)
 
 
@@ -30,9 +32,10 @@ class MemberSharesListView(LoginRequiredMixin, TemplateView):
         member = get_object_or_404(Member, id=member_id)
         context = {
             "member": member,
+            "asf": ShareAddForm(),
             "dashboard": {
                 "context": "shares",
-                "title": "{} Shares".format(member.name),
+                "title": "Shares - {}".format(member.name),
                 "buttons": [
                     {
                         "target": "#asm",
@@ -42,5 +45,5 @@ class MemberSharesListView(LoginRequiredMixin, TemplateView):
                 ],
             },
         }
-        template = f"dashboard/records/index.html"
+        template = f"dashboard/pages/records.html"
         return render(request, template, context)

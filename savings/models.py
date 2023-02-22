@@ -1,4 +1,3 @@
-from enum import member
 from django.db import models
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch.dispatcher import receiver
@@ -22,24 +21,43 @@ class Savings(models.Model):
 
 class SavingsCredit(Savings):
     reason = models.CharField(
-        "Reason for Credit", max_length=50, choices=CREDIT_REASON_CHOICES
+        "Reason for Credit",
+        max_length=50,
+        default="credit-deposit",
+        choices=CREDIT_REASON_CHOICES,
     )
+
+    class Meta:
+        verbose_name_plural = "Savings Credit"
 
 
 class SavingsDebit(Savings):
     reason = models.CharField(
-        "Reason for Debit", max_length=50, choices=DEBIT_REASON_CHOICES
+        "Reason for Debit",
+        max_length=50,
+        default="debit-withdrawal",
+        choices=DEBIT_REASON_CHOICES,
     )
+
+    class Meta:
+        verbose_name_plural = "Savings Debit"
 
 
 class SavingsTotal(CustomAbstractTable):
     member = models.OneToOneField(Member, on_delete=models.CASCADE)
     interest = models.BigIntegerField(default=0)
 
+    class Meta:
+        verbose_name_plural = "Savings Total"
+
 
 class YearEndBalance(CustomAbstractTable):
     member = models.ForeignKey(Member, on_delete=models.CASCADE)
     updated_at = None
+
+    class Meta:
+        verbose_name = "Year End Balance"
+        verbose_name_plural = "Year End Balances"
 
 
 class SavingsInterest(Savings):
@@ -49,6 +67,10 @@ class SavingsInterest(Savings):
     start_comp = models.BooleanField("Started Compounding?", default=False)
     disabled = models.BooleanField(default=False)
     updated_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "Savings Interest"
+        verbose_name_plural = "Savings Interests"
 
 
 @receiver(post_save, sender=SavingsCredit)

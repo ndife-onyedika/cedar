@@ -30,7 +30,7 @@ def send_mail(messages):
             subject=subject,
             from_email=sender,
             attachments=attachments,
-            reply_to=["admin@9mileco.com"],
+            reply_to=["admin@Marafa Cedarco.com"],
             headers={"sender": sender or dj_sett.DEFAULT_FROM_EMAIL},
         )
         msg.content_subtype = "html"

@@ -1,0 +1,20 @@
+{% extends "base_layout.html" %}
+{% load static %}
+
+{% block title %}
+{% block sign_title %}
+{% block sign_sub_title %}{% endblock %} | Marafa Cedar {% endblock %}
+{% endblock %}
+
+{% block content %}
+<main class="signreg">
+    <section class="d-none d-sm-flex">
+        <h2 class="h1 mb-2">Marafa Cedar</h2>
+        <h1 class="h3">{% block sign_head %}{% endblock sign_head %}</h1>
+    </section>
+    <section class="container-fluid">
+        {% block sign_view %}{% endblock sign_view %}
+        <p class="mt-5 mb-3 text-muted">Marafa Cedar &copy; {% now "Y" %}</p>
+    </section>
+</main>
+{% endblock  %}

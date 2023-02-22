@@ -1,3 +1,4 @@
+import json
 from django.contrib import messages as flash_messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -10,31 +11,38 @@ from django.views.generic import TemplateView
 
 from accounts.models import Member, NextOfKin
 from cedar.decorators import redirect_authenticated
+from cedar.mixins import (
+    get_amount,
+    get_savings_total,
+    get_shares_total,
+    get_data_equivalent,
+)
+from savings.forms import SavingsCreditForm, SavingsDebitForm
+from savings.models import SavingsCredit, SavingsDebit, SavingsTotal
 from settings.models import AccountChoice
+from django.db.models.aggregates import Sum
 
-from .forms import CustomPasswordResetForm, LoginForm, RegistrationForm
+from .forms import CustomPasswordResetForm, EditMemberForm, LoginForm, RegistrationForm
 
 
 # Create your views here.
 class MemberListView(LoginRequiredMixin, TemplateView):
-    def get(self, request, context: str, *args, **kwargs):
-        if context not in ("all", "normal", "staff"):
-            raise Http404
+    def get(self, request, *args, **kwargs):
         context = {
+            "mf": RegistrationForm(),
             "dashboard": {
                 "title": "Members",
                 "context": "members",
-                "sub_context": context,
                 "buttons": [
                     {
+                        "target": "#mm",
                         "title": "Add Member",
                         "class": "btn-primary",
-                        "url": resolve_url("dashboard:members.add"),
                     }
                 ],
             },
         }
-        template = f"dashboard/records/index.html"
+        template = f"dashboard/pages/records.html"
         return render(request, template, context)
 
 
@@ -42,25 +50,78 @@ class MemberView(MemberListView):
     def get(self, request, member_id: int, *args, **kwargs):
         member = get_object_or_404(Member, id=member_id)
         context = {
+            "savings": {},
             "member": member,
+            "sdf": SavingsCreditForm(),
+            "swf": SavingsDebitForm(),
+            "form": EditMemberForm(instance=member),
             "dashboard": {
                 "context": "members",
                 "title": "Member Details",
                 "buttons": [
+                    {"id": "editBtn", "title": "Edit", "class": "btn-primary"},
                     {
+                        "id": "setBtn",
+                        "target": "#cm",
                         "title": "Set {}".format(
                             "Active" if not member.is_active else "Inactive"
                         ),
                         "class": "btn-{}".format(
-                            "danger" if not member.is_active else "primary"
+                            "primary" if not member.is_active else "danger"
+                        ),
+                        "value": json.dumps(
+                            {
+                                "id": [member.id],
+                                "context": "status",
+                                "value": "active"
+                                if not member.is_active
+                                else "inactive",
+                            }
                         ),
                     },
-                    {"title": "Edit", "class": "btn-primary"},
-                    {"title": "Delete", "class": "btn-danger"},
+                    {
+                        "id": "delBtn",
+                        "target": "#cm",
+                        "title": "Delete",
+                        "class": "btn-danger",
+                        "value": json.dumps(
+                            {
+                                "id": [member.id],
+                                "context": "delete",
+                                "sub_context": "member",
+                            }
+                        ),
+                    },
                 ],
             },
         }
-        template = f"accounts/pages/member.html"
+        total_savings = get_savings_total(member=member)
+        savings_credit = SavingsCredit.objects.filter(member=member)
+        savings_debit = SavingsDebit.objects.filter(member=member)
+        last_credit = savings_credit.last()
+        last_debit = savings_debit.last()
+        total_shares = get_shares_total(member=member)
+        context["shares"] = get_amount(amount=total_shares)
+        context["savings"]["balance"] = get_amount(amount=total_savings)
+
+        context["savings"]["credit_last"] = get_amount(
+            amount=last_credit.amount if last_credit else 0,
+        )
+        context["savings"]["debit_last"] = get_amount(
+            amount=last_debit.amount if last_debit else 0,
+        )
+        context["savings"]["txn"] = [
+            {
+                "amount": "{}{}".format(
+                    "+" if txn.reason.startswith("credit-") else "-",
+                    get_amount(txn.amount),
+                ),
+                "reason": get_data_equivalent(txn.reason, "src"),
+                "timestamp": txn.created_at,
+            }
+            for txn in savings_credit.union(savings_debit).order_by("-created_at")[:10]
+        ]
+        template = f"accounts/member.html"
         return render(request, template, context)
 
 

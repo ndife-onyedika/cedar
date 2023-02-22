@@ -1,0 +1,19 @@
+{% extends 'cedar/sign_layout.html' %}
+
+{% block sign_sub_title %} Activate account {% endblock %}
+
+
+{% block sign_view %}
+
+<section class="container">
+    <div class="card">
+        <div class="card_body">
+            <h2>You're almost there!</h2>
+            <p>Dear {{member.name}},</p>
+            <p>Your guarantor has to approve your request before approval.</p>
+            <p>You can contact your guarantor to approve.</p>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

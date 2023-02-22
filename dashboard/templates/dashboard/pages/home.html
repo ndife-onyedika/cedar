@@ -1,0 +1,155 @@
+{% extends 'dashboard/index.html' %}
+{% load static %}
+
+{% block mini-dash_content %}
+<div class="row h-100 ms-0 w-100">
+  <div class="col-lg-8 col-12 p-0 mt-0">
+    <nav class="navbar navbar-expand-lg bg-white position-sticky" style="top:4rem;z-index:2">
+      <div class="container-fluid py-1 py-md-2 px-2 px-md-3">
+        <span class="navbar-brand mb-0 h1 fw-bold">Dashboard</span>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#mm">Add Member</button>
+      </div>
+    </nav>
+
+    <div class="px-2 px-md-3 my-3 d-block d-lg-none">
+      {% include "dashboard/pages/widget/savings.html" %}
+    </div>
+
+    <div class="services px-2 px-md-3 mt-0 mt-md-3 mb-3">
+      {% for card in dashboard.cards %}
+      <div class="card shadow-sm border-0">
+        <div class="card-body h-100">
+          <span style="width:3rem;height:3rem"
+            class="me-auto mb-3 d-flex align-items-center justify-content-center badge rounded-circle bg-primary bg-opacity-10 text-primary">
+            <svg style="width:2rem;height:2rem;fill:currentColor;">
+              <use xlink:href="{% static 'svg/sprite.svg' %}#icon-{{card.icon}}"></use>
+            </svg>
+          </span>
+          <h6 class="card-subtitle text-muted">{{card.title}}</h6>
+          <h5 class="card-title fw-bold">{{card.detail}}</h5>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="px-2 px-md-3 mb-3">
+      <div class="card shadow border-0">
+        <div class="card-body h-auto">
+          <canvas id="chart" class="w-100"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-block d-lg-none">
+      <div class="px-2 px-md-3 my-3">
+        {% include "dashboard/pages/widget/savings-txn.html" %}
+      </div>
+
+      <div class="px-2 px-md-3 my-3">
+        {% include "dashboard/pages/widget/card.html" %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-4 bg-white p-0 mt-0 d-none d-lg-block">
+    <div class="px-2 px-md-3 my-3">
+      {% include "dashboard/pages/widget/savings.html" %}
+    </div>
+
+    <div class="px-2 px-md-3 my-3">
+      {% include "dashboard/pages/widget/savings-txn.html" %}
+    </div>
+
+    <div class="px-2 px-md-3 my-3">
+      {% include "dashboard/pages/widget/card.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block dashboard_script %}
+<script src="{% static 'vendor/js/Chart.bundle.min.js' %}"></script>
+<script>
+  (function ($) {
+    /*
+     * We need to turn it into a function.
+     * To apply the changes both on document ready and when we resize the browser.
+     */
+
+    function mediaSize() {
+      /* Set the matchMedia */
+      const matches_800 = window.matchMedia("(max-width: 991.98px)").matches;
+      var ctx = matches_800 ? document.querySelector("#chart") : document.querySelector("#chart");
+
+      ctx.height = 250;
+      $(document).ready(() => $.ajax({
+        dataType: 'json',
+        url: "{% url 'ajax:gc' %}",
+        success: function (data) {
+          const createGradient = (ctx, color) => {
+            const chart = ctx.chart;
+            if (!chart.chartArea) return color;
+
+            const gradient = chart.ctx.createLinearGradient(0, chart.chartArea.bottom, 0, chart
+              .chartArea.top);
+
+            gradient.addColorStop(0, "#ffffff90");
+            gradient.addColorStop(1, color);
+            return gradient;
+          };
+
+          var myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: data.chart.map(item => item["month"]),
+              datasets: [{
+                  lineTension: 0.5,
+                  fill: "start",
+                  label: "Loans Requested",
+                  data: data.chart.map(item => item["loans"]),
+                  borderColor: "#ffa600",
+                  borderWidth: 1.5,
+                  backgroundColor: ctx => createGradient(ctx, "#ffa60090"),
+                },
+                {
+                  lineTension: 0.5,
+                  fill: "start",
+                  label: "Deposits Made",
+                  data: data.chart.map(item => item["deposit"]),
+                  borderColor: "#2bc179",
+                  borderWidth: 1.5,
+                  backgroundColor: ctx => createGradient(ctx, "#2bc17990"),
+                },
+                {
+                  lineTension: 0.5,
+                  fill: "start",
+                  label: "Withdrawals Done",
+                  data: data.chart.map(item => item["withdrawal"]),
+                  borderColor: "#b168bc",
+                  borderWidth: 1.5,
+                  backgroundColor: ctx => createGradient(ctx, "#b168bc90"),
+                }
+              ],
+            },
+            option: {
+              maintainAspectRatio: false,
+              responsive: true,
+              plugins: {
+                legend: {
+                  display: !matches_800,
+                  position: "top",
+                },
+              },
+            }
+          });
+        }
+      }))
+    }
+
+    /* Call the function */
+    mediaSize();
+    /* Attach the function to the resize event listener */
+    window.addEventListener("resize", mediaSize, false);
+  })(jQuery);
+</script>
+{% endblock  %}

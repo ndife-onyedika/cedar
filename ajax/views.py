@@ -1,3 +1,5 @@
+from email.utils import make_msgid
+import json
 from calendar import month_abbr
 
 from django.conf import settings as dj_sett
@@ -6,6 +8,7 @@ from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import IntegrityError, transaction
 from django.db.models.query_utils import Q
 from django.http import JsonResponse
+from django.shortcuts import resolve_url
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from notifications.models import Notification
@@ -15,14 +18,17 @@ from accounts.models import Member, User
 from cedar.mixins import (
     display_duration,
     display_rate,
+    format_date_model,
     get_amount,
     get_data_equivalent,
     get_savings_total,
     get_shares_total,
 )
+from loans.forms import LoanRepaymentForm
 from loans.mixins import check_loan_eligibility
 from loans.models import LoanRepayment, LoanRequest
 from savings.models import SavingsCredit, SavingsDebit, SavingsInterest, YearEndBalance
+from settings.models import AccountChoice
 from shares.models import Shares, SharesTotal
 
 
@@ -42,8 +48,9 @@ def change_avatar(request, member_id):
         message = "Error, refresh browser and try again."
     else:
         try:
-            member.avatar = image
-            member.save()
+            with transaction.atomic():
+                member.avatar = image
+                member.save()
         except IntegrityError as e:
             print(f"MEMBER-AVATAR-UPDATE-ERROR: {e}")
             status = "error"
@@ -58,33 +65,99 @@ def change_avatar(request, member_id):
 
 @login_required
 @require_http_methods(["POST"])
-def member_edit(request, context: str):
-    from accounts.models import Member
-    from settings.models import AccountChoice
+def register_member(request):
+    from accounts.forms import RegistrationForm
 
     data = {}
-    _ids = request.POST.getlist("ids[]")
-    try:
-        with transaction.atomic():
-            members = Member.objects.filter(id__in=_ids)
-            for member in members:
-                if context == "status":
-                    member.is_active = not member.is_active
-                elif context == "account":
-                    member.account_type = AccountChoice.objects.get(
-                        name__icontains="Staff"
-                        if member.account_type.name == "Normal"
-                        else "Normal"
-                    )
-                member.save()
-    except IntegrityError as e:
-        print(f"MEMBER-STATUS-UPDATE-ERROR: {e}")
-        status = "error"
-        message = "Error changing member status"
-    else:
+    form = RegistrationForm(request.POST, request.FILES)
+    if form.is_valid():
         status = "success"
-        message = "Member status updated"
+        data["message"] = "Account registered successfully"
+        form.save()
+    else:
+        status = "error"
+        data["data"] = {
+            field: error[0]["message"]
+            for field, error in form.errors.get_json_data(escape_html=True).items()
+        }
+    data["status"] = status
+    return JsonResponse(data)
 
+
+@login_required
+@require_http_methods(["POST"])
+def update_member(request, member_id: int):
+    from accounts.forms import EditMemberForm
+
+    data = {}
+    member = Member.objects.get(id=member_id)
+    form = EditMemberForm(instance=member, data=request.POST)
+
+    if form.is_valid():
+        member = form.save()
+        status = "success"
+        data["message"] = "{} Account updated successfully".format(member.name)
+    else:
+        status = "error"
+        data["data"] = {
+            field: error[0]["message"]
+            for field, error in form.errors.get_json_data(escape_html=True).items()
+        }
+    print(form.errors)
+    data["status"] = status
+    return JsonResponse(data)
+
+
+@login_required
+@require_http_methods(["POST"])
+def perform_action(request):
+    data = {}
+    _data = json.loads(request.POST.get("data"))
+    print(_data)
+    if _data["context"] != "delete":
+        try:
+            with transaction.atomic():
+                members = Member.objects.filter(id__in=_data["id"])
+                for member in members:
+                    if _data["context"] == "status":
+                        member.is_active = not member.is_active
+                    elif _data["context"] == "account":
+                        member.account_type = AccountChoice.objects.get(
+                            name__icontains="Staff"
+                            if member.account_type.name == "Normal"
+                            else "Normal"
+                        )
+                    member.save()
+        except IntegrityError as e:
+            print(f"MEMBER-STATUS-UPDATE-ERROR: {e}")
+            status = "error"
+            message = "Error changing member(s) status"
+        else:
+            status = "success"
+            message = "Member status updated"
+    else:
+        contexts = {
+            "share": Shares,
+            "member": Member,
+            "loan": LoanRequest,
+            "loan.repay": LoanRepayment,
+            "savings.deb": SavingsDebit,
+            "savings.cred": SavingsCredit,
+        }
+
+        try:
+            with transaction.atomic():
+                contexts[_data["sub_context"]].objects.filter(
+                    id__in=_data["id"]
+                ).delete()
+        except IntegrityError as e:
+            status = "error"
+            message = "Error deleting records"
+            print(f"SERVICE-DELETION-ERROR-{_data['sub_context'].upper()}: {e}")
+
+        else:
+            status = "success"
+            message = "Records deleted"
     data["status"] = status
     data["message"] = message
     return JsonResponse(data)
@@ -92,43 +165,7 @@ def member_edit(request, context: str):
 
 @login_required
 @require_http_methods(["POST"])
-def delete_selected(request, context: str):
-    from accounts.models import Member
-    from loans.models import LoanRepayment, LoanRequest
-    from savings.models import SavingsCredit, SavingsDebit
-    from shares.models import Shares
-
-    data = {}
-    _ids = request.POST.getlist("ids[]")
-    contexts = {
-        "share": Shares,
-        "member": Member,
-        "loan_req": LoanRequest,
-        "loan_rep": LoanRepayment,
-        "savings_deb": SavingsDebit,
-        "savings_cred": SavingsCredit,
-    }
-
-    try:
-        with transaction.atomic():
-            contexts[context].objects.filter(id__in=_ids).delete()
-    except IntegrityError as e:
-        status = "error"
-        data["message"] = "Error deleting records"
-        print(f"SERVICE-DELETION-ERROR-{context.upper()}: {e}")
-
-    else:
-        data["status"] = "success"
-        data["message"] = "Records deleted"
-
-    data["status"] = status
-    return JsonResponse(data)
-
-
-@login_required
-@require_http_methods(["POST"])
 def service_create(request, context: str):
-    from accounts.models import Member
     from loans.forms import LoanRequestForm
     from savings.forms import SavingsCreditForm, SavingsDebitForm
     from shares.forms import ShareAddForm
@@ -137,19 +174,19 @@ def service_create(request, context: str):
     contexts = {
         "share": ShareAddForm,
         "loan": LoanRequestForm,
-        "savings_deb": SavingsDebitForm,
-        "savings_cred": SavingsCreditForm,
+        "loan.repay": LoanRepaymentForm,
+        "savings.deb": SavingsDebitForm,
+        "savings.cred": SavingsCreditForm,
     }
 
-    form = contexts[context](data=request.POST)
+    form = contexts[context](request.POST, request.FILES)
 
     if form.is_valid():
         status = "success"
-        member_id = form.cleaned_data["member"]
+        member = form.cleaned_data["member"]
         amount = form.cleaned_data["amount"]
-        member = Member.objects.get(id=member_id)
 
-        if context in ("loan", "saving_deb"):
+        if context in ("loan", "saving.deb"):
             if not member.is_active:
                 status = "error"
                 data["message"] = "Transaction cannot be completed - ACCOUNT INACTIVE"
@@ -164,7 +201,7 @@ def service_create(request, context: str):
         if status == "success":
             try:
                 with transaction.atomic():
-                    form.save()
+                    model = form.save()
                     data["message"] = "Transaction completed"
                     verbs = {
                         "loan": [
@@ -174,25 +211,37 @@ def service_create(request, context: str):
                                 get_amount(amount)
                             ),
                         ],
+                        "loan.repay": [
+                            "Loan",
+                            "Repayment",
+                            "loan repayment of {} has been recorded. Outstanding Amount: {}".format(
+                                get_amount(amount),
+                                get_amount(model.loan.outstanding_amount)
+                                if hasattr(model, "loan")
+                                else "",
+                            ),
+                        ],
                         "share": [
                             "Shares",
                             "New Share Added",
                             "share of {} has been recorded. Total Shares: {}".format(
-                                get_amount(amount), get_shares_total(member)
+                                get_amount(amount), get_amount(get_shares_total(member))
                             ),
                         ],
-                        "savings_cred": [
+                        "savings.cred": [
                             "Savings",
                             "New Savings Deposit",
                             "deposit of {} has been recorded. Total Savings: {}".format(
-                                get_amount(amount), get_savings_total(member)
+                                get_amount(amount),
+                                get_amount(get_savings_total(member)),
                             ),
                         ],
-                        "savings_deb": [
+                        "savings.deb": [
                             "Savings",
                             "New Savings Withdrawal",
-                            "withdrawl of {} has been recorded. Total Savings: {}".format(
-                                get_amount(amount), get_savings_total(member)
+                            "withdrawal of {} has been recorded. Total Savings: {}".format(
+                                get_amount(amount),
+                                get_amount(get_savings_total(member)),
                             ),
                         ],
                     }
@@ -204,7 +253,7 @@ def service_create(request, context: str):
                         timestamp=timezone.now(),
                         verb="{}: {}".format(verb[0], verb[1]),
                         description="{}'s {}".format(member.name, verb[2]),
-                        recipients=User.objects.exclude(is_superuser=False),
+                        recipient=User.objects.exclude(is_superuser=False),
                     )
             except IntegrityError as e:
                 status = "error"
@@ -222,33 +271,55 @@ def service_create(request, context: str):
 
 @login_required
 @require_http_methods(["GET"])
-def set_chart(request):
-    chart = request.GET.get("chart")
-    chart_type = request.GET.get("chart_type")
-    _type = request.GET.get("type")
+def get_loan(request, member_id: str):
+    from loans.models import LoanRequest
+
     data = {}
+    member = Member.objects.get(id=member_id)
+    try:
+        loan = LoanRequest.objects.get(member=member, status="disbursed")
+    except LoanRequest.DoesNotExist:
+        status = "error"
+        data["message"] = "Member does not have a loan that is not terminated."
+    else:
+        status = "success"
+        data["data"] = [
+            "{} | {} | {}".format(
+                get_amount(amount=loan.amount),
+                display_duration(loan.duration),
+                format_date_model(loan.created_at),
+            ),
+            get_amount(loan.outstanding_amount),
+        ]
+
+    data["status"] = status
+    return JsonResponse(data)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_chart(request):
+    data = {"chart": []}
     year = timezone.now().year
-    if chart_type == "line":
-        data["chart_line"] = []
-        for month in range(1, 13):
-            data["chart_line"].append(
-                {
-                    "month": month_abbr[month],
-                    "loans": LoanRequest.objects.filter(
-                        created_at__month=month, created_at__year=year
-                    ).count(),
-                    "deposits": SavingsCredit.objects.filter(
-                        created_at__month=month,
-                        created_at__year=year,
-                        reason="credit-deposit",
-                    ),
-                    "withdrawals": SavingsCredit.objects.filter(
-                        created_at__month=month,
-                        created_at__year=year,
-                        reason="debit-withdrawal",
-                    ),
-                }
-            )
+    for month in range(1, 13):
+        data["chart"].append(
+            {
+                "month": month_abbr[month],
+                "loans": LoanRequest.objects.filter(
+                    created_at__month=month, created_at__year=year
+                ).count(),
+                "deposits": SavingsCredit.objects.filter(
+                    created_at__month=month,
+                    created_at__year=year,
+                    reason="credit-deposit",
+                ).count(),
+                "withdrawals": SavingsDebit.objects.filter(
+                    created_at__month=month,
+                    created_at__year=year,
+                    reason="debit-withdrawal",
+                ).count(),
+            }
+        )
 
     return JsonResponse(data)
 
@@ -272,21 +343,27 @@ def data_table(request):
     data = {"content": [], "attr": {}}
 
     page = request.GET.get("page")
-    table = request.GET.get("table_name")
-    per_page = request.GET.get("per_page")
     sort_by = request.GET.get("sort_by")
     member_id = request.GET.get("member")
+    table = request.GET.get("table_name")
+    per_page = request.GET.get("per_page")
     search_by = request.GET.get("search_by")
     search_data = request.GET.get("search_data")
     table_context = request.GET.get("table_context")
 
     if search_by == "date":
         search_data = request.GET.getlist("search_data[]")
+
     if member_id:
         member = Member.objects.get(id=member_id)
 
     if table == "members":
         content_list = Member.objects.all().order_by("name")
+        table_context = table_context if table_context != "all" else None
+        if table_context:
+            content_list = content_list.filter(
+                account_type=AccountChoice.objects.get(name__icontains=table_context)
+            )
         if search_by == "text":
             content_list = content_list.filter(
                 Q(name__icontains=search_data) | Q(email__icontains=search_data)
@@ -304,24 +381,23 @@ def data_table(request):
             }
             data["content"].append(c)
     elif table == "savings":
-        savings_credit = SavingsCredit.objects.all().order_by("-created_at")
-        savings_debit = SavingsDebit.objects.all().order_by("-created_at")
+        savings_credit = SavingsCredit.objects.all()
+        savings_debit = SavingsDebit.objects.all()
         if member_id:
             savings_credit = savings_credit.filter(member=member)
             savings_debit = savings_debit.filter(member=member)
 
-        content_list = savings_credit.union(savings_debit)
         contexts = {
-            "all": content_list,
-            "debit": savings_debit,
-            "credit": savings_credit,
+            "debit": savings_debit.order_by("-created_at"),
+            "credit": savings_credit.order_by("-created_at"),
+            "all": savings_credit.union(savings_debit).order_by("-created_at"),
         }
+        content_list = contexts[table_context]
+
         if search_by == "date":
-            content_list = contexts[table_context].filter(
-                created_at__date__range=search_data
-            )
+            content_list = content_list.filter(created_at__date__range=search_data)
         elif search_by == "text":
-            content_list = contexts[table_context].filter(
+            content_list = content_list.filter(
                 Q(member__name__icontains=search_data)
                 | Q(member__email__icontains=search_data)
                 | Q(reason__icontains=search_data)
@@ -333,17 +409,20 @@ def data_table(request):
             c = {
                 "id": i.id,
                 "created_at": i.created_at,
-                "amount": get_amount(amount=i.amount),
-                "reason": get_data_equivalent(i.reason, "src"),
-                **(
-                    {} if not member_id else {"mid": i.member.id, "name": i.member.name}
+                "amount": "{}{}".format(
+                    "+" if i.reason.startswith("credit") else "-",
+                    get_amount(amount=i.amount),
                 ),
+                "reason": get_data_equivalent(i.reason, "src"),
+                **({} if member_id else {"mid": i.member.id, "name": i.member.name}),
             }
             data["content"].append(c)
     elif table == "savings.interest":
         content_list = SavingsInterest.objects.all().order_by("-created_at")
+
         if member_id:
             content_list = content_list.filter(member=member)
+
         if search_by == "date":
             content_list = content_list.filter(created_at__date__range=search_data)
         elif search_by == "text":
@@ -357,17 +436,18 @@ def data_table(request):
         for i in content:
             c = {
                 "id": i.id,
+                **(
+                    {}
+                    if member_id
+                    else {"mid": i.savings.member.id, "name": i.savings.member.name}
+                ),
+                "amount": get_amount(amount=i.amount),
+                "interest": get_amount(amount=i.interest),
                 "isc": i.is_comp,
                 "sc": i.start_comp,
                 "disabled": i.disabled,
                 "created_at": i.created_at,
                 "updated_at": i.updated_at,
-                "amount": get_amount(amount=i.amount),
-                **(
-                    {}
-                    if not member_id
-                    else {"mid": i.savings.member.id, "name": i.savings.member.name}
-                ),
             }
             data["content"].append(c)
     elif table == "loans.repay":
@@ -390,14 +470,11 @@ def data_table(request):
                 "amount": get_amount(amount=i.amount),
             }
             data["content"].append(c)
-
-    elif table in ("loans", "loans.mem"):
-        content_list = LoanRequest.objects.all().order_by("-created_at")
-        content_list = (
-            content_list
-            if table_context not in ("disbursed", "terminated")
-            else content_list.filter(status=table_context)
+    elif table == "loans":
+        content_list = LoanRequest.objects.filter(status=table_context).order_by(
+            "-created_at"
         )
+        print(content_list)
         if member_id:
             content_list = content_list.filter(member=member)
 
@@ -428,15 +505,14 @@ def data_table(request):
                     if i.status == "disbursed"
                     else {"terminated_at": i.terminated_at}
                 ),
-                **(
-                    {} if not member_id else {"mid": i.member.id, "name": i.member.name}
-                ),
+                **({} if member_id else {"mid": i.member.id, "name": i.member.name}),
             }
             data["content"].append(c)
-    elif table in ("shares", "shares.mem"):
+    elif table == "shares":
         content_list = SharesTotal.objects.all().order_by("-created_at")
         if member_id:
             content_list = Shares.objects.filter(member=member)
+
         if search_by == "date":
             content_list = content_list.filter(created_at__date__range=search_data)
         elif search_by == "text":
@@ -454,7 +530,7 @@ def data_table(request):
                 "amount": get_amount(amount=i.amount),
                 **(
                     {}
-                    if not member_id
+                    if member_id
                     else {
                         "mid": i.member.id,
                         "name": i.member.name,
@@ -463,7 +539,7 @@ def data_table(request):
                 ),
             }
             data["content"].append(c)
-    elif table in ("eoy", "eoy.mem"):
+    elif table == "eoy":
         content_list = YearEndBalance.objects.all().order_by("-created_at")
         if member_id:
             content_list = content_list.filter(member=member)
@@ -482,9 +558,7 @@ def data_table(request):
                 "id": i.id,
                 "created_at": i.created_at,
                 "amount": get_amount(amount=i.amount),
-                **(
-                    {} if not member_id else {"mid": i.member.id, "name": i.member.name}
-                ),
+                **({} if member_id else {"mid": i.member.id, "name": i.member.name}),
             }
             data["content"].append(c)
 
@@ -508,14 +582,28 @@ def data_table(request):
 
 
 @login_required
+@require_http_methods(["GET"])
+def notify_unread_count(request):
+    data = {"count": 0}
+
+    notifications = Notification.objects.filter(
+        recipient=request.user,
+        unread=True,
+    ).exclude(deleted=True)
+    data["count"] = notifications.count() if notifications.count() <= 99 else "99+"
+    return JsonResponse(data)
+
+
+@login_required
+@require_http_methods(["GET"])
 def notify_all_list(request):
-    data = {"all_list": []}
+    data = {"list": []}
 
     notifications = Notification.objects.filter(
         recipient=request.user,
     ).exclude(deleted=True)
     for notification in notifications:
-        data["all_list"].append(
+        data["list"].append(
             {
                 "id": notification.id,
                 "unread": notification.unread,
@@ -529,6 +617,7 @@ def notify_all_list(request):
 
 
 @login_required
+@require_http_methods(["GET"])
 def notify_mark_read(request):
     notify_id = request.GET.get("id")
     data = {"mark_read": False}
@@ -545,6 +634,7 @@ def notify_mark_read(request):
 
 
 @login_required
+@require_http_methods(["GET"])
 def notify_delete(request):
     notify_id = request.GET.get("id")
     data = {"is_deleted": False}

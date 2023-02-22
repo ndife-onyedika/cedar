@@ -1,0 +1,130 @@
+// .dash_home {
+//     display: flex;
+//     height: 100%;
+//     position: relative;
+
+//     >div:first-child {
+//         flex-basis: 70%;
+
+//         @media (max-width: $bp-md) {
+//             flex-basis: 60%;
+//         }
+
+//         @media (max-width: $bp-sm) {
+//             flex-basis: 100%;
+//         }
+//     }
+
+//     .dash_home-main {
+//         padding: 1.5rem;
+//         height: 100%;
+//         margin-bottom: 6rem;
+
+//         >div {
+//             >div {
+//                 &:not(:last-child) {
+//                     margin-bottom: 1.5rem;
+//                 }
+
+//                 &.services {
+//                     display: grid;
+//                     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+//                     gap: 1.5rem;
+//                 }
+//             }
+//         }
+
+//     }
+
+//     .dash_home-side {
+//         padding: 1.5rem;
+//         flex: 1;
+//         height: 100%;
+//         background-color: #fff;
+//         grid-column: 2;
+//         grid-row: 1 / span 2;
+
+//         // @media (max-width: $bp-md) {
+//         //     display: none;
+//         // }
+
+//         >.card {
+//             &:not(:last-child):not(.wallet) {
+//                 margin-bottom: 1rem;
+//             }
+//         }
+//     }
+
+//     .card {
+//         &.wallet_card {
+//             height: auto;
+//             margin-bottom: 1.5rem;
+
+//             .wallet_card-detail p {
+//                 grid-template-columns: 1fr !important;
+//             }
+
+//             &_txn-list {
+//                 height: auto;
+//                 box-shadow: unset !important;
+//                 border-radius: unset !important;
+
+//                 .card_head {
+//                     padding: 1rem;
+//                 }
+
+//                 .card_body {
+//                     padding: .5rem;
+//                     // overflow-y: auto;
+//                     // max-height: 15rem;
+
+//                     .wallet_card_txn-list-item {
+//                         display: grid;
+//                         grid-template-columns: min-content 2fr 1fr;
+//                         gap: 1rem;
+//                         align-items: center;
+
+//                         &:not(:last-child) {
+//                             margin-bottom: .5rem;
+//                         }
+
+//                         >span:first-child {
+//                             display: flex;
+//                             align-items: center;
+//                             justify-content: center;
+//                             border-radius: var(--border-radius);
+//                             box-shadow: 0px 2px 5px rgba(2, 30, 84, 0.1);
+//                             width: 4rem;
+//                             height: 4rem;
+
+//                             >svg {
+//                                 width: 2rem;
+//                                 height: 2rem;
+//                             }
+//                         }
+
+//                         >span:last-child {
+//                             text-align: right;
+//                         }
+
+//                         >div {
+//                             >span {
+//                                 display: block;
+
+//                                 &:first-child {
+//                                     font-weight: bold;
+//                                 }
+
+//                                 &:last-child {
+//                                     margin-top: .5rem;
+//                                     color: var(--color-grey);
+//                                     font-size: smaller;
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }

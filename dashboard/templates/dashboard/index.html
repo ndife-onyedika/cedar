@@ -1,0 +1,322 @@
+{% extends 'dashboard/base_layout.html' %}
+{% load static %}
+
+{% load notifications_tags %}
+
+{% block title %} {{ dashboard.title }} | Dashboard | Marafa Cedar {% endblock  %}
+
+
+{% block mini_content %}
+{% include 'dashboard/util/routes/nav.html' %}
+
+<div class="">
+    <div class="row g-0">
+        {% include 'dashboard/util/routes/sidebar.html' %}
+
+        <main class="col-md-9 ms-sm-auto col-lg-10">
+            {% block mini-dash_content %}{% endblock  %}
+        </main>
+    </div>
+</div>
+
+<div class="screen_loader-box none">
+    <span class="screen_loader"></span>
+</div>
+{% include 'dashboard/util/modals/index.html' %}
+{% endblock %}
+
+{% block script %}
+<script>
+    $(document).ready(function () {
+        $('#sidebarMenu .nav-item').each(function () {
+            var context = "{{ dashboard.context }}";
+            if ($(this).attr("data-context") == context) {
+                $(this).children().addClass("active");
+                $(this).children().attr("aria-current", "page")
+            }
+        });
+    });
+    $('#notify').on("show.bs.dropdown", () => $.ajax({
+        type: 'GET',
+        dataType: 'json',
+        url: "{% url 'ajax:notify.list' %}",
+        success: data => {
+            let messages = "";
+            if (data.list.length > 0) messages = data.list.map((item, i) => {
+                return `
+                    <li 
+                        data-id="${item.id}"
+                        aria-expanded="false"
+                        aria-controls="nc${i}"
+                        style="cursor:pointer"
+                        data-bs-target="#nc${i}"
+                        data-bs-toggle="collapse"   
+                        class="list-group-item border-0 border-bottom list-group-item-action ${item.unread?'bg-light fw-bold':''}">
+                        <div class="hstack gap-2">
+                            <div class="d-flex align-items-center justify-content-center">
+                                <span class="bg-${item.level != "error" ? item.level : 'danger'} rounded-circle d-flex align-items-center justify-content-center bg-opacity-25 text-${item.level != "error" ? item.level : 'danger'}" style="height:2.5rem;width:2.5rem;">
+                                    <svg style="width:2rem;height:2rem;fill:currentColor;">
+                                        <use xlink:href="{% static 'svg/sprite.svg' %}#icon-${item.level}-bold"></use>
+                                    </svg>
+                                </span>
+                            </div>
+                            <div class="d-flex w-100 justify-content-between">
+                                <div>
+                                    <h5 class="lh-1 mb-1 ${item.unread?'fw-bold':''}">${item.verb}</h5>
+                                    <small class="text-muted">${relative_time(item.timestamp)}</small>
+                                </div>
+                                <button data-id="${item.id}" style="width:3px;height:3px" type="button" class="btn-close mb-auto ms-auto"></button>
+                            </div>
+                        </div>
+                        <div class="collapse" id="nc${i}">
+                            <small>${item.description}</small>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+            else messages = `
+                <li 
+                    style="cursor:pointer"
+                    class="list-group-item border-0 border-bottom list-group-item-action fw-bold">
+                    <div class="hstack gap-2">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <span class="bg-light bg-opacity-25 text-muted rounded-circle d-flex align-items-center justify-content-center" style="height:2.5rem;width:2.5rem;">
+                                <svg style="width:2rem;height:2rem;fill:currentColor;">
+                                    <use xlink:href="{% static 'svg/sprite.svg' %}#icon-error-bold"></use>
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="d-flex w-100 justify-content-between">
+                            <div>
+                                <h5 class="lh-1 mb-1">No Notification</h5>
+                                <small class="text-muted">-</small>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            `;
+            $("#notifications").html(messages)
+        }
+    }))
+
+    $(document).on('click', '#notifications>li', function (e) {
+        $.ajax({
+            type: 'GET',
+            dataType: 'json',
+            url: "{% url 'ajax:notify.mark_read' %}",
+            data: {
+                id: $(this).attr('data-id')
+            },
+            success: () => $(this).removeClass('bg-light fw-bold'),
+        })
+
+    })
+
+    $(document).on("click", "#notifications .btn-close", function (e) {
+        e.stopPropagation();
+        var self = $(this);
+        $.ajax({
+            type: 'GET',
+            data: {
+                id: self.attr('data-id')
+            },
+            dataType: 'json',
+            url: `{% url 'ajax:notify.delete' %}`,
+            success: data => {
+                if (data.is_deleted) $(self.parents()[2]).remove();
+            }
+        });
+    })
+
+    setInterval(() => $.ajax({
+        type: 'GET',
+        url: "{% url 'ajax:notify.unread_count' %}",
+        success: data => $('#bubble').css("display", data.count > 0 ? "block" : "none")
+    }), 2000);
+
+    $(".modal#lrm #id_member").on("change", function () {
+        let value = "-"
+        if ($(this).val() != "") $.ajax({
+            type: "GET",
+            dataType: 'json',
+            url: `/ajax/gld/${$(this).val()}`,
+            success: res => {
+                if (res.status == "success") {
+                    $("#id_loan").val(res.data[0]);
+                    $("#outAmt").html(res.data[1]);
+                    let out_amt = res.data[1];
+                    let curr = out_amt[0];
+                    let out_amt_int = parseFloat(out_amt.slice(1).replaceAll(",", ""));
+                    $("#outAmt").attr("data-value", JSON.stringify({
+                        "currency": curr,
+                        "amount": out_amt_int,
+                    }));
+                    $("#outAmt2").val(res.data.amount);
+                } else toast(res.status, res.message);
+            }
+        });
+        else {
+            $("#outAmt").html("-");
+            $("#outAmt").attr("data-value", null);
+            $("#outAmt2").val("-");
+        }
+    })
+    $(".modal#lrm #id_amount").on("input", function () {
+        let value = $(this).val();
+        value = value.toString().replace("e", "");
+        value = value != "" ? parseFloat(value) : null;
+        let data_amt = JSON.parse($("#outAmt").attr("data-value"))
+        let currency = data_amt.currency;
+        let outstanding_amount = data_amt.amount;
+        let outstanding_amount_int = parseFloat(outstanding_amount);
+        if (value > outstanding_amount_int) value = outstanding_amount_int;
+        let outstanding_amount_str =
+            `${currency}${(outstanding_amount_int - value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+        $("#outAmt2").val(outstanding_amount_str);
+
+    })
+
+    var formSubmit = {
+        ValidateSubmit: (url, form_data) => {
+            // send request to handler
+            return $.ajax({
+                url: url,
+                type: "POST",
+                cache: false,
+                data: form_data,
+                contentType: false,
+                processData: false,
+                success: res => { // <----- make sure you use .then
+                    $(".is-invalid").removeClass("is-invalid");
+                    $(".invalid-feedback").removeClass("d-block");
+                    $(".invalid-feedback").html();
+
+                    if (res.status == "success") {
+                        toast(res.status, res.message);
+                        setTimeout(() => window.location.reload(), 300);
+                    } else {
+                        if (res.message) toast(res.status, res.message);
+                        else Object.entries(res.data).forEach(field => {
+                            let _name = field[0];
+                            let _error = field[1];
+                            let target = $(`#id_${_name}`);
+                            target.addClass("is-invalid");
+                            if (target.parent().hasClass("form-floating")) {
+                                target.parent().find(".invalid-feedback").html(_error);
+                                target.parent().find(".invalid-feedback").addClass(
+                                    "d-block");
+                            } else {
+                                target.next(".invalid-feedback").html(_error);
+                                target.next(".invalid-feedback").addClass("d-block");
+                            }
+                        });
+                    }
+                }
+            })
+        }
+    }
+
+    $(".modal .modal-footer>.btn-primary").on("click", function () {
+        let form = $(this).parent().prev().find("form");
+        let form_data = new FormData();
+        let name = form.attr("data-name");
+        form_data.append('csrfmiddlewaretoken', form.find("input[name='csrfmiddlewaretoken']").val());
+
+        form.find(
+            `input:not(
+                [type='file'],
+                [type='radio'],
+                [type='checkbox'],
+                [name='csrfmiddlewaretoken']
+            ), 
+            select, 
+            textarea`
+        ).each(function () {
+            form_data.append($(this).attr("name"), $(this).val());
+        });
+
+
+        let image = form.find("input[type='file']");
+        if (image.length) form_data.append(image.attr("name"), image[0].files[0])
+
+        let check_box = form.find("input[type='checkbox']");
+        if (check_box.length) check_box.each(function () {
+            form_data.append($(this).attr("name"), $(this).is(":checked"))
+        })
+
+        let radio = form.find("input[type='radio']");
+        if (radio.length) radio.each(function () {
+            if ($(this).is(":checked")) form_data.append($(this).attr("name"), $(this).val());
+        })
+
+        let url = null;
+        if (name != "cm") {
+            let contexts = {
+                lm: "loan",
+                asm: "share",
+                mm: "member",
+                lrm: "loan.repay",
+                swm: "savings.deb",
+                sdm: "savings.cred",
+            }
+            let context = contexts[name];
+            url = name != "mm" ? `/ajax/sc/${context}` : `{% url 'ajax:reg' %}`;
+        } else url = "{% url 'ajax:pa' %}";
+
+        return formSubmit.ValidateSubmit(url, form_data);
+    });
+
+    $("#delBtn").on("click", function () {
+        $("#cm form>input[name='data']").val($(this).attr("data-value"));
+        $("#cm form>p").html("Are you sure you want to delete?");
+        $("#cm .modal-title").html("Delete");
+        $("#cm .modal-footer>.btn-primary").html("Delete");
+    });
+    $("#setBtn").on("click", function () {
+        $("#cm form>input[name='data']").val($(this).attr("data-value"));
+        $("#cm form>p").html("Are you sure you want to change member(s) status?");
+        $("#cm .modal-title").html("Update");
+        $("#cm .modal-footer>.btn-primary").html("Update");
+    });
+    $("#accBtn").on("click", function () {
+        $("#cm form>input[name='data']").val($(this).attr("data-value"));
+        $("#cm form>p").html("Are you sure you want to change member(s) account type?");
+        $("#cm .modal-title").html("Change");
+        $("#cm .modal-footer>.btn-primary").html("Change");
+    });
+
+    $("#pro-edit-btn, #id_avatar").on("change", function () {
+        let self = $(this);
+        let file = $(this)[0].files[0];
+        let reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = () => self.parent().prev().attr("src", reader.result);
+
+        if (self.attr("id") == "pro-edit-btn") {
+            let form_data = new FormData();
+            form_data.append('image', $(this)[0].files[0]);
+            form_data.append('csrfmiddlewaretoken', $(document).find("input[name='csrfmiddlewaretoken']")
+                .val());
+            $.ajax({
+                type: "POST",
+                cache: false,
+                data: form_data,
+                contentType: false,
+                processData: false,
+                url: `/ajax/ca/{{member.id}}`,
+                success: res => { // <----- make sure you use .then
+                    if (res.status == "success") {
+                        toast(res.status, res.message);
+                        setTimeout(() => window.location.reload(), 300);
+                    } else toast(res.status, res.message);
+                }
+            });
+        }
+
+
+
+
+    });
+</script>
+{% block dashboard_script %}{% endblock  %}
+{% endblock  %}

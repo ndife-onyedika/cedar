@@ -1,0 +1,31 @@
+{% load sass_tags %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found | Marafa Cedar </title>
+    <meta name="author" content="Ndife Onyedika Michael">
+    <link rel="stylesheet" href="{% sass_src 'scss/index.scss' %}" type="text/css">
+    <link rel="shortcut icon" href="{% static 'img/favicon.png' %}" type="image/x-icon">
+</head>
+
+<body>
+    <div class="error_page">
+        <div class="container">
+            <div>
+                <img src="{% static 'svg/404.svg' %}" alt="">
+            </div>
+            <div>
+                <h2>Page not found</h2>
+                <p>Sorry, we could not find the page you are looking for.</p>
+                <a href="/" class="link">Go back home &rarr;</a>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

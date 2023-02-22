@@ -18,7 +18,6 @@ from .constants import (
     CREDIT_REASON_CHOICES,
     DEBIT_REASON_CHOICES,
     LOAN_STATUS_CHOICES,
-    REGISTRATION_TYPES,
     RELATIONSHIP_CHOICE,
 )
 
@@ -47,9 +46,8 @@ convert_month_2_days = (
     if _month and _month != "-"
     else "-"
 )
-display_duration = lambda duration: f"{duration} Month(s)"
+display_duration = lambda duration: f"{duration} Month{'s' if duration > 1 else ''}"
 display_rate = lambda rate: f"{rate}%"
-
 format_date_model = (
     lambda date: datetime.strftime(date, "%d %b %y") if not date is None else "-"
 )
@@ -57,10 +55,10 @@ format_date_model = (
 
 def create_tables(member):
     from savings.models import SavingsTotal
-    from shares.models import Shares
+    from shares.models import SharesTotal
 
     SavingsTotal.objects.get_or_create(member=member)
-    Shares.objects.get_or_create(member=member)
+    SharesTotal.objects.get_or_create(member=member)
 
 
 def get_savings_total(member):
@@ -102,6 +100,32 @@ def get_account_choices(form=True) -> list:
     return acc_choices
 
 
+def get_member_choices(form=True) -> list:
+    from accounts.models import Member
+
+    MEM_CHOICES = [(None, "Select Member")] if form else []
+    db_member_choices = Member.objects.all()
+    try:
+        acc_choices = (
+            MEM_CHOICES
+            + [
+                (
+                    choice.id,
+                    "{} ({})".format(
+                        choice.name, "Active" if choice.is_active else "Inactive"
+                    ),
+                )
+                for choice in db_member_choices
+            ]
+            if db_member_choices.count() > 0
+            else MEM_CHOICES
+        )
+    except OperationalError:
+        acc_choices = MEM_CHOICES
+
+    return acc_choices
+
+
 def convert_month_2_year(_month):
     _year = return_month_int(_month=_month) / 12
     _year = int(_year) if not str(_year).find(".") > -1 else round(_year, 1)
@@ -139,7 +163,6 @@ def get_data_equivalent(data, context):
     # might become extremly large overtime for such large choices : what is really important here is the later operations
     # on your word i'll remove this and find where they are used and fix stuff
     choices_ = {
-        "rt": REGISTRATION_TYPES,
         "rc": RELATIONSHIP_CHOICE,
         "lsc": LOAN_STATUS_CHOICES,
         "src": CREDIT_REASON_CHOICES + DEBIT_REASON_CHOICES,

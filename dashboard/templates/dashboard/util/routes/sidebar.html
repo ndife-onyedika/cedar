@@ -1,0 +1,58 @@
+{% load static %}
+{% load i18n %}
+
+
+<!-- Sidebar -->
+<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+  <div class="position-sticky pt-3 sidebar-sticky">
+    <ul class="nav flex-column h-100">
+      <li class="nav-item" data-context="home">
+        <a class="nav-link" href="/">
+          Dashboard
+        </a>
+      </li>
+      <li class="nav-item" data-context="members">
+        <a class="nav-link" href="{% url 'dashboard:members' %}">
+          Members
+        </a>
+      </li>
+      <li class="nav-item" data-context="savings">
+        <a class="nav-link" href="{% url 'dashboard:savings' %}">
+          Savings
+        </a>
+      </li>
+      <li class="nav-item" data-context="savings.interest">
+        <a class="nav-link" href="{% url 'dashboard:savings.interest' %}">
+          Savings Interests
+        </a>
+      </li>
+      <li class="nav-item" data-context="loans">
+        <a class="nav-link" href="{% url 'dashboard:loans' %}">
+          Loans
+        </a>
+      </li>
+      <li class="nav-item" data-context="shares">
+        <a class="nav-link" href="{% url 'dashboard:shares' %}">
+          Shares
+        </a>
+      </li>
+      <li class="nav-item" data-context="eoy">
+        <a class="nav-link" href="{% url 'dashboard:eoy' %}">
+          Year End Balance
+        </a>
+      </li>
+
+      <li class="nav-item mt-0 mt-md-auto" data-context="settings">
+        <a class="nav-link" href="{% url 'dashboard:settings' %}">
+          Settings
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'sign_out' %}">
+          Logout
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>
+<!-- /#sidebar-wrapper -->

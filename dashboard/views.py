@@ -7,6 +7,9 @@ from cedar.mixins import get_amount, get_data_equivalent
 from savings.models import SavingsTotal, SavingsCredit, SavingsDebit
 from django.db.models.aggregates import Sum
 from loans.models import LoanRequest
+from savings.forms import SavingsCreditForm, SavingsDebitForm
+from shares.models import SharesTotal
+from settings.forms import AccountChoiceFormSet, BusinessYearForm
 
 
 # Create your views here.
@@ -16,8 +19,10 @@ class Dashboard(LoginRequiredMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         context = {
             "savings": {},
-            "service": {},
+            "sdf": SavingsCreditForm(),
+            "swf": SavingsDebitForm(),
             "dashboard": {
+                "cards": [],
                 "title": "Home",
                 "context": "home",
                 "buttons": [
@@ -37,7 +42,12 @@ class Dashboard(LoginRequiredMixin, TemplateView):
         last_credit = savings_credit.last()
         last_debit = savings_debit.last()
 
+        total_shares = (
+            SharesTotal.objects.all().aggregate(Sum("amount"))["amount__sum"] or 0
+        )
+
         # WALLET
+        context["shares"] = get_amount(amount=total_shares)
         context["savings"]["balance"] = get_amount(amount=total_savings)
 
         context["savings"]["credit_last"] = get_amount(
@@ -54,12 +64,19 @@ class Dashboard(LoginRequiredMixin, TemplateView):
                 ),
                 "reason": get_data_equivalent(txn.reason, "src"),
                 "timestamp": txn.created_at,
+                "member": txn.member.name,
             }
-            for txn in savings_credit.union(savings_debit).order_by("-created_at")
+            for txn in savings_credit.union(savings_debit).order_by("-created_at")[:10]
         ]
-        context["service"] = [
-            {"title": "Total Members Registered", "detail": Member.objects.count()},
+
+        context["dashboard"]["cards"] = [
             {
+                "icon": "user-outline",
+                "title": "Total Members Registered",
+                "detail": Member.objects.count(),
+            },
+            {
+                "icon": "loan-outline",
                 "title": "Total Loan Disbursed",
                 "detail": get_amount(
                     LoanRequest.objects.all().aggregate(Sum("amount"))["amount__sum"]
@@ -67,6 +84,7 @@ class Dashboard(LoginRequiredMixin, TemplateView):
                 ),
             },
             {
+                "icon": "credit-outline",
                 "title": "Total Savings Deposited",
                 "detail": get_amount(
                     savings_credit.filter(reason="credit-deposit").aggregate(
@@ -76,7 +94,8 @@ class Dashboard(LoginRequiredMixin, TemplateView):
                 ),
             },
             {
-                "title": "Total Savings Withdran",
+                "icon": "debit-outline",
+                "title": "Total Savings Withdrawn",
                 "detail": get_amount(
                     savings_debit.filter(reason="debit-withdrawal").aggregate(
                         Sum("amount")
@@ -89,47 +108,15 @@ class Dashboard(LoginRequiredMixin, TemplateView):
         return render(request, "dashboard/pages/home.html", context)
 
 
-class Profile(CustomLoginRequiredMixin, TemplateView):
+class Settings(LoginRequiredMixin, TemplateView):
     """Profile"""
 
-    def get(self, request, slug, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         context = {
-            "main": {
-                "title": _("Settings"),
-            },
+            "dashboard": {"title": "Settings", "context": "settings"},
         }
-
-        if slug == "profile":
-            member = request.user.member
-            template = "dashboard/pages/settings/edit_profile.html"
-            context["form"] = UpdateUPDForm(instance=member, initial={"member": member})
-            nok_instance, created = NextOfKin.objects.get_or_create(owner=member)
-            context["nok_form"] = UpdateUNKForm(instance=nok_instance)
-            context["sub_title"] = "Edit Profile"
-            context["member_positions"] = get_member_positions(member=member)
-        elif slug == "preference":
-            template = "dashboard/pages/settings/preference.html"
-            context["sub_title"] = "Preferences"
-
+        formset = AccountChoiceFormSet()
+        context["formset"] = formset
+        context["form"] = BusinessYearForm()
+        template = "dashboard/pages/settings.html"
         return render(request, template, context)
-
-    def post(self, request, *args, **kwargs):
-        """Handles Profile Details Update"""
-        form = UpdateUPDForm(request.POST, instance=request.user.member)
-        if form.is_valid():
-            member = form.save(commit=False)
-            member.user.name = form.cleaned_data["name"]
-            member.user.email = form.cleaned_data["email"]
-            member.user.save()
-            member.save()
-
-            flash_messages.info(request, _("Profile updated"))
-        else:
-            flash_messages.error(request, _("Profile cannot be updated"))
-
-        return redirect(
-            reverse(
-                "dashboard:settings",
-                kwargs={"slug": "profile"},
-            )
-        )

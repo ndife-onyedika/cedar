@@ -1,0 +1,39 @@
+{% load static %}
+<div class="card shadow-sm border-0 wallet-card">
+    <div class="card-body h-100">
+        <h6 class="card-subtitle mb-2 text-muted d-flex align-items-center justify-content-between w-100">
+            Savings Balance
+            <a href="{% url 'dashboard:savings' %}{% if member %}{{member.id}}{% endif %}"
+                class="bg-light link-light bg-opacity-25 rounded-1 p-1 lh-1">View</a>
+        </h6>
+        <div class="hstack gap-2 align-items-center flex-wrap-reverse">
+            <h5 class="card-title fw-bold mb-0">{{savings.balance}}</h5>
+            <span style="width:3rem;height:3rem" class="ms-auto span-icon d-flex align-items-center
+                justify-content-center badge rounded-circle bg-primary bg-opacity-10 text-primary">
+                <svg style="width:2rem;height:2rem;fill:currentColor;">
+                    <use xlink:href="{% static 'svg/sprite.svg' %}#icon-wallet-bold"></use>
+                </svg>
+            </span>
+        </div>
+
+
+        <div class="hstack flex-lg-wrap flex-xl-nowrap gap-2 mt-2">
+            <h6 style="font-size:1rem"
+                class="mb-0 vstack gap-1 justify-content-center badge w-100 p-2 bg-primary bg-opacity-10 text-start">
+                <span>Last Credit:</span>
+                <span>{{savings.credit_last}}</span>
+            </h6>
+            <h6 style="font-size:1rem"
+                class="mb-0 vstack gap-1 justify-content-center badge w-100 p-2 bg-danger bg-opacity-10 text-start">
+                <span>Last Debit:</span>
+                <span>{{savings.debit_last}}</span>
+            </h6>
+            <div class="p-0 vstack gap-1">
+                <button type="button" data-bs-toggle="modal" data-bs-target="#swm"
+                    class="btn btn-danger p-1">Withdraw</button>
+                <button type="button" data-bs-toggle="modal" data-bs-target="#sdm"
+                    class="btn btn-primary p-1">Deposit</button>
+            </div>
+        </div>
+    </div>
+</div>

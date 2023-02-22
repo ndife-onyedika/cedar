@@ -14,10 +14,8 @@ from settings.models import AccountChoice
 
 # Create your models here.
 class User(AbstractBaseUser, PermissionsMixin):
-    name = models.CharField(max_length=250, null=True, blank=False)
-    email = models.EmailField(
-        "Email", unique=True, null=False, blank=False, default="default@email.com"
-    )
+    name = models.CharField(max_length=250)
+    email = models.EmailField("Email", unique=True)
 
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)

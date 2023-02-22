@@ -1,0 +1,41 @@
+{% extends "cedar/sign_layout.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block sign_head %}Sign In{% endblock sign_head %}
+{% block sign_sub_title %}Sign In{% endblock %}
+
+{% block sign_view %}
+<form method="post" class="form-signin">
+    {% csrf_token %}
+    <h3 class="h1 mb-1 fw-normal text-center">Welcome Back!</h3>
+    <p class="h6 mb-3 fw-bold text-center">Sign in to the dashboard</p>
+
+    {{form.non_field_errors}}
+
+    <div class="form-floating">
+        {{form.email|add_class:"form-control"|attr:"placeholder:name@example.com"}}
+        <label for="{{form.email.id_for_label}}">{{form.email.label}}</label>
+        {{form.email.errors}}
+    </div>
+    <div class="input-group has-validation mb-2">
+        <div class="form-floating">
+            {{form.password|add_class:"form-control"|attr:"placeholder:Password"}}
+            <label for="{{form.password.id_for_label}}">{{form.password.label}}</label>
+        </div>
+        <button class="input-group-text">
+            <svg class="bi">
+                <use xlink:href="{% static 'svg/sprite.svg' %}#icon-eye-open-outline"></use>
+            </svg>
+        </button>
+        <div class="invalid-feedback">
+            {{form.password.errors}}
+        </div>
+    </div>
+
+    <div class="mb-2 text-end">
+        <a href="{% url 'password_reset' %}">Forgot Password?</a>
+    </div>
+    <button class="w-100 btn btn-lg btn-primary" type="submit">Sign in</button>
+</form>
+{% endblock  %}
