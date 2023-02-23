@@ -103,7 +103,6 @@ def update_member(request, member_id: int):
             field: error[0]["message"]
             for field, error in form.errors.get_json_data(escape_html=True).items()
         }
-    print(form.errors)
     data["status"] = status
     return JsonResponse(data)
 
@@ -113,7 +112,6 @@ def update_member(request, member_id: int):
 def perform_action(request):
     data = {}
     _data = json.loads(request.POST.get("data"))
-    print(_data)
     if _data["context"] != "delete":
         try:
             with transaction.atomic():
@@ -265,6 +263,37 @@ def service_create(request, context: str):
             field: error[0]["message"]
             for field, error in form.errors.get_json_data(escape_html=True).items()
         }
+    data["status"] = status
+    return JsonResponse(data)
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_settings(request):
+    from settings.models import BusinessYear
+    from settings.forms import BusinessYearForm
+
+    data = {}
+    try:
+        with transaction.atomic():
+            form = BusinessYearForm(request.POST, instance=BusinessYear.objects.last())
+            if form.is_valid():
+                form.save()
+                status = "success"
+                data["message"] = "Settings updated successfully"
+            else:
+                status = "error"
+                data["data"] = {
+                    field: error[0]["message"]
+                    for field, error in form.errors.get_json_data(
+                        escape_html=True
+                    ).items()
+                }
+    except IntegrityError as e:
+        status = "error"
+        data["message"] = "Error updating settings"
+        print(f"UPDATE-SETTINGS-AJAX-ERROR: {e}")
+
     data["status"] = status
     return JsonResponse(data)
 
@@ -474,7 +503,6 @@ def data_table(request):
         content_list = LoanRequest.objects.filter(status=table_context).order_by(
             "-created_at"
         )
-        print(content_list)
         if member_id:
             content_list = content_list.filter(member=member)
 

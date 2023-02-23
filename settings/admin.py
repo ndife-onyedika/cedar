@@ -53,3 +53,9 @@ class AccountChoiceAdmin(CustomAdmin):
         return display_duration(obj.aad)
 
     view_aad.short_description = "Account Activity Duration Duration"
+
+
+@admin.register(BusinessYear)
+class BusinessYearAdmin(CustomAdmin):
+    list_display = ("start_day", "start_month", "end_day", "end_month")
+    ordering = ("-id",)

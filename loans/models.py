@@ -69,8 +69,6 @@ def post_loan_save(sender, instance: LoanRequest, **kwargs):
 @receiver(post_save, sender=LoanRepayment)
 def post_loan_repay_save(sender, instance: LoanRepayment, **kwargs):
     if kwargs["created"]:
-        member = instance.member
-        admin = User.objects.get(is_superuser=True)
         try:
             with transaction.atomic():
                 loan = instance.loan
@@ -80,17 +78,5 @@ def post_loan_repay_save(sender, instance: LoanRepayment, **kwargs):
                 if outstanding_amount == 0:
                     loan.status = "terminated"
                 loan.save()
-                notify.send(
-                    admin,
-                    level="info",
-                    verb="Loan: Repayment",
-                    recipient=User.objects.exclude(is_superuser=False),
-                    description="{} has made a repayment of {} for his/her {} loan. Outstanding Balance is {}.".format(
-                        member.name,
-                        get_amount(instance.amount),
-                        get_amount(instance.loan.amount),
-                        get_amount(instance.loan.outstanding_amount),
-                    ),
-                )
         except IntegrityError as e:
             return f"LOAN-REPAYMENT-MODEL-ERROR: {e}"

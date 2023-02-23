@@ -4,6 +4,13 @@ from django.shortcuts import get_object_or_404, render, resolve_url
 from django.views.generic import TemplateView
 
 from accounts.models import Member
+from cedar.mixins import (
+    get_amount,
+    get_data_equivalent,
+    display_duration,
+    display_rate,
+    get_daycount_nextdate,
+)
 from loans.forms import LoanRepaymentForm, LoanRequestForm
 from .models import LoanRequest
 
@@ -55,7 +62,37 @@ class LoanView(LoanListView):
         loan = get_object_or_404(LoanRequest, id=loan_id)
         context = {
             "loan": loan,
-            "dashboard": {"context": "loans", "title": "Loan Repayments"},
+            "dashboard": {
+                "context": "loans",
+                "sub_context": "loans.repay",
+                "title": "Loan Details",
+            },
         }
-        template = f"accounts/pages/member.html"
+
+        approval_date = loan.created_at.date()
+
+        init_date = approval_date + get_daycount_nextdate(
+            month_count=0, date=approval_date
+        )
+        end_date = init_date + get_daycount_nextdate(
+            date=init_date, month_count=loan.duration
+        )
+
+        context["data"] = [
+            {"title": "Status", "detail": get_data_equivalent(loan.status, "lsc")},
+            {"title": "Member", "detail": loan.member.name},
+            {"title": "Amount", "detail": get_amount(amount=loan.amount)},
+            {
+                "title": "Outstanding Amount",
+                "detail": get_amount(amount=loan.outstanding_amount),
+            },
+            {"title": "Guarantor 1", "detail": loan.guarantor_1.name},
+            {"title": "Guarantor 2", "detail": loan.guarantor_2.name},
+            {"title": "Interest Rate", "detail": display_rate(loan.interest_rate)},
+            {"title": "Tenor", "detail": display_duration(loan.duration)},
+            {"title": "Date Created", "detail": loan.created_at},
+            {"title": "Date Terminated", "detail": loan.terminated_at},
+        ]
+
+        template = f"dashboard/pages/records.html"
         return render(request, template, context)

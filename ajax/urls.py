@@ -13,6 +13,7 @@ from .views import (
     register_member,
     service_create,
     update_member,
+    update_settings,
 )
 
 app_name = "ajax"
@@ -21,6 +22,7 @@ urlpatterns = [
     path("gc", get_chart, name="gc"),
     path("dt", data_table, name="dt"),
     path("reg", register_member, name="reg"),
+    path("us", update_settings, name="us"),
     path("ca/<int:member_id>", change_avatar, name="ca"),
     path("sc/<str:context>", service_create, name="sc"),
     path("um/<int:member_id>", update_member, name="um"),

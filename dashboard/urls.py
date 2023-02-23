@@ -35,6 +35,7 @@ urlpatterns = [
     ),
     path("loans/", LoanListView.as_view(), name="loans"),
     path("loans/<int:member_id>/", MemberLoanListView.as_view(), name="loans.member"),
+    path("loans/details/<int:loan_id>/", LoanView.as_view(), name="loans.repay"),
     path("shares/", ShareListView.as_view(), name="shares"),
     path(
         "shares/<int:member_id>/", MemberSharesListView.as_view(), name="shares.member"

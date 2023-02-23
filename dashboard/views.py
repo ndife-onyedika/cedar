@@ -1,4 +1,5 @@
-from django.shortcuts import render, resolve_url
+from django.shortcuts import redirect, render, resolve_url
+from django.urls import reverse
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from accounts.models import Member
@@ -8,8 +9,10 @@ from savings.models import SavingsTotal, SavingsCredit, SavingsDebit
 from django.db.models.aggregates import Sum
 from loans.models import LoanRequest
 from savings.forms import SavingsCreditForm, SavingsDebitForm
+from settings.models import AccountChoice, BusinessYear
 from shares.models import SharesTotal
 from settings.forms import AccountChoiceFormSet, BusinessYearForm
+from django.contrib import messages as flash_messages
 
 
 # Create your views here.
@@ -115,8 +118,21 @@ class Settings(LoginRequiredMixin, TemplateView):
         context = {
             "dashboard": {"title": "Settings", "context": "settings"},
         }
-        formset = AccountChoiceFormSet()
+        formset = AccountChoiceFormSet(
+            queryset=AccountChoice.objects.filter(name__in=["Normal", "Staff"]),
+        )
         context["formset"] = formset
-        context["form"] = BusinessYearForm()
+        context["form"] = BusinessYearForm(instance=BusinessYear.objects.last())
+
         template = "dashboard/pages/settings.html"
         return render(request, template, context)
+
+    def post(self, request, *args, **kwargs):
+        formset = AccountChoiceFormSet(
+            request.POST,
+            queryset=AccountChoice.objects.filter(name__in=["Normal", "Staff"]),
+        )
+        if formset.is_valid():
+            formset.save()
+            flash_messages.success(request, "Settings updated successfully")
+        return redirect(reverse("dashboard:settings"))

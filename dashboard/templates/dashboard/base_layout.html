@@ -84,7 +84,7 @@
         aria-live="assertive" aria-atomic="true">
         <div class="toast-header">
             <svg class="bi me-2"
-                style="fill:var(--bs--{% if message.tags == "error" %}danger{% else %}{{message.tags}}{% endif %})">
+                style="fill:var(--bs-{% if message.tags == "error" %}danger{% else %}{{message.tags}}{% endif %})">
                 <use xlink:href="{% static 'svg/sprite.svg' %}#icon-{{message.tags}}-bold"></use>
             </svg>
             <strong class="me-auto">{{message.tags|capfirst}}</strong>

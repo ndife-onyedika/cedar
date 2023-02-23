@@ -29,9 +29,7 @@ redis_instance = redis.StrictRedis(
 
 get_last_day_month = lambda month, year: calendar.monthrange(year, month)[1]
 
-check_if_day_is_in_month = lambda day, month, year: day <= get_last_day_month(
-    month, year
-)
+check_day_valid = lambda day, month, year: day <= get_last_day_month(month, year)
 
 member_preferred_currency = lambda member: member.preference.currency
 

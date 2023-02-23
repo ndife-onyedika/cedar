@@ -9,6 +9,6 @@
     "selected_id":[],
     "search_data":null,
     "table_context":null,
-    "table_name":"{{dashboard.context}}"
+    "table_name":"{% if not dashboard.sub_context %}{{dashboard.context}}{% else %}{{dashboard.sub_context}}{% endif %}"
 }' />
 {% endblock  %}

@@ -175,7 +175,6 @@ class EditMemberForm(MemberForm):
     def save(self):
         data = self.cleaned_data
         instance = self.instance
-        print(instance)
         instance.name = data.get("name", instance.name)
         instance.email = data.get("email", instance.email)
         instance.phone = data.get("phone", instance.phone)
