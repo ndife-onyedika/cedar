@@ -32,9 +32,12 @@ class LoanRequest(models.Model):
         Member, null=True, related_name="guarantor_2", on_delete=models.SET_NULL
     )
 
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(default=timezone.now, blank=True, null=True)
+    updated_at = models.DateTimeField(default=timezone.now, blank=True, null=True)
     terminated_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        verbose_name_plural = "Loan Requests"
 
 
 class LoanRepayment(models.Model):
@@ -43,6 +46,9 @@ class LoanRepayment(models.Model):
     amount = models.BigIntegerField(default=0)
 
     created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name_plural = "Loan Repayments"
 
 
 @receiver(post_save, sender=LoanRequest)
@@ -58,6 +64,7 @@ def post_loan_save(sender, instance: LoanRequest, **kwargs):
         notify.send(
             admin,
             level="info",
+            timestamp=timezone.now(),
             verb="Loan: Termination",
             recipient=User.objects.exclude(is_superuser=False),
             description="{}'s loan has completed payment for loan and is hereby terminated.".format(

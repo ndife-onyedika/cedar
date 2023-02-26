@@ -4,7 +4,11 @@ from django.utils import timezone
 from django.utils.timezone import datetime, timedelta
 
 from accounts.models import Member, User
-from savings.mixins import calculate_interest_exec, calculate_yearEndBalance
+from savings.mixins import (
+    calculate_interest,
+    calculate_interest_exec,
+    calculate_yearEndBalance,
+)
 from settings.models import BusinessYear
 
 from .models import SavingsInterest
@@ -37,3 +41,14 @@ def daily_interest_calculation_task():
         return f"ERROR: Savings Interest Calculation!\nERROR_DESC: {e}"
     else:
         return f"SUCCESS: Savings Interest Calculation!"
+
+
+@shared_task
+def calc_old_interest():
+    try:
+        with transaction.atomic():
+            calculate_interest()
+    except IntegrityError as e:
+        return f"ERROR: Interest Calculation (OLD)\nERROR_DESC: {e}"
+    else:
+        return f"SUCCESS: Interest Calculation (OLD)"

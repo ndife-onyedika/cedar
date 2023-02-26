@@ -30,8 +30,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         """More info."""
 
         db_table = "users"
-        verbose_name = "User"
-        verbose_name_plural = "Users"
+        verbose_name = "Admin"
+        verbose_name_plural = "Admins"
 
     def get_absolute_url(self):
         return "/accounts/{}".format(self.pk)

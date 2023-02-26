@@ -55,8 +55,8 @@ def create_tables(member):
     from savings.models import SavingsTotal
     from shares.models import SharesTotal
 
-    SavingsTotal.objects.get_or_create(member=member)
-    SharesTotal.objects.get_or_create(member=member)
+    SavingsTotal.objects.get_or_create(member=member, created_at=member.date_joined)
+    SharesTotal.objects.get_or_create(member=member, created_at=member.date_joined)
 
 
 def get_savings_total(member):
@@ -373,7 +373,7 @@ def months_between(start_date, end_date):
     month = start_date.month
 
     while (year, month) <= (end_date.year, end_date.month):
-        yield datetime.date(year, month, 1)
+        yield datetime(year, month, 1).date()
 
         # Move to the next month.  If we're at the end of the year, wrap around
         # to the start of the next.

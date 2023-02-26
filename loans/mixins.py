@@ -46,7 +46,7 @@ def due_reminder(admin, loans, date):
                     admin,
                     level="info",
                     verb="Loan: Due Date",
-                    recipients=User.objects.exclude(is_superuser=False),
+                    recipient=User.objects.exclude(is_superuser=False),
                     description="{}'s loan is due in {} days time".format(
                         member.name, 2 if is_2days else 7
                     ),
@@ -59,7 +59,7 @@ def due_reminder(admin, loans, date):
                     admin,
                     level="error",
                     verb="Loan: Loan Repayment Past Due",
-                    recipients=User.objects.exclude(is_superuser=False),
+                    recipient=User.objects.exclude(is_superuser=False),
                     description=f"{loan.member.name} account has been set INACTIVE due the inability to pay up loan at stipulated time.",
                 )
 

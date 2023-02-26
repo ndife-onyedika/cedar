@@ -19,6 +19,9 @@ class AccountChoice(models.Model):
     def __str__(self):
         return f"{self.name} Member"
 
+    class Meta:
+        verbose_name_plural = "Account Types"
+
 
 class BusinessYear(models.Model):
     start_day = models.IntegerField("Starting Day of Business Year", default=1)
@@ -29,3 +32,6 @@ class BusinessYear(models.Model):
     end_month = models.IntegerField(
         "Ending Month of Business Year", default=3, choices=MONTH_CHOICES
     )
+
+    class Meta:
+        verbose_name_plural = "Business Year"

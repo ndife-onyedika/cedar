@@ -75,20 +75,20 @@ class SavingsInterest(Savings):
 
 @receiver(post_save, sender=SavingsCredit)
 def post_savings_credit_save(sender, instance: SavingsCredit, **kwargs):
-    if kwargs["created"]:
-        SavingsInterest.objects.create(
-            savings=instance,
+    si = SavingsInterest.objects.get_or_create(
+        savings=instance, member=instance.member, created_at=instance.created_at
+    )[0]
+    si.amount = instance.amount
+    si.updated_at = instance.created_at
+    # si.updated_at = timezone.now()
+    if instance.reason == "credit-eoy":
+        si.start_comp = True
+        YearEndBalance.objects.get_or_create(
             member=instance.member,
             amount=instance.amount,
             created_at=instance.created_at,
-            updated_at=instance.created_at,
         )
-        if instance.reason == "credit-eoy":
-            YearEndBalance.objects.create(
-                member=instance.member,
-                amount=instance.amount,
-                created_at=instance.created_at,
-            )
+    si.save()
 
 
 @receiver(post_delete, sender=SavingsCredit)
@@ -101,13 +101,13 @@ def post_savings_credit_delete(sender, instance: SavingsCredit, **kwargs):
         ).delete()
 
 
-@receiver(post_save, sender=SavingsDebit)
+# @receiver(post_save, sender=SavingsDebit)
 def post_savings_debit_save(sender, instance: SavingsDebit, **kwargs):
     if kwargs["created"]:
         handle_withdrawal(context="create", instance=instance)
 
 
-@receiver(post_delete, sender=SavingsDebit)
+# @receiver(post_delete, sender=SavingsDebit)
 def post_savings_debit_delete(sender, instance: SavingsDebit, **kwargs):
     handle_withdrawal(context="delete", instance=instance)
 

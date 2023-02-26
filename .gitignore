@@ -2,3 +2,4 @@ settings.ini
 __pycache__/
 media/
 *.sqlite3
+static/
