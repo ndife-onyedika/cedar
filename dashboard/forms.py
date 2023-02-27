@@ -1,7 +1,5 @@
-from tkinter import N
 import phonenumbers
 from django import forms
-from django.core.validators import FileExtensionValidator
 from email_validator import EmailNotValidError, validate_email
 from phonenumbers.phonenumberutil import NumberParseException
 
