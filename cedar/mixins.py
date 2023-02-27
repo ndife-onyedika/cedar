@@ -1,4 +1,3 @@
-import base64
 import calendar
 import json
 import os
@@ -7,12 +6,9 @@ from functools import lru_cache
 import jwt
 import redis
 from django.conf import settings as dj_sett
-from django.core.files.base import File
-from django.db import IntegrityError, OperationalError, models, transaction
-from django.db.models.aggregates import Sum
+from django.db import OperationalError, models, transaction
 from django.utils import timezone
 from django.utils.timezone import datetime
-from docxtpl import DocxTemplate
 
 from .constants import (
     CREDIT_REASON_CHOICES,
