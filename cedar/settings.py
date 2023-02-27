@@ -33,8 +33,8 @@ SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", cast=bool)
 
 IP = config("SERVER")
-SITE_DOMAIN = config("DOMAIN")
-ALLOWED_HOSTS = [IP, SITE_DOMAIN]
+SITE_DOMAIN = config("DOMAIN").split(",")
+ALLOWED_HOSTS = [IP, *SITE_DOMAIN]
 
 AUTH_USER_MODEL = "accounts.User"
 
