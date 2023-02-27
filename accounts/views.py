@@ -168,7 +168,7 @@ def login_view(request):
         login(request, user)
         flash_messages.success(request, "Sign in successful")
         return redirect("dashboard:home")
-    return render(request, "404.html", {"form": form})
+    return render(request, "accounts/login.html", {"form": form})
 
 
 @login_required
