@@ -67,35 +67,41 @@ def import_csv():
                                 ),
                             )[0]
                             NextOfKin.objects.get_or_create(member=member)
+                            if not is_null(shares := row["SHARES"]):
+                                date = datetime.combine(
+                                    (
+                                        convert_date(shares_date)
+                                        if not is_null(
+                                            shares_date := row["DATE (SHARES)"]
+                                        )
+                                        else date_joined
+                                    ).date(),
+                                    time(2, 0),
+                                )
+                                Shares.objects.get_or_create(
+                                    member=member,
+                                    amount=convert_amt(shares),
+                                    created_at=make_aware(date),
+                                )
+
                             if name.upper() not in (
                                 "ADAKU ONAM",
                                 "VICTOR ONAM",
                                 "LONGINUS AMUCHIE",
                             ):
-                                if not is_null(shares := row["SHARES"]):
-                                    date = datetime.combine(
-                                        (
-                                            convert_date(shares_date)
-                                            if not is_null(
-                                                shares_date := row["DATE (SHARES)"]
-                                            )
-                                            else date_joined
-                                        ).date(),
-                                        time(2, 0),
-                                    )
-                                    Shares.objects.get_or_create(
-                                        member=member,
-                                        amount=convert_amt(shares),
-                                        created_at=make_aware(date),
-                                    )
                                 if not is_null(savings_credit := row["SAVINGS CREDIT"]):
                                     date = convert_date(row["DATE (SAVINGS CREDIT)"])
+                                    if date.date() != datetime(2014, 4, 1).date():
+                                        reason = "credit-deposit"
+                                    else:
+                                        # has_eoy = SavingsCredit.objects.filter(
+                                        #     member=member,
+                                        #     reason=reason,
+                                        #     created_at=date,
+                                        # ).exists()
+                                        reason = "credit-eoy"
                                     savings = SavingsCredit.objects.get_or_create(
-                                        member=member,
-                                        created_at=date,
-                                        reason="credit-deposit"
-                                        if date.date() != datetime(2014, 4, 1).date()
-                                        else "credit-eoy",
+                                        member=member, reason=reason, created_at=date
                                     )[0]
                                     savings.amount += convert_amt(savings_credit)
                                     savings.save()
