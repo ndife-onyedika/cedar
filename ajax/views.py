@@ -426,11 +426,19 @@ def data_table(request):
         if search_by == "date":
             content_list = content_list.filter(created_at__date__range=search_data)
         elif search_by == "text":
-            content_list = content_list.filter(
+            query = (
                 Q(member__name__icontains=search_data)
                 | Q(member__email__icontains=search_data)
                 | Q(reason__icontains=search_data)
             )
+            if table_context != "all":
+                content_list = content_list.filter(query)
+            else:
+                content_list = (
+                    savings_credit.filter(query)
+                    .union(savings_debit.filter(query))
+                    .order_by("-created_at")
+                )
 
         content = paginator_exec(page, per_page, content_list)
 

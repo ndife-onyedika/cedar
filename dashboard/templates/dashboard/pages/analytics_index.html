@@ -282,7 +282,7 @@
 
             },
             dataType: 'json',
-            success: function (data) {
+            success: data => {
                 if (data.content.length != 0) {
                     let table_rows = ``;
                     for (let i = 0; i < data.content.length; i++) {
@@ -366,6 +366,9 @@
                     );
                 }
 
+                console.log(data)
+
+
                 let pagination = `
                     <li 
                         class="page-item ${
@@ -405,7 +408,7 @@
                 $('.card-footer select option').each(function () {
                     if ($(this).val() == data.attr.per_page) $(this).attr("selected", "selected")
                 });
-                if (data.has_other_pages) $('.card-footer select').removeAttr("disabled");
+                $('.card-footer select').prop("disabled", !data.attr.has_other_pages);
             }
         });
     }

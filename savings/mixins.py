@@ -45,18 +45,18 @@ def handle_withdrawal(context, instance):
     )
 
     if context == "create":
-        savings_intrs = savings_intrs.filter(is_comp=True).order_by("-created_at")
-        remainder = instance.amount
-        withdrawal_amount = 0
         last_id = None
+        remainder = 0
+        withdrawal_amount = 0
+        savings_intrs = savings_intrs.filter(is_comp=True).order_by("-created_at")
         for savings_intr in savings_intrs:
             if not withdrawal_amount >= amount:
                 last_id = savings_intr.id
                 withdrawal_amount += savings_intr.amount
                 savings_intr.is_comp = False
                 savings_intr.save()
-        remainder = withdrawal_amount - instance.amount
-        if remainder:
+        remainder = withdrawal_amount - amount
+        if remainder > 0:
             intr = SavingsInterest.objects.get(id=last_id)
             intr.is_comp = True
             intr.amount = remainder
@@ -97,14 +97,17 @@ def calculate_yearEndBalance(member, date_range: list):
 def calculate_interest_exec(admin, member: Member, instance, date: datetime):
     interest_rate = member.account_type.sir / 100
     rate_day = interest_rate / 30
-    pre_savings_interest_duration = member.account_type.psisd
 
-    months_elapsed = int((date.date() - instance.created_at.date()).days / 30)
-    is_eligible = months_elapsed >= pre_savings_interest_duration
-    if is_eligible:
-        if instance.start_comp:
-            interest = instance.amount * rate_day
-        else:
+    if instance.start_comp:
+        interest = instance.amount * rate_day
+        instance.interest += interest
+        instance.updated_at = date
+        instance.save()
+    else:
+        pre_savings_interest_duration = member.account_type.psisd
+        months_elapsed = int((date.date() - instance.created_at.date()).days / 30)
+        is_eligible = months_elapsed >= pre_savings_interest_duration
+        if is_eligible:
             instance.start_comp = True
             interest = instance.amount * interest_rate * months_elapsed
             notify.send(
@@ -119,9 +122,9 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
                     display_duration(pre_savings_interest_duration),
                 ),
             )
-        instance.interest += interest
-        instance.updated_at = date
-        instance.save()
+            instance.interest += interest
+            instance.updated_at = date
+            instance.save()
 
 
 def check_activity_exec(member, date: datetime):
