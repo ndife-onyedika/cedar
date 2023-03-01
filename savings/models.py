@@ -5,7 +5,12 @@ from django.utils import timezone
 
 from accounts.models import Member
 from cedar.constants import CREDIT_REASON_CHOICES, DEBIT_REASON_CHOICES
-from cedar.mixins import CustomAbstractTable
+from cedar.mixins import (
+    CustomAbstractTable,
+    get_amount,
+    format_date_model,
+    get_data_equivalent,
+)
 from savings.mixins import handle_withdrawal, update_savings_total
 
 
@@ -30,6 +35,14 @@ class SavingsCredit(Savings):
     class Meta:
         verbose_name_plural = "Savings Credit"
 
+    def __str__(self):
+        return "SC({}, {}, {}, {})".format(
+            self.member.name,
+            get_amount(self.amount),
+            get_data_equivalent(self.reason, "src"),
+            format_date_model(self.created_at),
+        )
+
 
 class SavingsDebit(Savings):
     reason = models.CharField(
@@ -42,6 +55,14 @@ class SavingsDebit(Savings):
     class Meta:
         verbose_name_plural = "Savings Debit"
 
+    def __str__(self):
+        return "SD({}, {}, {}, {})".format(
+            self.member.name,
+            get_amount(self.amount),
+            get_data_equivalent(self.reason, "src"),
+            format_date_model(self.created_at),
+        )
+
 
 class SavingsTotal(CustomAbstractTable):
     member = models.OneToOneField(Member, on_delete=models.CASCADE)
@@ -49,6 +70,15 @@ class SavingsTotal(CustomAbstractTable):
 
     class Meta:
         verbose_name_plural = "Savings Total"
+
+    def __str__(self):
+        return "ST({}, {}, {}, {}, {})".format(
+            self.member.name,
+            get_amount(self.amount),
+            get_amount(self.interest),
+            format_date_model(self.created_at),
+            format_date_model(self.updated_at),
+        )
 
 
 class YearEndBalance(CustomAbstractTable):
@@ -58,6 +88,13 @@ class YearEndBalance(CustomAbstractTable):
     class Meta:
         verbose_name = "Year End Balance"
         verbose_name_plural = "Year End Balances"
+
+    def __str__(self):
+        return "YEB({}, {}, {})".format(
+            self.member.name,
+            get_amount(self.amount),
+            format_date_model(self.created_at),
+        )
 
 
 class SavingsInterest(Savings):
@@ -69,8 +106,19 @@ class SavingsInterest(Savings):
     updated_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        verbose_name = "Savings Interest"
         verbose_name_plural = "Savings Interests"
+
+    def __str__(self):
+        return "SI({}, {}, {}, is: {}, sc: {}, dis: {}, {}, {})".format(
+            self.member.name,
+            get_amount(self.amount),
+            self.__str__(),
+            self.is_comp,
+            self.start_comp,
+            self.disabled,
+            format_date_model(self.created_at),
+            format_date_model(self.updated_at),
+        )
 
 
 @receiver(post_save, sender=SavingsCredit)

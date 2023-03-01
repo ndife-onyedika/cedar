@@ -1,16 +1,20 @@
 from re import T
-from django.db import models
-
-from accounts.models import Member, User
-from cedar.constants import LOAN_STATUS_CHOICES
-from django.utils import timezone
 
 from django.db import IntegrityError, models, transaction
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch.dispatcher import receiver
+from django.utils import timezone
 from notifications.signals import notify
 
-from cedar.mixins import get_amount
+from accounts.models import Member, User
+from cedar.constants import LOAN_STATUS_CHOICES
+from cedar.mixins import (
+    display_duration,
+    display_rate,
+    get_amount,
+    get_data_equivalent,
+    format_date_model,
+)
 
 
 # Create your models here.
@@ -39,6 +43,18 @@ class LoanRequest(models.Model):
     class Meta:
         verbose_name_plural = "Loan Requests"
 
+    def __str__(self):
+        return "({}, {}, {}, {}, {}, {}, {}, {})".format(
+            self.member.name,
+            get_amount(self.amount),
+            get_amount(self.outstanding_amount),
+            display_duration(self.duration),
+            display_rate(self.interest_rate),
+            get_data_equivalent(self.status, "lsc"),
+            format_date_model(self.created_at),
+            format_date_model(self.updated_at),
+        )
+
 
 class LoanRepayment(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE)
@@ -49,6 +65,14 @@ class LoanRepayment(models.Model):
 
     class Meta:
         verbose_name_plural = "Loan Repayments"
+
+    def __str__(self):
+        return "({}, {}, {}, {})".format(
+            self.member.name,
+            self.__str__(),
+            get_amount(self.amount),
+            format_date_model(self.created_at),
+        )
 
 
 @receiver(post_save, sender=LoanRequest)

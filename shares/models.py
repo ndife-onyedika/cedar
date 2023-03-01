@@ -3,7 +3,7 @@ from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch.dispatcher import receiver
 
 from accounts.models import Member
-from cedar.mixins import CustomAbstractTable
+from cedar.mixins import CustomAbstractTable, get_amount, format_date_model
 from shares.mixins import update_shares_total
 from django.utils import timezone
 
@@ -14,9 +14,30 @@ class Shares(models.Model):
     amount = models.BigIntegerField()
     created_at = models.DateTimeField(default=timezone.now)
 
+    class Meta:
+        verbose_name_plural = "Shares"
+
+    def __str__(self):
+        return "({}, {}, {})".format(
+            self.member.name,
+            get_amount(self.amount),
+            format_date_model(self.created_at),
+        )
+
 
 class SharesTotal(CustomAbstractTable):
     member = models.OneToOneField(Member, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name_plural = "Shares Total"
+
+    def __str__(self):
+        return "({}, {}, {},{})".format(
+            self.member.name,
+            get_amount(self.amount),
+            format_date_model(self.created_at),
+            format_date_model(self.updated_at),
+        )
 
 
 @receiver(post_save, sender=Shares)

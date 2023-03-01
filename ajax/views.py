@@ -559,8 +559,8 @@ def data_table(request):
             content_list = content_list.filter(created_at__date__range=search_data)
         elif search_by == "text":
             content_list = content_list.filter(
-                Q(savings__member__name__icontains=search_data)
-                | Q(savings__member__email__icontains=search_data)
+                Q(member__name__icontains=search_data)
+                | Q(member__email__icontains=search_data)
             )
 
         content = paginator_exec(page, per_page, content_list)
