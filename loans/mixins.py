@@ -20,7 +20,7 @@ def get_loan_details(loan: LoanRequest):
 
 def check_loan_eligibility(member, amount):
     _percent = member.account_type.lsr / 100
-    savings_total = get_savings_total(member)
+    savings_total = get_savings_total(member).amount
     return savings_total >= (amount * _percent)
 
 

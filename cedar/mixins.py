@@ -58,7 +58,7 @@ def create_tables(member):
 def get_savings_total(member):
     from savings.models import SavingsTotal
 
-    return SavingsTotal.objects.get_or_create(member=member)[0].amount
+    return SavingsTotal.objects.get_or_create(member=member)[0]
 
 
 def get_shares_total(member):
@@ -143,7 +143,7 @@ def get_loan_status_info(context, **kwargs):
 
 
 def loan_eligibility(member, amount):
-    savings_total = get_savings_total(member)
+    savings_total = get_savings_total(member).amount
     return savings_total >= (member.account_type.lsp / 100) * amount
 
 

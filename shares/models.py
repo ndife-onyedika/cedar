@@ -5,13 +5,14 @@ from django.dispatch.dispatcher import receiver
 from accounts.models import Member
 from cedar.mixins import CustomAbstractTable
 from shares.mixins import update_shares_total
+from django.utils import timezone
 
 
 # Create your models here.
 class Shares(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE)
     amount = models.BigIntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
 
 class SharesTotal(CustomAbstractTable):

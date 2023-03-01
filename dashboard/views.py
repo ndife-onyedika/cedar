@@ -40,6 +40,9 @@ class Dashboard(LoginRequiredMixin, TemplateView):
         total_savings = (
             SavingsTotal.objects.all().aggregate(Sum("amount"))["amount__sum"] or 0
         )
+        total_savings_interest = (
+            SavingsTotal.objects.all().aggregate(Sum("interest"))["interest__sum"] or 0
+        )
         savings_credit = SavingsCredit.objects.all()
         savings_debit = SavingsDebit.objects.all()
         last_credit = savings_credit.last()
@@ -52,6 +55,7 @@ class Dashboard(LoginRequiredMixin, TemplateView):
         # WALLET
         context["shares"] = get_amount(amount=total_shares)
         context["savings"]["balance"] = get_amount(amount=total_savings)
+        context["savings"]["interest"] = get_amount(amount=total_savings_interest)
 
         context["savings"]["credit_last"] = get_amount(
             amount=last_credit.amount if last_credit else 0,

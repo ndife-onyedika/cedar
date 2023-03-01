@@ -231,7 +231,7 @@ def service_create(request, context: str):
                             "New Savings Deposit",
                             "deposit of {} has been recorded. Total Savings: {}".format(
                                 get_amount(amount),
-                                get_amount(get_savings_total(member)),
+                                get_amount(get_savings_total(member).amount),
                             ),
                         ],
                         "savings.deb": [
@@ -239,7 +239,7 @@ def service_create(request, context: str):
                             "New Savings Withdrawal",
                             "withdrawal of {} has been recorded. Total Savings: {}".format(
                                 get_amount(amount),
-                                get_amount(get_savings_total(member)),
+                                get_amount(get_savings_total(member).amount),
                             ),
                         ],
                     }
@@ -405,7 +405,7 @@ def data_table(request):
                 "acc_no": i.account_number,
                 "created_at": i.date_joined,
                 "acc_type": i.account_type.name,
-                "balance": get_amount(get_savings_total(i)),
+                "balance": get_amount(get_savings_total(i).amount),
                 "status": "Active" if i.is_active else "Inactive",
             }
             data["content"].append(c)
@@ -533,8 +533,14 @@ def data_table(request):
                 "amount": get_amount(amount=i.amount),
                 "duration": display_duration(i.duration),
                 "guarantors": [
-                    {"mid": i.guarantor_1.id, "name": i.guarantor_1.name},
-                    {"mid": i.guarantor_2.id, "name": i.guarantor_2.name},
+                    {
+                        "mid": i.guarantor_1.id if i.guarantor_1 else "",
+                        "name": i.guarantor_1.name if i.guarantor_1 else "-",
+                    },
+                    {
+                        "mid": i.guarantor_2.id if i.guarantor_2 else "",
+                        "name": i.guarantor_2.name if i.guarantor_2 else "-",
+                    },
                 ],
                 **(
                     {"outstanding_amount": get_amount(i.outstanding_amount)}
