@@ -35,6 +35,23 @@ const toast = (status, message) => {
 };
 
 // ------------------------------------------------------
+// Show Password
+// ------------------------------------------------------
+$("#passShow").on("click", function () {
+    if (!$(this).hasClass("toggle")) {
+        $(this).addClass("toggle");
+        $(this).find("use").attr("xlink:href", "/static/svg/sprite.svg#icon-eye-close-outline");
+        $(this).prev().find("input").attr("type", "text");
+        $(this).prev().focus();
+    } else {
+        $(this).removeClass("toggle");
+        $(this).find("use").attr("xlink:href", "/static/svg/sprite.svg#icon-eye-open-outline");
+        $(this).prev().find("input").attr("type", "password");
+        $(this).prev().find("input").focus();
+    }
+});
+
+// ------------------------------------------------------
 // SELECT DROPDOWN
 // ------------------------------------------------------
 function create_custom_dropdowns() {
