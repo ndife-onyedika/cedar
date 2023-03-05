@@ -29,7 +29,7 @@ def task_exec(context, date):
 
     admin = User.objects.get(is_superuser=True)
     loans = LoanRequest.objects.filter(
-        status="disbursed", created_at__date__isnull=False
+        status="disbursed", created_at__isnull=False
     ).order_by("-created_at")
     reminders = {"due": due_reminder, "interest": calculate_loan_interests}
     reminders[context](admin, loans, date)
