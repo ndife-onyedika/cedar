@@ -28,7 +28,9 @@ def task_exec(context, date):
     from .models import LoanRequest
 
     admin = User.objects.get(is_superuser=True)
-    loans = LoanRequest.objects.filter(status="disbursed").order_by("-created_at")
+    loans = LoanRequest.objects.filter(
+        status="disbursed", created_at__date__isnull=False
+    ).order_by("-created_at")
     reminders = {"due": due_reminder, "interest": calculate_loan_interests}
     reminders[context](admin, loans, date)
 
