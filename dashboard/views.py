@@ -2,6 +2,7 @@ from django.shortcuts import redirect, render, resolve_url
 from django.urls import reverse
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from accounts.forms import RegistrationForm
 from accounts.models import Member
 
 from cedar.mixins import get_amount, get_data_equivalent
@@ -22,6 +23,7 @@ class Dashboard(LoginRequiredMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         context = {
             "savings": {},
+            "mf": RegistrationForm(),
             "sdf": SavingsCreditForm(),
             "swf": SavingsDebitForm(),
             "dashboard": {
@@ -45,8 +47,8 @@ class Dashboard(LoginRequiredMixin, TemplateView):
         )
         savings_credit = SavingsCredit.objects.all()
         savings_debit = SavingsDebit.objects.all()
-        last_credit = savings_credit.last()
-        last_debit = savings_debit.last()
+        last_credit = savings_credit.order_by("created_at").last()
+        last_debit = savings_debit.order_by("created_at").last()
 
         total_shares = (
             SharesTotal.objects.all().aggregate(Sum("amount"))["amount__sum"] or 0

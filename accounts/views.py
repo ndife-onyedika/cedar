@@ -100,8 +100,8 @@ class MemberView(MemberListView):
         total_savings_interest = st.interest
         savings_credit = SavingsCredit.objects.filter(member=member)
         savings_debit = SavingsDebit.objects.filter(member=member)
-        last_credit = savings_credit.last()
-        last_debit = savings_debit.last()
+        last_credit = savings_credit.order_by("created_at").last()
+        last_debit = savings_debit.order_by("created_at").last()
         total_shares = get_shares_total(member=member)
         context["shares"] = get_amount(amount=total_shares)
         context["savings"]["balance"] = get_amount(amount=total_savings)

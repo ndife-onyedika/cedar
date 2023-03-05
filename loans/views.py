@@ -64,19 +64,10 @@ class LoanView(LoanListView):
             "loan": loan,
             "dashboard": {
                 "context": "loans",
-                "sub_context": "loans.repay",
                 "title": "Loan Details",
+                "sub_context": "loans.repay",
             },
         }
-
-        approval_date = loan.created_at.date()
-
-        init_date = approval_date + get_daycount_nextdate(
-            month_count=0, date=approval_date
-        )
-        end_date = init_date + get_daycount_nextdate(
-            date=init_date, month_count=loan.duration
-        )
 
         context["data"] = [
             {"title": "Status", "detail": get_data_equivalent(loan.status, "lsc")},
@@ -86,8 +77,14 @@ class LoanView(LoanListView):
                 "title": "Outstanding Amount",
                 "detail": get_amount(amount=loan.outstanding_amount),
             },
-            {"title": "Guarantor 1", "detail": loan.guarantor_1.name},
-            {"title": "Guarantor 2", "detail": loan.guarantor_2.name},
+            {
+                "title": "Guarantor 1",
+                "detail": loan.guarantor_1.name if loan.guarantor_1 else "-",
+            },
+            {
+                "title": "Guarantor 2",
+                "detail": loan.guarantor_2.name if loan.guarantor_2 else "-",
+            },
             {"title": "Interest Rate", "detail": display_rate(loan.interest_rate)},
             {"title": "Tenor", "detail": display_duration(loan.duration)},
             {"title": "Date Created", "detail": loan.created_at},

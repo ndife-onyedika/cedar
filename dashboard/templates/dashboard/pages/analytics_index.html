@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block mini_head %}
-<link rel="stylesheet" href="{% static 'vendor/css/daterangepicker.css' %}">
+<link rel="stylesheet" href="{% static 'vendor/css/daterangepicker.min.css' %}">
 <link rel="stylesheet" href="{% static 'vendor/css/print.min.css' %}">
 {% endblock mini_head %}
 
@@ -61,7 +61,7 @@
         {% endif %}
         <div class="card shadow border border-white">
             <div class="card-header bg-white d-flex flex-wrap-reverse flex-sm-nowrap">
-                {% if dashboard.context == "members" or dashboard.context == "loans" or dashboard.context == "savings" %}
+                {% if dashboard.context == "members" or dashboard.context == "loans" or dashboard.context == "savings" or dashboard.context == "savings.interest" and not member %}
                 <div class="btn-group col-12 col-sm-auto" role="group" aria-label="Table Tabs">
                 </div>
                 {% endif %}
@@ -160,7 +160,8 @@
 {% endblock  %}
 
 {% block dashboard_script %}
-<script src="{% static 'vendor/js/daterangepicker.js' %}"></script>
+<script src="{% static 'vendor/js/knockout-3.5.1.js' %}"></script>
+<script src="{% static 'vendor/js/daterangepicker.min.js' %}"></script>
 <script src="{% static 'vendor/js/print.min.js' %}"></script>
 <script>
     let printData = [];
@@ -184,14 +185,19 @@
             ["all", "All"],
             ["credit", "Credit"],
             ["debit", "Debit"]
+        ],
+        "savings.interest": [
+            ["all", "Interests"],
+            ["total", "Total Interests"]
         ]
     }
     const table_heads = {
-        members: ["Name", "Balance", "Status", "Account Number", "Account Type", "Date Registered"],
-        savings: ["Reason", "Date Created"],
-        "savings.interest": ["Interest", "Compounding Interest?", "Has Started Compounding?",
-            "Disabled?", "Date Created", "Date Updated"
-        ],
+        "savings.interest": {
+            all: ["Interest", "Compounding Interest?", "Has Started Compounding?",
+                "Disabled?", "Date Created", "Date Updated"
+            ],
+            total: ["Interest", "Date Updated"]
+        },
         loans: {
             disbursed: ["Outstanding Amount", "Rate", "Duration", "Guarantors",
                 "Date Created", "Date Updated", "More"
@@ -200,19 +206,18 @@
                 "Date Terminated", "More"
             ]
         },
+        members: ["Name", "Balance", "Status", "Account Number", "Account Type", "Date Registered"],
+        savings: ["Reason", "Date Created"],
         "loans.repay": ["Date Paid"],
         shares: ["Dated Created"],
         eoy: ["Dated Created"]
     }
 
-    $('#search_date').daterangepicker({
-        "drops": "down",
-        "opens": "left",
-        "showDropdowns": true,
-        "autoUpdateInput": false,
-        "alwaysShowCalendars": true,
-    }, function (start, end, label) {
-        this.element.val(`${start.format('Do MMM YYYY')} - ${ end.format('Do MMM YYYY')}`)
+    $("#search_date").daterangepicker({
+        orientation: 'left',
+        timeZone: 'Africa/Lagos',
+    }, function (start, end, period) {
+        $(this).val(`${start.format('Do MMM YYYY')} - ${end.format('Do MMM YYYY')}`)
         data_parse.search_by = "date";
         data_parse.search_data = [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
         tabulate();
@@ -220,7 +225,7 @@
 
 
     function populateTable(per_page, page, sort_by, context, search_by, search_data, table_name) {
-        if (table_name == "loans") context = context ? context : table_tabs[table_name]
+        if (["loans", "savings.interest"].includes(table_name)) context = context ? context : table_tabs[table_name]
             [0][0];
 
         let table_tab = table_tabs[table_name];
@@ -329,9 +334,9 @@
                                     : ''
                                 }
                                 ${table_name == "savings" ? `<td>${item.reason}</td>` : ''}
-                                ${table_name == "savings.interest" 
-                                    ? `<td>${item.interest}</td>
-                                        <td>${item.isc?'Yes':'No'}</td>
+                                ${table_name == "savings.interest" ? `<td>${item.interest}</td>` : ''}
+                                ${table_name == "savings.interest" && context == "all"
+                                    ? `<td>${item.isc?'Yes':'No'}</td>
                                         <td>${item.sc?'Yes':'No'}</td>
                                         <td>${item.disabled?'Yes':'No'}</td>` 
                                     : ''
@@ -347,7 +352,7 @@
                                         </td>` 
                                     : ''
                                 }
-                                <td>${to_local_time(item.created_at)}</td>
+                                ${table_name != "savings.interest" || table_name == "savings.interest" && context == "all" ?`<td>${to_local_time(item.created_at)}</td>`: ''}
                                 ${table_name == "savings.interest" 
                                     || table_name == "loans" && context == "disbursed" 
                                     || table_name == "shares" && !member
@@ -366,11 +371,9 @@
                     );
                 }
 
-                console.log(data)
-
-
                 let pagination = `
-                    <li 
+                    <li
+                        id="prev"
                         class="page-item ${
                             !(data.attr.has_other_pages && data.attr.has_previous)
                                 ? 'disabled' : ''
@@ -388,13 +391,14 @@
                         <input style="width:2.5rem" ${!data.attr.has_other_pages?'disabled':''} class="form-control text-center" placeholder="page" type="number" step="1" min="1" value="${data.attr.number}" aria-label="Page Numeber">
                     </li>
                     <li
+                        id="next"
                         class="page-item ${
                             !(data.attr.has_other_pages && data.attr.has_next)
                                 ? 'disabled' : ''
                         }" 
                         data-page="${
                             (data.attr.has_other_pages && data.attr.has_next)
-                            ? data.attr.prev : ''
+                            ? data.attr.next : ''
                         }"
                     >
                         <button type="button" class="page-link" aria-label="Previous">
@@ -432,11 +436,11 @@
         data_parse.context = $(this).val();
         tabulate();
     })
-    $(document).on('click', '#prev, #next', function () {
+    $(document).on('click', '.pagination #prev, .pagination #next', function () {
         data_parse.page = $(this).attr('data-page');
         tabulate();
     })
-    $(document).on('input', '.pagination-item.with_num input', function () {
+    $(document).on('input', '.pagination input', function () {
         let value = $(this).val().trim();
         data_parse.page = value;
         tabulate();

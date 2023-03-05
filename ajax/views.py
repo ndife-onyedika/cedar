@@ -27,7 +27,13 @@ from cedar.mixins import (
 from loans.forms import LoanRepaymentForm
 from loans.mixins import check_loan_eligibility
 from loans.models import LoanRepayment, LoanRequest
-from savings.models import SavingsCredit, SavingsDebit, SavingsInterest, YearEndBalance
+from savings.models import (
+    SavingsCredit,
+    SavingsDebit,
+    SavingsInterest,
+    SavingsTotal,
+    YearEndBalance,
+)
 from settings.models import AccountChoice
 from shares.models import Shares, SharesTotal
 
@@ -455,17 +461,28 @@ def data_table(request):
             }
             data["content"].append(c)
     elif table == "savings.interest":
-        content_list = SavingsInterest.objects.all().order_by("-created_at")
+        contexts = {
+            "all": SavingsInterest.objects.all().order_by(
+                "member__name", "-created_at"
+            ),
+            "total": SavingsTotal.objects.all().order_by("member__name"),
+        }
+
+        content_list = contexts[table_context]
 
         if member_id:
             content_list = content_list.filter(member=member)
 
         if search_by == "date":
-            content_list = content_list.filter(created_at__date__range=search_data)
+            content_list = content_list.filter(
+                Q(created_at__date__range=search_data)
+                if table_context == "all"
+                else Q(updated_at__date__range=search_data)
+            )
         elif search_by == "text":
             content_list = content_list.filter(
-                Q(savings__member__name__icontains=search_data)
-                | Q(savings__member__email__icontains=search_data)
+                Q(member__name__icontains=search_data)
+                | Q(member__email__icontains=search_data)
             )
 
         content = paginator_exec(page, per_page, content_list)
@@ -473,17 +490,19 @@ def data_table(request):
         for i in content:
             c = {
                 "id": i.id,
+                **({} if member_id else {"mid": i.member.id, "name": i.member.name}),
                 **(
-                    {}
-                    if member_id
-                    else {"mid": i.savings.member.id, "name": i.savings.member.name}
+                    {
+                        "isc": i.is_comp,
+                        "sc": i.start_comp,
+                        "disabled": i.disabled,
+                        "created_at": i.created_at,
+                    }
+                    if table_context == "all"
+                    else {}
                 ),
                 "amount": get_amount(amount=i.amount),
                 "interest": get_amount(amount=i.interest),
-                "isc": i.is_comp,
-                "sc": i.start_comp,
-                "disabled": i.disabled,
-                "created_at": i.created_at,
                 "updated_at": i.updated_at,
             }
             data["content"].append(c)
@@ -551,9 +570,9 @@ def data_table(request):
             }
             data["content"].append(c)
     elif table == "shares":
-        content_list = SharesTotal.objects.all().order_by("-created_at")
+        content_list = SharesTotal.objects.all().order_by("member__name")
         if member_id:
-            content_list = Shares.objects.filter(member=member)
+            content_list = Shares.objects.filter(member=member).order_by("-created_at")
 
         if search_by == "date":
             content_list = content_list.filter(created_at__date__range=search_data)
@@ -582,9 +601,11 @@ def data_table(request):
             }
             data["content"].append(c)
     elif table == "eoy":
-        content_list = YearEndBalance.objects.all().order_by("-created_at")
+        content_list = YearEndBalance.objects.all().order_by(
+            "member__name", "-created_at"
+        )
         if member_id:
-            content_list = content_list.filter(member=member)
+            content_list = content_list.filter(member=member).order_by("-created_at")
         if search_by == "date":
             content_list = content_list.filter(created_at__date__range=search_data)
         elif search_by == "text":

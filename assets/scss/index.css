@@ -8734,25 +8734,20 @@ input[type="number"] {
     align-items: center;
     justify-content: center; }
 
-.errorlist {
-  order: 1;
+.errorlist,
+.invalid-feedback {
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.7em;
+  color: #dc3545;
+  list-style-type: none;
+  font-weight: bold;
   list-style: none;
-  color: var(--color-danger);
-  display: block !important;
-  border-radius: var(--border-radius);
-  background-color: var(--color-danger-light);
-  width: 100%; }
-  .errorlist ~ .form_input-group > input, .errorlist ~ .form_input-group > textarea, .errorlist ~ .form_input-group > .custom_dropdown-select {
-    box-shadow: inset 0rem 0rem 0rem 0.1rem var(--color-grey-light), 0rem 0rem 0rem 0.2rem var(--color-danger), 0 0.03rem 0.04rem rgba(0, 0, 0, 0.025), 0 0.09rem 0.15rem rgba(0, 0, 0, 0.05), 0 0.35rem 0.6rem rgba(0, 0, 0, 0.1); }
-  .errorlist:not(.nonfield) {
-    padding: 0.6rem;
-    margin-top: 0.2rem; }
-  .errorlist.nonfield {
-    padding: 1rem;
-    margin-bottom: 1rem; }
-  .errorlist > li {
-    font-size: 1.2rem;
-    font-weight: bold; }
+  padding: unset; }
+
+.errorlist {
+  margin-top: unset;
+  margin-bottom: unset; }
 
 .form-signin {
   max-width: 330px; }
