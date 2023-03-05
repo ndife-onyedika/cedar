@@ -89,7 +89,7 @@ def post_loan_save(sender, instance: LoanRequest, **kwargs):
             admin,
             level="info",
             timestamp=timezone.now(),
-            verb="Loan: Termination",
+            verb=f"Loan: Termination - {instance.member.name}",
             recipient=User.objects.exclude(is_superuser=False),
             description="{}'s loan has completed payment for loan and is hereby terminated.".format(
                 instance.member.name

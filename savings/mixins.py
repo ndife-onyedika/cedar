@@ -114,7 +114,7 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
                 admin,
                 level="info",
                 timestamp=date,
-                verb="Savings: Interest Started",
+                verb=f"Savings: Interest Started - {member.name}",
                 recipient=User.objects.exclude(is_superuser=False),
                 description="{} savings deposit of {} has past the {} period and started accumulating interest.".format(
                     member.name,
@@ -143,7 +143,7 @@ def check_activity_exec(member, date: datetime):
                 level="error",
                 timestamp=date,
                 recipient=recipients,
-                verb="Account: Activity",
+                verb=f"Account: Activity - {member.name}",
                 description=f"{member.name} account has been set INACTIVE due to none operation for {display_duration(account_activity_duration)}.",
             )
         return status

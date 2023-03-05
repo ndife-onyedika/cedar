@@ -211,6 +211,7 @@ def service_create(request, context: str):
                         "loan": [
                             "Loan",
                             "New Loan Disbursed",
+                            member.name,
                             "loan request of {} has been disbursed.".format(
                                 get_amount(amount)
                             ),
@@ -218,6 +219,7 @@ def service_create(request, context: str):
                         "loan.repay": [
                             "Loan",
                             "Repayment",
+                            member.name,
                             "loan repayment of {} has been recorded. Outstanding Amount: {}".format(
                                 get_amount(amount),
                                 get_amount(model.loan.outstanding_amount)
@@ -228,6 +230,7 @@ def service_create(request, context: str):
                         "share": [
                             "Shares",
                             "New Share Added",
+                            member.name,
                             "share of {} has been recorded. Total Shares: {}".format(
                                 get_amount(amount), get_amount(get_shares_total(member))
                             ),
@@ -235,6 +238,7 @@ def service_create(request, context: str):
                         "savings.cred": [
                             "Savings",
                             "New Savings Deposit",
+                            member.name,
                             "deposit of {} has been recorded. Total Savings: {}".format(
                                 get_amount(amount),
                                 get_amount(get_savings_total(member).amount),
@@ -243,6 +247,7 @@ def service_create(request, context: str):
                         "savings.deb": [
                             "Savings",
                             "New Savings Withdrawal",
+                            member.name,
                             "withdrawal of {} has been recorded. Total Savings: {}".format(
                                 get_amount(amount),
                                 get_amount(get_savings_total(member).amount),
@@ -255,8 +260,8 @@ def service_create(request, context: str):
                         User.objects.get(is_superuser=True),
                         level="success",
                         timestamp=timezone.now(),
-                        verb="{}: {}".format(verb[0], verb[1]),
-                        description="{}'s {}".format(member.name, verb[2]),
+                        verb="{}: {} - {}".format(verb[0], verb[1], verb[2]),
+                        description="{}'s {}".format(member.name, verb[3]),
                         recipient=User.objects.exclude(is_superuser=False),
                     )
             except IntegrityError as e:
