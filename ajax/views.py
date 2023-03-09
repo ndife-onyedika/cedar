@@ -506,7 +506,7 @@ def data_table(request):
                     if table_context == "all"
                     else {}
                 ),
-                "amount": get_amount(amount=i.amount),
+                "amount": get_amount(amount=i.savings.amount),
                 "interest": get_amount(amount=i.interest),
                 "updated_at": i.updated_at,
             }

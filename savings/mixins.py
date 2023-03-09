@@ -15,9 +15,7 @@ def update_savings_total(member, date):
     from .models import SavingsInterest, SavingsTotal
 
     savings_intrs = SavingsInterest.objects.filter(
-        member=member,
-        disabled=False,
-        created_at__date__lte=date.date(),
+        member=member, disabled=False, created_at__date__lte=date.date()
     ).order_by("created_at")
     total_amount = 0
     total_interest = 0
@@ -108,8 +106,10 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
         months_elapsed = int((date.date() - instance.created_at.date()).days / 30)
         is_eligible = months_elapsed >= pre_savings_interest_duration
         if is_eligible:
-            instance.start_comp = True
             interest = instance.amount * interest_rate * months_elapsed
+            instance.start_comp = True
+            instance.interest += interest
+            instance.updated_at = date
             notify.send(
                 admin,
                 level="info",
@@ -122,9 +122,7 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
                     display_duration(pre_savings_interest_duration),
                 ),
             )
-            instance.interest += interest
-            instance.updated_at = date
-            instance.save()
+        instance.save()
 
 
 def check_activity_exec(member, date: datetime):
@@ -141,8 +139,8 @@ def check_activity_exec(member, date: datetime):
             notify.send(
                 admin,
                 level="error",
-                timestamp=date,
                 recipient=recipients,
+                timestamp=make_aware(date),
                 verb=f"Account: Activity - {member.name}",
                 description=f"{member.name} account has been set INACTIVE due to none operation for {display_duration(account_activity_duration)}.",
             )
@@ -201,12 +199,7 @@ def calculate_interest():
                                         member=member,
                                         disabled=False,
                                         created_at__date__range=date_range,
-                                    )
-
-                                    withdrawals = SavingsDebit.objects.filter(
-                                        member=member,
-                                        created_at__date=current_date.date(),
-                                    )
+                                    ).order_by("created_at")
 
                                     if savings.count() > 0:
                                         for saving in savings:
@@ -217,11 +210,16 @@ def calculate_interest():
                                                 date=make_aware(current_date),
                                             )
 
-                                    if withdrawals.count() > 0:
-                                        for withdrawal in withdrawals:
-                                            handle_withdrawal(
-                                                context="create", instance=withdrawal
-                                            )
+                                withdrawals = SavingsDebit.objects.filter(
+                                    member=member,
+                                    created_at__date=current_date.date(),
+                                ).order_by("created_at")
+                                if withdrawals.count() > 0:
+                                    for withdrawal in withdrawals:
+                                        handle_withdrawal(
+                                            context="create", instance=withdrawal
+                                        )
+
                             elif current_date.date() == end_date:
                                 new_date_range = [start_date, end_date]
                                 calculate_yearEndBalance(member, new_date_range)
@@ -230,8 +228,8 @@ def calculate_interest():
                     notify.send(
                         admin,
                         level="info",
-                        timestamp=current_date,
                         verb="Savings: Year End Balance",
+                        timestamp=make_aware(current_date),
                         recipient=User.objects.exclude(is_superuser=False),
                         description="End of year balance has been calculated.",
                     )

@@ -69,7 +69,7 @@ class LoanRepayment(models.Model):
     def __str__(self):
         return "({}, {}, {}, {})".format(
             self.member.name,
-            self.__str__(),
+            self.loan.__str__(),
             get_amount(self.amount),
             format_date_model(self.created_at),
         )

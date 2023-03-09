@@ -193,9 +193,7 @@
     }
     const table_heads = {
         "savings.interest": {
-            all: ["Interest", "Compounding Interest?", "Has Started Compounding?",
-                "Disabled?", "Date Created", "Date Updated"
-            ],
+            all: ["Interest", "Date Created", "Date Updated"],
             total: ["Interest", "Date Updated"]
         },
         loans: {
@@ -335,12 +333,6 @@
                                 }
                                 ${table_name == "savings" ? `<td>${item.reason}</td>` : ''}
                                 ${table_name == "savings.interest" ? `<td>${item.interest}</td>` : ''}
-                                ${table_name == "savings.interest" && context == "all"
-                                    ? `<td>${item.isc?'Yes':'No'}</td>
-                                        <td>${item.sc?'Yes':'No'}</td>
-                                        <td>${item.disabled?'Yes':'No'}</td>` 
-                                    : ''
-                                }
                                 ${table_name == "loans" && context == "disbursed" ? `<td>${item.outstanding_amount}</td>` : ''}
                                 ${table_name == "loans" 
                                     ? `<td>${item.rate}</td>

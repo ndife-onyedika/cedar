@@ -112,7 +112,7 @@ class SavingsInterest(Savings):
         return "SI({}, {}, {}, is: {}, sc: {}, dis: {}, {}, {})".format(
             self.member.name,
             get_amount(self.amount),
-            self.__str__(),
+            self.savings.__str__(),
             self.is_comp,
             self.start_comp,
             self.disabled,
@@ -141,7 +141,7 @@ def post_savings_credit_save(sender, instance: SavingsCredit, **kwargs):
     si.save()
 
 
-@receiver(post_delete, sender=SavingsCredit)
+# @receiver(post_delete, sender=SavingsCredit)
 def post_savings_credit_delete(sender, instance: SavingsCredit, **kwargs):
     if instance.reason == "credit-eoy":
         YearEndBalance.objects.filter(
