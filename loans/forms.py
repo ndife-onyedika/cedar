@@ -16,11 +16,6 @@ class LoanRequestForm(ServiceForm):
         self.fields["guarantor_1"].choices = get_member_choices()
         self.fields["guarantor_2"].choices = get_member_choices()
 
-    def clean(self):
-        data = self.cleaned_data
-        data["amount"] = _validate_amount(amount=data.get("amount"))
-        return data
-
     def save(self):
         data = self.cleaned_data
         member: Member = data.get("member")
@@ -40,10 +35,14 @@ class LoanRepaymentForm(ServiceForm):
         model = LoanRepayment
         fields = ["member", "amount"]
 
-    def clean(self):
-        data = self.cleaned_data
-        data["amount"] = _validate_amount(amount=data.get("amount"))
-        return data
+    def __init__(self, *args, **kwargs):
+        super(ServiceForm, self).__init__(*args, **kwargs)
+        self.fields["member"].choices = [(None, "Select Member")] + [
+            (loan.member.id, loan.member.name)
+            for loan in LoanRequest.objects.filter(status="disbursed").order_by(
+                "member__name"
+            )
+        ]
 
     def save(self):
         data = self.cleaned_data

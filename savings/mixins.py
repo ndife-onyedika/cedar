@@ -9,6 +9,7 @@ from django.utils.timezone import make_aware, datetime, timedelta, is_aware, now
 from datetime import time
 
 from notifications.signals import notify
+from django.db.models.query_utils import Q
 
 
 def update_savings_total(member, date):
@@ -79,10 +80,10 @@ def calculate_yearEndBalance(member, date_range: list):
     total_interest = 0
     if savings_intrs.count() > 0:
         for savings_intr in savings_intrs:
-            savings_intr.disabled = True
             total_interest += savings_intr.interest
             if savings_intr.is_comp:
                 total_amount += savings_intr.amount
+            savings_intr.disabled = True
             savings_intr.save()
 
         sum_total = total_amount + total_interest
@@ -167,9 +168,12 @@ def check_activity_exec(member, date: datetime):
 
 
 def calculate_interest():
-    from .models import SavingsInterest, SavingsDebit
+    from .models import SavingsInterest, SavingsDebit, YearEndBalance
 
-    # members = Member.objects.filter(name__icontains="Abigail Adewumi")
+    # members = Member.objects.filter(name__icontains="Adaku Onam")
+    # members = Member.objects.filter(
+    #     ~Q(name__icontains="Longinus Amuchie") & ~Q(name__icontains="Miracle Onah")
+    # )
     members = Member.objects.all()
     admin = User.objects.get(is_superuser=True)
 
@@ -188,7 +192,6 @@ def calculate_interest():
                     and current_date.date() <= now().date()
                 ):
                     print(f"Working Timestamp: {current_date.date()}")
-                    date_range = [start_date, current_date.date()]
                     for member in members:
                         if member.date_joined.date() <= current_date.date():
                             if current_date.date() < end_date:
@@ -198,7 +201,7 @@ def calculate_interest():
                                         is_comp=True,
                                         member=member,
                                         disabled=False,
-                                        created_at__date__range=date_range,
+                                        created_at__date__lte=current_date.date(),
                                     ).order_by("created_at")
 
                                     if savings.count() > 0:
@@ -220,16 +223,19 @@ def calculate_interest():
                                             context="create", instance=withdrawal
                                         )
 
-                            elif current_date.date() == end_date:
-                                new_date_range = [start_date, end_date]
-                                calculate_yearEndBalance(member, new_date_range)
+                            if current_date.date() == end_date:
+                                date_range = [start_date, end_date]
+                                calculate_yearEndBalance(member, date_range)
 
-                if current_date.date() == end_date:
-                    notify.send(
-                        admin,
-                        level="info",
-                        verb="Savings: Year End Balance",
-                        timestamp=make_aware(current_date),
-                        recipient=User.objects.exclude(is_superuser=False),
-                        description="End of year balance has been calculated.",
-                    )
+                    if (
+                        current_date.date() == end_date
+                        and current_date.date() != datetime(2023, 4, 1).date()
+                    ):
+                        notify.send(
+                            admin,
+                            level="info",
+                            verb="Savings: Year End Balance",
+                            timestamp=make_aware(current_date),
+                            recipient=User.objects.exclude(is_superuser=False),
+                            description="End of year balance has been calculated.",
+                        )

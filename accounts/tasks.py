@@ -83,73 +83,68 @@ def import_csv():
                                     amount=convert_amt(shares),
                                     created_at=make_aware(date),
                                 )
-
-                            if not is_null(savings_credit := row["SAVINGS CREDIT"]):
-                                date = convert_date(row["DATE (SAVINGS CREDIT)"])
-                                if date.date() != datetime(2014, 4, 1).date():
-                                    reason = "credit-deposit"
-                                else:
-                                    # has_eoy = SavingsCredit.objects.filter(
-                                    #     member=member,
-                                    #     reason=reason,
-                                    #     created_at=date,
-                                    # ).exists()
-                                    reason = "credit-eoy"
-                                savings = SavingsCredit.objects.get_or_create(
-                                    member=member, reason=reason, created_at=date
-                                )[0]
-                                savings.amount += convert_amt(savings_credit)
-                                savings.save()
-                            if not is_null(savings_debit := row["SAVINGS DEBIT"]):
-                                date = convert_date(row["DATE (SAVINGS DEBIT)"])
-                                savings = SavingsDebit.objects.get_or_create(
-                                    member=member,
-                                    created_at=date,
-                                    reason="debit-withdrawal",
-                                )[0]
-                                savings.amount += convert_amt(savings_debit)
-                                savings.save()
-                            if not is_null(loan := row["LOAN"]):
-                                date = (
-                                    convert_date(row["DATE (LOAN)"])
-                                    if not is_null(row["DATE (LOAN)"])
-                                    else None
-                                )
-                                loan_amt = convert_amt(loan)
-                                outstanding_amt = (
-                                    convert_amt(out_amt)
-                                    if row.get("OUTSTANDING PAYMENT (LOAN)")
-                                    and not is_null(
-                                        out_amt := row["OUTSTANDING PAYMENT (LOAN)"]
+                            if name.lower() not in ("longinus amuchie", "miracle onah"):
+                                if not is_null(savings_credit := row["SAVINGS CREDIT"]):
+                                    date = convert_date(row["DATE (SAVINGS CREDIT)"])
+                                    if date.date() != datetime(2014, 4, 1).date():
+                                        reason = "credit-deposit"
+                                    else:
+                                        reason = "credit-eoy"
+                                    savings = SavingsCredit.objects.get_or_create(
+                                        member=member, reason=reason, created_at=date
+                                    )[0]
+                                    savings.amount += convert_amt(savings_credit)
+                                    savings.save()
+                                if not is_null(savings_debit := row["SAVINGS DEBIT"]):
+                                    date = convert_date(row["DATE (SAVINGS DEBIT)"])
+                                    savings = SavingsDebit.objects.get_or_create(
+                                        member=member,
+                                        created_at=date,
+                                        reason="debit-withdrawal",
+                                    )[0]
+                                    savings.amount += convert_amt(savings_debit)
+                                    savings.save()
+                                if not is_null(loan := row["LOAN"]):
+                                    date = (
+                                        convert_date(row["DATE (LOAN)"])
+                                        if not is_null(row["DATE (LOAN)"])
+                                        else None
                                     )
-                                    else loan_amt
-                                )
+                                    loan_amt = convert_amt(loan)
+                                    outstanding_amt = (
+                                        convert_amt(out_amt)
+                                        if row.get("OUTSTANDING PAYMENT (LOAN)")
+                                        and not is_null(
+                                            out_amt := row["OUTSTANDING PAYMENT (LOAN)"]
+                                        )
+                                        else loan_amt
+                                    )
 
-                                interest = (
-                                    (member.account_type.lir / 100)
-                                    * loan_amt
-                                    * member.account_type.ld
-                                )
-                                if outstanding_amt == loan_amt:
-                                    outstanding_amt += interest
+                                    interest = (
+                                        (member.account_type.lir / 100)
+                                        * loan_amt
+                                        * member.account_type.ld
+                                    )
+                                    if outstanding_amt == loan_amt:
+                                        outstanding_amt += interest
 
-                                loan = LoanRequest.objects.create(
-                                    duration=6,
-                                    member=member,
-                                    interest_rate=4,
-                                    created_at=date,
-                                    amount=loan_amt,
-                                    outstanding_amount=outstanding_amt,
-                                )
-                                # if not is_null(loan := row["LOAN REPAY"]):
-                                #     loan_repay = LoanRepayment.objects.create(
-                                #         loan=loan,
-                                #         member=member,
-                                #         created_at=convert_date(
-                                #             row["DATE (LOAN REPAY)"]
-                                #         ),
-                                #         amount=convert_amt(row["LOAN REPAY"]),
-                                #     )
+                                    loan = LoanRequest.objects.create(
+                                        duration=6,
+                                        member=member,
+                                        interest_rate=4,
+                                        created_at=date,
+                                        amount=loan_amt,
+                                        outstanding_amount=outstanding_amt,
+                                    )
+                                    # if not is_null(loan := row["LOAN REPAY"]):
+                                    #     loan_repay = LoanRepayment.objects.create(
+                                    #         loan=loan,
+                                    #         member=member,
+                                    #         created_at=convert_date(
+                                    #             row["DATE (LOAN REPAY)"]
+                                    #         ),
+                                    #         amount=convert_amt(row["LOAN REPAY"]),
+                                    #     )
     except IntegrityError as e:
         return f"ERROR: CSV Import Task!\nERROR_DESC: {e}"
     else:

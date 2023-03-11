@@ -141,10 +141,10 @@ def perform_action(request):
             message = "Member status updated"
     else:
         contexts = {
-            "share": Shares,
-            "member": Member,
-            "loan": LoanRequest,
-            "loan.repay": LoanRepayment,
+            "shares": Shares,
+            "members": Member,
+            "loans": LoanRequest,
+            "loans.repay": LoanRepayment,
             "savings.deb": SavingsDebit,
             "savings.cred": SavingsCredit,
         }
@@ -466,14 +466,9 @@ def data_table(request):
             }
             data["content"].append(c)
     elif table == "savings.interest":
-        contexts = {
-            "all": SavingsInterest.objects.all().order_by(
-                "member__name", "-created_at"
-            ),
-            "total": SavingsTotal.objects.all().order_by("member__name"),
-        }
-
-        content_list = contexts[table_context]
+        content_list = SavingsInterest.objects.all().order_by(
+            "member__name", "-created_at"
+        )
 
         if member_id:
             content_list = content_list.filter(member=member)
@@ -496,18 +491,10 @@ def data_table(request):
             c = {
                 "id": i.id,
                 **({} if member_id else {"mid": i.member.id, "name": i.member.name}),
-                **(
-                    {
-                        "isc": i.is_comp,
-                        "sc": i.start_comp,
-                        "disabled": i.disabled,
-                        "created_at": i.created_at,
-                    }
-                    if table_context == "all"
-                    else {}
-                ),
-                "amount": get_amount(amount=i.savings.amount),
+                "amount": get_amount(amount=i.amount),
+                "savings_amount": get_amount(amount=i.savings.amount),
                 "interest": get_amount(amount=i.interest),
+                "created_at": i.created_at,
                 "updated_at": i.updated_at,
             }
             data["content"].append(c)
