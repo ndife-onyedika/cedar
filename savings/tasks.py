@@ -8,6 +8,7 @@ from savings.mixins import (
     calculate_interest,
     calculate_interest_exec,
     calculate_yearEndBalance,
+    check_activity_exec,
 )
 from settings.models import BusinessYear
 
@@ -26,14 +27,19 @@ def daily_interest_calculation_task():
     try:
         with transaction.atomic():
             for member in members:
-                savings_intr = SavingsInterest.objects.filter(
-                    member=member, is_comp=True, disabled=False
-                )
-                if savings_intr.count() > 0:
-                    for saving_intr in savings_intr:
-                        calculate_interest_exec(
-                            admin=admin, member=member, instance=saving_intr, date=today
-                        )
+                is_active = check_activity_exec(member, today)
+                if is_active:
+                    savings_intr = SavingsInterest.objects.filter(
+                        member=member, is_comp=True, disabled=False
+                    ).order_by("created_at")
+                    if savings_intr.count() > 0:
+                        for saving_intr in savings_intr:
+                            calculate_interest_exec(
+                                date=today,
+                                admin=admin,
+                                member=member,
+                                instance=saving_intr,
+                            )
                 if today.date() == bye.date():
                     date_range = [bys.date(), bye.date()]
                     calculate_yearEndBalance(member, date_range)
