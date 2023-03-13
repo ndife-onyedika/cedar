@@ -39,7 +39,7 @@ def due_reminder(admin, loans, date):
     if loans.count() > 0:
         for loan in loans:
             member = loan.member
-            due_date = get_loan_details(loan)["due_date"]
+            due_date = get_loan_details(loan)["dd"]
             is_2days = (due_date - date.date()) == 2
             is_7days = (due_date - date.date()) == 7
 
