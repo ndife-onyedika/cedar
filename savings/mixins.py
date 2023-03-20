@@ -6,18 +6,18 @@ from cedar.mixins import (
     months_between,
     get_last_day_month,
 )
-from django.utils.timezone import make_aware, datetime, timedelta, is_aware, now
+from django.utils.timezone import make_aware, datetime, timedelta, now
 from datetime import time
 
 from notifications.signals import notify
 
 
-def update_savings_total(member, date):
+def update_savings_total(member):
     from .models import SavingsInterestTotal, SavingsTotal
 
     savings_intrs = SavingsInterestTotal.objects.filter(
-        member=member, disabled=False, updated_at__date__lte=date.date()
-    ).order_by("updated_at")
+        member=member, disabled=False
+    ).order_by("created_at")
     total_amount = 0
     total_interest = 0
     if savings_intrs.count() > 0:
@@ -28,7 +28,6 @@ def update_savings_total(member, date):
         savings_total = SavingsTotal.objects.get_or_create(member=member)[0]
         savings_total.amount = total_amount
         savings_total.interest = total_interest
-        savings_total.updated_at = date
         savings_total.save()
 
 

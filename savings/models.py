@@ -148,8 +148,8 @@ def post_savings_credit_save(sender, instance: SavingsCredit, **kwargs):
         savings=instance, member=instance.member, created_at=instance.created_at
     )[0]
     si.amount = instance.amount
-    si.updated_at = instance.created_at
-    # si.updated_at = timezone.now()
+    # si.updated_at = instance.created_at
+    si.updated_at = timezone.now()
     if instance.reason == "credit-eoy":
         si.start_comp = True
         eoy = YearEndBalance.objects.get_or_create(
@@ -172,7 +172,7 @@ def post_savings_credit_delete(sender, instance: SavingsCredit, **kwargs):
         ).delete()
 
 
-# @receiver(post_save, sender=SavingsDebit)
+@receiver(post_save, sender=SavingsDebit)
 def post_savings_debit_save(sender, instance: SavingsDebit, **kwargs):
     if kwargs["created"]:
         handle_withdrawal(context="create", instance=instance)
@@ -185,11 +185,11 @@ def post_savings_debit_delete(sender, instance: SavingsDebit, **kwargs):
 
 @receiver(post_save, sender=SavingsInterestTotal)
 def post_savings_interest_total_save(sender, instance: SavingsInterestTotal, **kwargs):
-    update_savings_total(member=instance.member, date=instance.updated_at)
+    update_savings_total(member=instance.member)
 
 
 @receiver(post_delete, sender=SavingsInterestTotal)
 def post_savings_interest_total_delete(
     sender, instance: SavingsInterestTotal, **kwargs
 ):
-    update_savings_total(member=instance.member, date=instance.updated_at)
+    update_savings_total(member=instance.member)

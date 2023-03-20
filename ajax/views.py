@@ -467,11 +467,15 @@ def data_table(request):
             }
             data["content"].append(c)
     elif table == "savings.interest":
-        content_list = (
-            (SavingsInterest if table_context == "all" else SavingsInterestTotal)
-            .objects.all()
-            .order_by("member__name", "-created_at")
-        )
+        contexts = {
+            "all": SavingsInterest.objects.all().order_by(
+                "member__name", "-total_interest", "-created_at"
+            ),
+            "total": SavingsInterestTotal.objects.all().order_by(
+                "member__name", "-created_at"
+            ),
+        }
+        content_list = contexts[table_context]
 
         if member_id:
             content_list = content_list.filter(member=member)
