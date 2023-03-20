@@ -31,6 +31,7 @@ from savings.models import (
     SavingsCredit,
     SavingsDebit,
     SavingsInterest,
+    SavingsInterestTotal,
     SavingsTotal,
     YearEndBalance,
 )
@@ -466,19 +467,17 @@ def data_table(request):
             }
             data["content"].append(c)
     elif table == "savings.interest":
-        content_list = SavingsInterest.objects.all().order_by(
-            "member__name", "-created_at"
+        content_list = (
+            (SavingsInterest if table_context == "all" else SavingsInterestTotal)
+            .objects.all()
+            .order_by("member__name", "-created_at")
         )
 
         if member_id:
             content_list = content_list.filter(member=member)
 
         if search_by == "date":
-            content_list = content_list.filter(
-                Q(created_at__date__range=search_data)
-                if table_context == "all"
-                else Q(updated_at__date__range=search_data)
-            )
+            content_list = content_list.filter(created_at__date__range=search_data)
         elif search_by == "text":
             content_list = content_list.filter(
                 Q(member__name__icontains=search_data)
@@ -495,7 +494,11 @@ def data_table(request):
                 "savings_amount": get_amount(amount=i.savings.amount),
                 "interest": get_amount(amount=i.interest),
                 "created_at": i.created_at,
-                "updated_at": i.updated_at,
+                **(
+                    {"updated_at": i.updated_at}
+                    if table_context != "all"
+                    else {"total_interest": get_amount(amount=i.total_interest)}
+                ),
             }
             data["content"].append(c)
     elif table == "loans.repay":

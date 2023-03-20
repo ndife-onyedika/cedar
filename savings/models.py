@@ -10,6 +10,7 @@ from cedar.mixins import (
     get_amount,
     format_date_model,
     get_data_equivalent,
+    get_savings_total,
 )
 from savings.mixins import handle_withdrawal, update_savings_total
 
@@ -98,6 +99,25 @@ class YearEndBalance(CustomAbstractTable):
 
 
 class SavingsInterest(Savings):
+    savings = models.ForeignKey(SavingsCredit, on_delete=models.CASCADE)
+    interest = models.BigIntegerField(default=0)
+    total_interest = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name_plural = "Savings Interests"
+
+    def __str__(self):
+        return "SI({}, {}, {}, {}, {}, {})".format(
+            self.member.name,
+            self.savings.__str__(),
+            get_amount(self.amount),
+            get_amount(self.interest),
+            get_amount(self.total_interest),
+            format_date_model(self.created_at),
+        )
+
+
+class SavingsInterestTotal(Savings):
     savings = models.OneToOneField(SavingsCredit, on_delete=models.CASCADE)
     interest = models.BigIntegerField(default=0)
     is_comp = models.BooleanField("Is Compounding?", default=True)
@@ -106,13 +126,14 @@ class SavingsInterest(Savings):
     updated_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        verbose_name_plural = "Savings Interests"
+        verbose_name_plural = "Savings Interests Total"
 
     def __str__(self):
-        return "SI({}, {}, {}, is: {}, sc: {}, dis: {}, {}, {})".format(
+        return "SIT({}, {}, {}, {}, is: {}, sc: {}, dis: {}, {}, {})".format(
             self.member.name,
-            get_amount(self.amount),
             self.savings.__str__(),
+            get_amount(self.amount),
+            get_amount(self.interest),
             self.is_comp,
             self.start_comp,
             self.disabled,
@@ -123,7 +144,7 @@ class SavingsInterest(Savings):
 
 @receiver(post_save, sender=SavingsCredit)
 def post_savings_credit_save(sender, instance: SavingsCredit, **kwargs):
-    si = SavingsInterest.objects.get_or_create(
+    si = SavingsInterestTotal.objects.get_or_create(
         savings=instance, member=instance.member, created_at=instance.created_at
     )[0]
     si.amount = instance.amount
@@ -162,11 +183,13 @@ def post_savings_debit_delete(sender, instance: SavingsDebit, **kwargs):
     handle_withdrawal(context="delete", instance=instance)
 
 
-@receiver(post_save, sender=SavingsInterest)
-def post_savings_interest_save(sender, instance: SavingsInterest, **kwargs):
-    update_savings_total(member=instance.member, date=instance.created_at)
+@receiver(post_save, sender=SavingsInterestTotal)
+def post_savings_interest_total_save(sender, instance: SavingsInterestTotal, **kwargs):
+    update_savings_total(member=instance.member, date=instance.updated_at)
 
 
-@receiver(post_delete, sender=SavingsInterest)
-def post_savings_interest_delete(sender, instance: SavingsInterest, **kwargs):
-    update_savings_total(member=instance.member, date=instance.created_at)
+@receiver(post_delete, sender=SavingsInterestTotal)
+def post_savings_interest_total_delete(
+    sender, instance: SavingsInterestTotal, **kwargs
+):
+    update_savings_total(member=instance.member, date=instance.updated_at)

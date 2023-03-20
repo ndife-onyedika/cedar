@@ -12,15 +12,15 @@ from savings.mixins import (
 )
 from settings.models import BusinessYear
 
-from .models import SavingsInterest
+from .models import SavingsInterest, SavingsInterestTotal
 
 
 @shared_task
 def daily_interest_calculation_task():
     today = timezone.now()
-    admin = User.objects.get(is_superuser=True)
-    members = Member.objects.filter(is_active=True)
+    members = Member.objects.all()
     by = BusinessYear.objects.last()
+    admin = User.objects.get(is_superuser=True)
     bys = datetime(today.year - 1, by.start_month, by.start_day)
     bye = datetime(today.year, by.end_month, by.end_day) + timedelta(days=1)
 
@@ -29,7 +29,7 @@ def daily_interest_calculation_task():
             for member in members:
                 is_active = check_activity_exec(member, today)
                 if is_active:
-                    savings_intr = SavingsInterest.objects.filter(
+                    savings_intr = SavingsInterestTotal.objects.filter(
                         member=member, is_comp=True, disabled=False
                     ).order_by("created_at")
                     if savings_intr.count() > 0:

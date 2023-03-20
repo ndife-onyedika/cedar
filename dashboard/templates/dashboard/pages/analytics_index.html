@@ -61,7 +61,7 @@
         {% endif %}
         <div class="card shadow border border-white">
             <div class="card-header bg-white d-flex flex-wrap-reverse flex-sm-nowrap">
-                {% if dashboard.context == "members" or dashboard.context == "loans" or dashboard.context == "savings" %}
+                {% if dashboard.context == "members" or dashboard.context == "loans" or dashboard.context == "savings" or dashboard.context == "savings.interest"%}
                 <div class="btn-group col-12 col-sm-auto" role="group" aria-label="Table Tabs">
                 </div>
                 {% endif %}
@@ -186,9 +186,16 @@
             ["credit", "Credit"],
             ["debit", "Debit"]
         ],
+        "savings.interest": [
+            ["all", "Interests"],
+            ["total", "Total Interests"]
+        ],
     }
     const table_heads = {
-        "savings.interest": ["Interest", "Date Created", "Date Updated"],
+        "savings.interest": {
+            all: ["Interest", "Total Interest", "Date Created"],
+            total: ["Interest", "Date Created", "Date Updated"],
+        },
         loans: {
             disbursed: ["Outstanding Amount", "Rate", "Duration", "Guarantors",
                 "Date Created", "Date Updated", "More"
@@ -216,7 +223,7 @@
 
 
     function populateTable(per_page, page, sort_by, context, search_by, search_data, table_name) {
-        if (["loans"].includes(table_name)) context = context ? context : table_tabs[table_name]
+        if (["loans", "savings.interest"].includes(table_name)) context = context ? context : table_tabs[table_name]
             [0][0];
 
         let table_tab = table_tabs[table_name];
@@ -326,6 +333,7 @@
                                 }
                                 ${table_name == "savings" ? `<td>${item.reason}</td>` : ''}
                                 ${table_name == "savings.interest" ? `<td>${item.interest}</td>` : ''}
+                                ${table_name == "savings.interest" && context == "all" ? `<td>${item.total_interest}</td>` : ''}
                                 ${table_name == "loans" && context == "disbursed" ? `<td>${item.outstanding_amount}</td>` : ''}
                                 ${table_name == "loans" 
                                     ? `<td>${item.rate}</td>
@@ -338,7 +346,7 @@
                                     : ''
                                 }
                                 ${["eoy", "shares", "loans", "loans.repay", "savings", "members", "savings.interest"].includes(table_name) ?`<td>${to_local_time(item.created_at)}</td>`: ''}
-                                ${table_name == "savings.interest" 
+                                ${table_name == "savings.interest" && context == "total"
                                     || table_name == "loans"
                                     || table_name == "shares" && !member
                                     ? `<td>${to_local_time(item.updated_at)}</td>` : ""

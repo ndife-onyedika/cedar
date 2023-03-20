@@ -2,6 +2,7 @@ from accounts.models import Member, User
 from cedar.mixins import (
     get_amount,
     display_duration,
+    get_savings_total,
     months_between,
     get_last_day_month,
 )
@@ -9,15 +10,14 @@ from django.utils.timezone import make_aware, datetime, timedelta, is_aware, now
 from datetime import time
 
 from notifications.signals import notify
-from django.db.models.query_utils import Q
 
 
 def update_savings_total(member, date):
-    from .models import SavingsInterest, SavingsTotal
+    from .models import SavingsInterestTotal, SavingsTotal
 
-    savings_intrs = SavingsInterest.objects.filter(
-        member=member, disabled=False, created_at__date__lte=date.date()
-    ).order_by("created_at")
+    savings_intrs = SavingsInterestTotal.objects.filter(
+        member=member, disabled=False, updated_at__date__lte=date.date()
+    ).order_by("updated_at")
     total_amount = 0
     total_interest = 0
     if savings_intrs.count() > 0:
@@ -33,13 +33,13 @@ def update_savings_total(member, date):
 
 
 def handle_withdrawal(context, instance):
-    from .models import SavingsInterest
+    from .models import SavingsInterestTotal
 
     member = instance.member
     amount = instance.amount
     date = instance.created_at
 
-    savings_intrs = SavingsInterest.objects.filter(
+    savings_intrs = SavingsInterestTotal.objects.filter(
         member=member, disabled=False, created_at__date__lte=date.date()
     )
 
@@ -56,7 +56,7 @@ def handle_withdrawal(context, instance):
                 savings_intr.save()
         remainder = withdrawal_amount - amount
         if remainder > 0:
-            intr = SavingsInterest.objects.get(id=last_id)
+            intr = SavingsInterestTotal.objects.get(id=last_id)
             intr.is_comp = True
             intr.amount = remainder
             intr.updated_at = date
@@ -68,12 +68,12 @@ def handle_withdrawal(context, instance):
 
 
 def calculate_yearEndBalance(member, date_range: list):
-    from .models import SavingsInterest, SavingsCredit
+    from .models import SavingsInterestTotal, SavingsCredit
 
     end_date = make_aware(datetime.combine(date_range[1], time(2, 0)))
     date_range = [date_range[0], date_range[1] - timedelta(days=1)]
 
-    savings_intrs = SavingsInterest.objects.filter(
+    savings_intrs = SavingsInterestTotal.objects.filter(
         member=member, disabled=False, created_at__date__range=date_range
     )
     total_amount = 0
@@ -94,6 +94,8 @@ def calculate_yearEndBalance(member, date_range: list):
 
 
 def calculate_interest_exec(admin, member: Member, instance, date: datetime):
+    from .models import SavingsInterest
+
     interest_rate = member.account_type.sir / 100
     rate_day = interest_rate / 30
 
@@ -102,6 +104,15 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
         instance.interest += interest
         instance.updated_at = date
         instance.save()
+
+        SavingsInterest.objects.create(
+            member=member,
+            created_at=date,
+            interest=interest,
+            amount=instance.amount,
+            savings=instance.savings,
+            total_interest=get_savings_total(member).interest,
+        )
     else:
         pre_savings_interest_duration = member.account_type.psisd
         months_elapsed = int((date.date() - instance.created_at.date()).days / 30)
@@ -111,6 +122,17 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
             instance.start_comp = True
             instance.interest += interest
             instance.updated_at = date
+            instance.save()
+
+            SavingsInterest.objects.create(
+                member=member,
+                created_at=date,
+                interest=interest,
+                amount=instance.amount,
+                savings=instance.savings,
+                total_interest=get_savings_total(member).interest,
+            )
+
             notify.send(
                 admin,
                 level="info",
@@ -123,7 +145,8 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
                     display_duration(pre_savings_interest_duration),
                 ),
             )
-        instance.save()
+        else:
+            instance.save()
 
 
 def check_activity_exec(member, date: datetime):
@@ -168,7 +191,7 @@ def check_activity_exec(member, date: datetime):
 
 
 def calculate_interest():
-    from .models import SavingsInterest, SavingsDebit, YearEndBalance
+    from .models import SavingsInterestTotal, SavingsDebit, YearEndBalance
 
     # members = Member.objects.filter(name__icontains="Adaku Onam")
     # members = Member.objects.filter(
@@ -197,7 +220,7 @@ def calculate_interest():
                             if current_date.date() < end_date:
                                 is_active = check_activity_exec(member, current_date)
                                 if is_active:
-                                    savings = SavingsInterest.objects.filter(
+                                    savings = SavingsInterestTotal.objects.filter(
                                         is_comp=True,
                                         member=member,
                                         disabled=False,
