@@ -649,8 +649,7 @@ def notify_unread_count(request):
     data = {"count": 0}
 
     notifications = Notification.objects.filter(
-        recipient=request.user,
-        unread=True,
+        recipient=request.user, unread=True
     ).exclude(deleted=True)
     data["count"] = notifications.count()
     return JsonResponse(data)
