@@ -652,7 +652,7 @@ def notify_unread_count(request):
         recipient=request.user,
         unread=True,
     ).exclude(deleted=True)
-    data["count"] = notifications.count() if notifications.count() <= 99 else "99+"
+    data["count"] = notifications.count()
     return JsonResponse(data)
 
 
