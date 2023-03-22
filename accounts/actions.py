@@ -51,7 +51,7 @@ def run_task(modeladmin, request, queryset):
 
                         for member in members:
                             if current_date < end_date:
-                                is_active = check_activity_exec(member, current_date)
+                                is_active = check_activity_exec(member, timestamp)
                                 if is_active:
                                     savings = SavingsInterestTotal.objects.filter(
                                         is_comp=True,
