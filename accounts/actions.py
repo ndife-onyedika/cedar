@@ -38,63 +38,55 @@ def run_task(modeladmin, request, queryset):
     for instance in queryset:
         try:
             with transaction.atomic():
-                for year in range(now().year, now().year + 1):
-                    start_date = now().date() - timedelta(days=2)
-                    end_date = now().date()
-                    delta = end_date - start_date
-                    for i in range(1, delta.days + 1):
-                        current_date = start_date + timedelta(days=i)
-                        timestamp = make_aware(
-                            datetime.combine(current_date, time(3, 0))
-                        )
-                        print(f"Working Timestamp: {current_date}")
+                start_date = now().date() - timedelta(days=2)
+                end_date = now().date()
+                delta = end_date - start_date
+                for i in range(1, delta.days + 1):
+                    current_date = start_date + timedelta(days=i)
+                    timestamp = make_aware(datetime.combine(current_date, time(3, 0)))
+                    for member in members:
+                        is_active = check_activity_exec(member, timestamp)
+                        if is_active:
+                            savings = SavingsInterestTotal.objects.filter(
+                                is_comp=True,
+                                member=member,
+                                disabled=False,
+                                created_at__date__lte=current_date,
+                            ).order_by("created_at")
 
-                        for member in members:
-                            if current_date < end_date:
-                                is_active = check_activity_exec(member, timestamp)
-                                if is_active:
-                                    savings = SavingsInterestTotal.objects.filter(
-                                        is_comp=True,
+                            if savings.count() > 0:
+                                for saving in savings:
+                                    calculate_interest_exec(
+                                        admin=admin,
                                         member=member,
-                                        disabled=False,
-                                        created_at__date__lte=current_date,
-                                    ).order_by("created_at")
+                                        date=timestamp,
+                                        instance=saving,
+                                    )
 
-                                    if savings.count() > 0:
-                                        for saving in savings:
-                                            calculate_interest_exec(
-                                                admin=admin,
-                                                member=member,
-                                                date=timestamp,
-                                                instance=saving,
-                                            )
+                        withdrawals = SavingsDebit.objects.filter(
+                            member=member,
+                            created_at__date=current_date,
+                        ).order_by("created_at")
+                        if withdrawals.count() > 0:
+                            for withdrawal in withdrawals:
+                                handle_withdrawal(context="create", instance=withdrawal)
 
-                                withdrawals = SavingsDebit.objects.filter(
-                                    member=member,
-                                    created_at__date=current_date,
-                                ).order_by("created_at")
-                                if withdrawals.count() > 0:
-                                    for withdrawal in withdrawals:
-                                        handle_withdrawal(
-                                            context="create", instance=withdrawal
-                                        )
+                        if current_date == end_date:
+                            date_range = [start_date, end_date]
+                            calculate_yearEndBalance(member, date_range)
 
-                            if current_date == end_date:
-                                date_range = [start_date, end_date]
-                                calculate_yearEndBalance(member, date_range)
-
-                        if (
-                            current_date == end_date
-                            and current_date != datetime(year, 4, 1).date()
-                        ):
-                            notify.send(
-                                admin,
-                                level="info",
-                                timestamp=timestamp,
-                                verb="Savings: Year End Balance",
-                                recipient=User.objects.exclude(is_superuser=False),
-                                description="End of year balance has been calculated.",
-                            )
+                    if (
+                        current_date == end_date
+                        and current_date != datetime(current_date.year, 4, 1).date()
+                    ):
+                        notify.send(
+                            admin,
+                            level="info",
+                            timestamp=timestamp,
+                            verb="Savings: Year End Balance",
+                            recipient=User.objects.exclude(is_superuser=False),
+                            description="End of year balance has been calculated.",
+                        )
 
         except IntegrityError as e:
             return f"ERROR: Interest Calculation (OLD)\nERROR_DESC: {e}"
