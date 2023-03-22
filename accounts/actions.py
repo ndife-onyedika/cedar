@@ -39,10 +39,10 @@ def run_task(modeladmin, request, queryset):
         try:
             with transaction.atomic():
                 for year in range(now().year, now().year + 1):
-                    start_date = now().date() - timedelta(days=1)
+                    start_date = now().date() - timedelta(days=2)
                     end_date = now().date()
                     delta = end_date - start_date
-                    for i in range(delta.days + 1):
+                    for i in range(1, delta.days + 1):
                         current_date = start_date + timedelta(days=i)
                         timestamp = make_aware(
                             datetime.combine(current_date, time(3, 0))
