@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.admin.models import LogEntry
-from accounts.actions import set_nok
+from accounts.actions import run_task, set_nok
 
 from accounts.models import Member, User
 from cedar.admin import CustomAdmin
@@ -63,7 +63,7 @@ class UserAdmin(CustomAdmin):
 
 @admin.register(Member)
 class MemberAdmin(CustomAdmin):
-    actions = [set_nok]
+    actions = [set_nok, run_task]
     list_display = (
         "name",
         "account_number",

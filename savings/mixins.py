@@ -189,7 +189,7 @@ def check_activity_exec(member, date: datetime):
         return _set_inactive(member, True)
 
 
-def calculate_interest():
+def calculate_interest(start_year, end_year):
     from .models import SavingsInterestTotal, SavingsDebit, YearEndBalance
 
     # members = Member.objects.filter(name__icontains="Adaku Onam")
@@ -199,7 +199,7 @@ def calculate_interest():
     members = Member.objects.all()
     admin = User.objects.get(is_superuser=True)
 
-    for year in range(2015, 2024):
+    for year in range(start_year, end_year):
         prev_year = year - 1
         start_date = datetime(prev_year, 4, 1).date()
         end_date = datetime(year, 4, 1).date()
