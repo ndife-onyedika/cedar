@@ -44,17 +44,20 @@ def run_task(modeladmin, request, queryset):
                     delta = end_date - start_date
                     for i in range(delta.days + 1):
                         current_date = start_date + timedelta(days=i)
-                        print(f"Working Timestamp: {current_date.date()}")
+                        timestamp = make_aware(
+                            datetime.combine(current_date, time(3, 0))
+                        )
+                        print(f"Working Timestamp: {current_date}")
 
                         for member in members:
-                            if current_date.date() < end_date:
+                            if current_date < end_date:
                                 is_active = check_activity_exec(member, current_date)
                                 if is_active:
                                     savings = SavingsInterestTotal.objects.filter(
                                         is_comp=True,
                                         member=member,
                                         disabled=False,
-                                        created_at__date__lte=current_date.date(),
+                                        created_at__date__lte=current_date,
                                     ).order_by("created_at")
 
                                     if savings.count() > 0:
@@ -62,13 +65,13 @@ def run_task(modeladmin, request, queryset):
                                             calculate_interest_exec(
                                                 admin=admin,
                                                 member=member,
+                                                date=timestamp,
                                                 instance=saving,
-                                                date=make_aware(current_date),
                                             )
 
                                 withdrawals = SavingsDebit.objects.filter(
                                     member=member,
-                                    created_at__date=current_date.date(),
+                                    created_at__date=current_date,
                                 ).order_by("created_at")
                                 if withdrawals.count() > 0:
                                     for withdrawal in withdrawals:
@@ -76,19 +79,19 @@ def run_task(modeladmin, request, queryset):
                                             context="create", instance=withdrawal
                                         )
 
-                            if current_date.date() == end_date:
+                            if current_date == end_date:
                                 date_range = [start_date, end_date]
                                 calculate_yearEndBalance(member, date_range)
 
                         if (
-                            current_date.date() == end_date
-                            and current_date.date() != datetime(year, 4, 1).date()
+                            current_date == end_date
+                            and current_date != datetime(year, 4, 1).date()
                         ):
                             notify.send(
                                 admin,
                                 level="info",
+                                timestamp=timestamp,
                                 verb="Savings: Year End Balance",
-                                timestamp=make_aware(current_date),
                                 recipient=User.objects.exclude(is_superuser=False),
                                 description="End of year balance has been calculated.",
                             )
