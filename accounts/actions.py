@@ -39,7 +39,7 @@ def run_task(modeladmin, request, queryset):
         try:
             with transaction.atomic():
                 for year in range(now().year, now().year + 1):
-                    start_date = now().date() - timedelta(days=2)
+                    start_date = now().date() - timedelta(days=1)
                     end_date = now().date()
                     delta = end_date - start_date
                     for i in range(delta.days + 1):
