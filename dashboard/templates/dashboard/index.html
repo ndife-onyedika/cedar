@@ -36,78 +36,96 @@
             }
         });
     });
-    $('#notify').on("show.bs.dropdown", () => $.ajax({
+
+    const fetchNotifications = count => $.ajax({
         type: 'GET',
         dataType: 'json',
-        url: "{% url 'ajax:notify.list' %}",
+        url: `{% url 'ajax:notify.list' %}?count=${count}`,
         success: data => {
             let messages = "";
-            if (data.list.length > 0) messages = data.list.map((item, i) => {
-                return `
+            if (data.list.length > 0) {
+                messages = data.list.map((item, i) => {
+                    return `
+                        <li 
+                            data-id="${item.id}"
+                            aria-expanded="false"
+                            aria-controls="nc${i}"
+                            style="cursor:pointer"
+                            data-bs-target="#nc${i}"
+                            data-bs-toggle="collapse"   
+                            class="list-group-item border-0 border-bottom list-group-item-action ${item.unread?'bg-light fw-bold':''}">
+                            <div class="hstack gap-2">
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <span class="bg-${item.level != "error" ? item.level : 'danger'} rounded-circle d-flex align-items-center justify-content-center bg-opacity-25 text-${item.level != "error" ? item.level : 'danger'}" style="height:2.5rem;width:2.5rem;">
+                                        <svg style="width:2rem;height:2rem;fill:currentColor;">
+                                            <use xlink:href="{% static 'svg/sprite.svg' %}#icon-${item.level}-bold"></use>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="d-flex w-100 justify-content-between">
+                                    <div>
+                                        <h5 class="lh-1 mb-1 ${item.unread?'fw-bold':''}">${item.verb}</h5>
+                                        <small class="text-muted">${relative_time(item.timestamp)}</small>
+                                    </div>
+                                    <button data-id="${item.id}" style="width:3px;height:3px" type="button" class="btn-close mb-auto ms-auto"></button>
+                                </div>
+                            </div>
+                            <div class="collapse" id="nc${i}">
+                                <small>${item.description}</small>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
+                $('#notification_btn').removeClass("d-none");
+            } else {
+                messages = `
                     <li 
-                        data-id="${item.id}"
-                        aria-expanded="false"
-                        aria-controls="nc${i}"
                         style="cursor:pointer"
-                        data-bs-target="#nc${i}"
-                        data-bs-toggle="collapse"   
-                        class="list-group-item border-0 border-bottom list-group-item-action ${item.unread?'bg-light fw-bold':''}">
+                        class="list-group-item border-0 border-bottom list-group-item-action fw-bold">
                         <div class="hstack gap-2">
                             <div class="d-flex align-items-center justify-content-center">
-                                <span class="bg-${item.level != "error" ? item.level : 'danger'} rounded-circle d-flex align-items-center justify-content-center bg-opacity-25 text-${item.level != "error" ? item.level : 'danger'}" style="height:2.5rem;width:2.5rem;">
+                                <span class="bg-light bg-opacity-25 text-muted rounded-circle d-flex align-items-center justify-content-center" style="height:2.5rem;width:2.5rem;">
                                     <svg style="width:2rem;height:2rem;fill:currentColor;">
-                                        <use xlink:href="{% static 'svg/sprite.svg' %}#icon-${item.level}-bold"></use>
+                                        <use xlink:href="{% static 'svg/sprite.svg' %}#icon-error-bold"></use>
                                     </svg>
                                 </span>
                             </div>
                             <div class="d-flex w-100 justify-content-between">
                                 <div>
-                                    <h5 class="lh-1 mb-1 ${item.unread?'fw-bold':''}">${item.verb}</h5>
-                                    <small class="text-muted">${relative_time(item.timestamp)}</small>
+                                    <h5 class="lh-1 mb-1">No Notification</h5>
+                                    <small class="text-muted">-</small>
                                 </div>
-                                <button data-id="${item.id}" style="width:3px;height:3px" type="button" class="btn-close mb-auto ms-auto"></button>
                             </div>
-                        </div>
-                        <div class="collapse" id="nc${i}">
-                            <small>${item.description}</small>
                         </div>
                     </li>
                 `;
-            }).join('');
-            else messages = `
-                <li 
-                    style="cursor:pointer"
-                    class="list-group-item border-0 border-bottom list-group-item-action fw-bold">
-                    <div class="hstack gap-2">
-                        <div class="d-flex align-items-center justify-content-center">
-                            <span class="bg-light bg-opacity-25 text-muted rounded-circle d-flex align-items-center justify-content-center" style="height:2.5rem;width:2.5rem;">
-                                <svg style="width:2rem;height:2rem;fill:currentColor;">
-                                    <use xlink:href="{% static 'svg/sprite.svg' %}#icon-error-bold"></use>
-                                </svg>
-                            </span>
-                        </div>
-                        <div class="d-flex w-100 justify-content-between">
-                            <div>
-                                <h5 class="lh-1 mb-1">No Notification</h5>
-                                <small class="text-muted">-</small>
-                            </div>
-                        </div>
-                    </div>
-                </li>
-            `;
-            $("#notifications").html(messages)
+                $('#notification_btn').addClass("d-none");
+            }
+            $("#notifications").html(messages);
         }
-    }))
+    });
+
+    $('#notify').on("show.bs.dropdown", () => fetchNotifications(10));
+    $('#notification_btn>.btn-check').on("change", function () {
+        if ($(this).is(":checked")) {
+            fetchNotifications("*");
+            $(this).next().html("Collapse");
+        } else {
+            fetchNotifications(10);
+            $(this).next().html("View all")
+        }
+    })
 
     $(document).on('click', '#notifications>li', function (e) {
+        var self = $(this);
         $.ajax({
             type: 'GET',
             dataType: 'json',
             url: "{% url 'ajax:notify.mark_read' %}",
             data: {
-                id: $(this).attr('data-id')
+                id: self.attr('data-id')
             },
-            success: () => $(this).removeClass('bg-light fw-bold'),
+            success: () => self.removeClass('bg-light fw-bold'),
         })
 
     })

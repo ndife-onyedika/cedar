@@ -1,6 +1,7 @@
 from email.utils import make_msgid
 import json
 from calendar import month_abbr
+from multiprocessing import context
 
 from django.conf import settings as dj_sett
 from django.contrib.auth.decorators import login_required
@@ -436,7 +437,15 @@ def data_table(request):
         content_list = contexts[table_context]
 
         if search_by == "date":
-            content_list = content_list.filter(created_at__date__range=search_data)
+            content_list = (
+                (
+                    savings_credit.filter(created_at__date__range=search_data)
+                    .union(savings_debit.filter(created_at__date__range=search_data))
+                    .order_by("-created_at")
+                )
+                if table_context == "all"
+                else contexts[table_context].filter(created_at__date__range=search_data)
+            )
         elif search_by == "text":
             query = (
                 Q(member__name__icontains=search_data)
@@ -657,12 +666,22 @@ def notify_unread_count(request):
 
 @login_required
 @require_http_methods(["GET"])
-def notify_all_list(request):
+def notify_list(request):
+    count = request.GET.get("count")
     data = {"list": []}
 
     notifications = Notification.objects.filter(
         recipient=request.user,
     ).exclude(deleted=True)
+    count = int(
+        count
+        if count != "*" and int(count) <= notifications.count()
+        else notifications.count()
+        if count == "*"
+        else 10
+    )
+    notifications = notifications[:count]
+    print(count)
     for notification in notifications:
         data["list"].append(
             {

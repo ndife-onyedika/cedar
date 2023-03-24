@@ -96,7 +96,7 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
     from .models import SavingsInterest
 
     interest_rate = member.account_type.sir / 100
-    rate_day = interest_rate / 30
+    rate_day = interest_rate / 365
 
     if instance.start_comp:
         interest = instance.amount * rate_day
@@ -114,10 +114,11 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
         )
     else:
         pre_savings_interest_duration = member.account_type.psisd
-        months_elapsed = int((date.date() - instance.created_at.date()).days / 30)
+        days_elapsed = (date.date() - instance.created_at.date()).days
+        months_elapsed = int(days_elapsed / 30)
         is_eligible = months_elapsed >= pre_savings_interest_duration
         if is_eligible:
-            interest = instance.amount * interest_rate * months_elapsed
+            interest = instance.amount * rate_day * days_elapsed
             instance.start_comp = True
             instance.interest += interest
             instance.updated_at = date

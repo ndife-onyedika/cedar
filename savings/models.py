@@ -172,7 +172,7 @@ def post_savings_credit_delete(sender, instance: SavingsCredit, **kwargs):
         ).delete()
 
 
-@receiver(post_save, sender=SavingsDebit)
+# @receiver(post_save, sender=SavingsDebit)
 def post_savings_debit_save(sender, instance: SavingsDebit, **kwargs):
     if kwargs["created"]:
         handle_withdrawal(context="create", instance=instance)
