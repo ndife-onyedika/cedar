@@ -195,7 +195,7 @@
     })
 
     var formSubmit = {
-        ValidateSubmit: (url, form_data) => {
+        ValidateSubmit: (btn_data, url, form_data) => {
             // send request to handler
             return $.ajax({
                 url: url,
@@ -229,13 +229,16 @@
                             }
                         });
                     }
+                    btn_data[0].html(btn_data[1]);
+                    btn_data[0].props("disabled", false);
                 }
             })
         }
     }
 
     $(".modal .modal-footer>.btn-primary").on("click", function () {
-        let form = $(this).parent().prev().find("form");
+        let self = $(this);
+        let form = self.parent().prev().find("form");
         let form_data = new FormData();
         let name = form.attr("data-name");
         form_data.append('csrfmiddlewaretoken', form.find("input[name='csrfmiddlewaretoken']").val());
@@ -282,7 +285,16 @@
             url = name != "mm" ? `/ajax/sc/${context}` : `{% url 'ajax:reg' %}`;
         } else url = "{% url 'ajax:pa' %}";
 
-        return formSubmit.ValidateSubmit(url, form_data);
+        let old_html = self.html();
+        self.props("disabled", true);
+        self.html(
+            `
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Processing...
+            `
+        )
+
+        return formSubmit.ValidateSubmit([self, old_html], url, form_data);
     });
 
     $("#delBtn").on("click", function () {
