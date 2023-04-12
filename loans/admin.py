@@ -10,7 +10,7 @@ from django.utils.html import format_html
 # Register your models here.
 @admin.register(LoanRequest)
 class LoanRequestAdmin(CustomAdmin):
-    search_fields = ["member__user__name", "member__user__email"]
+    search_fields = ["member__name", "member__email"]
 
     list_display = (
         "member",
@@ -69,7 +69,7 @@ class LoanRequestAdmin(CustomAdmin):
 
 @admin.register(LoanRepayment)
 class LoanRepaymentAdmin(CustomAdmin):
-    search_fields = ["member__user__name", "member__user__email"]
+    search_fields = ["member__name", "member__email"]
     list_display = ("member", "view_loan", "view_amount", "created_at")
     ordering = ("-created_at",)
     autocomplete_fields = ["member"]
