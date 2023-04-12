@@ -681,7 +681,6 @@ def notify_list(request):
         else 10
     )
     notifications = notifications[:count]
-    print(count)
     for notification in notifications:
         data["list"].append(
             {
