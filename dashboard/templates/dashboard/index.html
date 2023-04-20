@@ -230,7 +230,7 @@
                         });
                     }
                     btn_data[0].html(btn_data[1]);
-                    btn_data[0].props("disabled", false);
+                    btn_data[0].prop("disabled", false);
                 }
             })
         }
@@ -286,7 +286,7 @@
         } else url = "{% url 'ajax:pa' %}";
 
         let old_html = self.html();
-        self.props("disabled", true);
+        self.prop("disabled", true);
         self.html(
             `
                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
