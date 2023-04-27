@@ -85,7 +85,7 @@ class SavingsInterestAdmin(CustomAdmin):
     list_display_links = ("member",)
 
     search_fields = ("member__name", "member__email")
-    ordering = ("member__name", "-created_at")
+    ordering = ("-created_at", "member__name", "-total_interest")
     autocomplete_fields = ["member"]
     list_filter = (
         # "amount",
