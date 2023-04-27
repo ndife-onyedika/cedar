@@ -478,7 +478,7 @@ def data_table(request):
     elif table == "savings.interest":
         contexts = {
             "all": SavingsInterest.objects.all().order_by(
-                "member__name", "-created_at", "-total_interest"
+                "member__name", "-created_at"
             ),
             "total": SavingsInterestTotal.objects.all().order_by(
                 "member__name", "-created_at"
