@@ -142,15 +142,6 @@ class SavingsInterestTotal(Savings):
         )
 
 
-# class TotalInterest(CustomAbstractTable):
-#     member = models.OneToOneField(Member, on_delete=models.CASCADE)
-#     interest = models.BigIntegerField(default=0)
-
-#     class Meta:
-#         verbose_name = "Total Interest"
-#         verbose_name_plural = "Total Interests"
-
-
 @receiver(post_save, sender=SavingsCredit)
 def post_savings_credit_save(sender, instance: SavingsCredit, **kwargs):
     si = SavingsInterestTotal.objects.get_or_create(
@@ -181,7 +172,7 @@ def post_savings_credit_delete(sender, instance: SavingsCredit, **kwargs):
         ).delete()
 
 
-# @receiver(post_save, sender=SavingsDebit)
+@receiver(post_save, sender=SavingsDebit)
 def post_savings_debit_save(sender, instance: SavingsDebit, **kwargs):
     if kwargs["created"]:
         handle_withdrawal(context="create", instance=instance)

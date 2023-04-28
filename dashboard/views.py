@@ -47,8 +47,8 @@ class Dashboard(LoginRequiredMixin, TemplateView):
         )
         savings_credit = SavingsCredit.objects.all()
         savings_debit = SavingsDebit.objects.all()
-        last_credit = savings_credit.order_by("created_at").last()
-        last_debit = savings_debit.order_by("created_at").last()
+        last_credit = savings_credit.order_by("-created_at").first()
+        last_debit = savings_debit.order_by("-created_at").first()
 
         total_shares = (
             SharesTotal.objects.all().aggregate(Sum("amount"))["amount__sum"] or 0
