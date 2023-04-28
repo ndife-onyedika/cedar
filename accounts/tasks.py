@@ -83,7 +83,7 @@ def import_csv():
                                     amount=convert_amt(shares),
                                     created_at=make_aware(date),
                                 )
-                            if name.lower() not in ("longinus amuchie", "miracle onah"):
+                            if name.lower() not in ("longinus amuchie",):
                                 if not is_null(savings_credit := row["SAVINGS CREDIT"]):
                                     date = convert_date(row["DATE (SAVINGS CREDIT)"])
                                     if date.date() != datetime(2014, 4, 1).date():

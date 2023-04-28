@@ -10,6 +10,7 @@ from django.utils.timezone import make_aware, datetime, timedelta, now
 from datetime import time
 
 from notifications.signals import notify
+from django.db.models.query_utils import Q
 
 
 def update_savings_total(member):
@@ -163,8 +164,9 @@ def check_activity_exec(member, date: datetime):
             notify.send(
                 admin,
                 level="error",
-                timestamp=date,
+                # timestamp=date,
                 recipient=recipients,
+                timestamp=make_aware(date),
                 verb=f"Account: Activity - {member.name}",
                 description=f"{member.name} account has been set INACTIVE due to none operation for {display_duration(account_activity_duration)}.",
             )
@@ -194,16 +196,14 @@ def calculate_interest(start_year, end_year):
     from .models import SavingsInterestTotal, SavingsDebit, YearEndBalance
 
     # members = Member.objects.filter(name__icontains="Adaku Onam")
-    # members = Member.objects.filter(
-    #     ~Q(name__icontains="Longinus Amuchie") & ~Q(name__icontains="Miracle Onah")
-    # )
+    # members = Member.objects.filter(~Q(name__icontains="Longinus Amuchie"))
     members = Member.objects.all()
     admin = User.objects.get(is_superuser=True)
 
     for year in range(start_year, end_year):
         prev_year = year - 1
-        start_date = datetime(prev_year, 4, 1).date()
-        end_date = datetime(year, 4, 1).date()
+        start_date = datetime(2023, 4, 1).date()
+        end_date = datetime(2023, 4, 30).date()
         for month in months_between(start_date, end_date):
             for day in range(1, get_last_day_month(month.month, month.year) + 1):
                 current_date = datetime.combine(
@@ -217,6 +217,10 @@ def calculate_interest(start_year, end_year):
                     print(f"Working Timestamp: {current_date.date()}")
                     for member in members:
                         if member.date_joined.date() <= current_date.date():
+                            if current_date.date() == end_date:
+                                date_range = [start_date, end_date]
+                                calculate_yearEndBalance(member, date_range)
+
                             if current_date.date() < end_date:
                                 is_active = check_activity_exec(member, current_date)
                                 if is_active:
@@ -246,13 +250,10 @@ def calculate_interest(start_year, end_year):
                                             context="create", instance=withdrawal
                                         )
 
-                            if current_date.date() == end_date:
-                                date_range = [start_date, end_date]
-                                calculate_yearEndBalance(member, date_range)
-
                     if (
-                        current_date.date() == end_date
-                        and current_date.date() != datetime(2023, 4, 1).date()
+                        current_date.date()
+                        == end_date
+                        # and current_date.date() != datetime(2023, 4, 1).date()
                     ):
                         notify.send(
                             admin,

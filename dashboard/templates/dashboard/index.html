@@ -146,11 +146,11 @@
         });
     })
 
-    setInterval(() => $.ajax({
+    /*setInterval(() => $.ajax({
         type: 'GET',
         url: "{% url 'ajax:notify.unread_count' %}",
         success: data => $('#bubble').css("display", data.count > 0 ? "block" : "none")
-    }), 2000);
+    }), 2000);*/
 
     $(".modal#lrm #id_member").on("change", function () {
         let value = "-"

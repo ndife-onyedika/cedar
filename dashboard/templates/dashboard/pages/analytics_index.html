@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block mini_head %}
-<link rel="stylesheet" href="{% static 'vendor/css/daterangepicker.min.css' %}">
+<link rel="stylesheet" href="{% static 'vendor/css/daterangepicker.css' %}">
 <link rel="stylesheet" href="{% static 'vendor/css/print.min.css' %}">
 {% endblock mini_head %}
 
@@ -59,8 +59,16 @@
             </div>
         </div>
         {% endif %}
+        {% if dashboard.context == "savings.interest" %}
+        <div id="tid" class="card shadow border border-white mb-3 d-none">
+            <div class="card-body">
+                <p class="fs-5">Overall total interest</p>
+                <p class="fs-1 fw-bold" id="tin"></p>
+            </div>
+        </div>
+        {% endif %}
         <div class="card shadow border border-white">
-            <div class="card-header bg-white d-flex flex-wrap-reverse flex-sm-nowrap">
+            <div class="card-header bg-white d-flex flex-wrap-reverse">
                 {% if dashboard.context == "members" or dashboard.context == "loans" or dashboard.context == "savings" or dashboard.context == "savings.interest" %}
                 <div class="btn-group col-12 col-sm-auto" role="group" aria-label="Table Tabs">
                 </div>
@@ -146,6 +154,8 @@
                             <option selected value="50">50</option>
                             <option value="100">100</option>
                             <option value="200">200</option>
+                            <option value="500">500</option>
+                            <option value="1000">1000</option>
                         </select>
                     </div>
                 </div>
@@ -163,8 +173,7 @@
 {% endblock  %}
 
 {% block dashboard_script %}
-<script src="{% static 'vendor/js/knockout-3.5.1.js' %}"></script>
-<script src="{% static 'vendor/js/daterangepicker.min.js' %}"></script>
+<script src="{% static 'vendor/js/daterangepicker.js' %}"></script>
 <script src="{% static 'vendor/js/print.min.js' %}"></script>
 <script>
     let printData = [];
@@ -191,13 +200,15 @@
         ],
         "savings.interest": [
             ["all", "Interests"],
+            ["each", "Savings Interests"],
             ["total", "Total Interests"]
         ],
     }
     const table_heads = {
         "savings.interest": {
             all: ["Interest", "Total Interest", "Date Created"],
-            total: ["Interest", "Date Created", "Date Updated"],
+            each: ["Interest", "Date Created", "Date Updated"],
+            total: ["Total Interest", "Date Range"],
         },
         loans: {
             disbursed: ["Outstanding Amount", "Rate", "Duration", "Guarantors",
@@ -214,13 +225,19 @@
         eoy: ["Dated Created"]
     }
 
-    $("#search_date").daterangepicker({
-        orientation: 'left',
-        timeZone: 'Africa/Lagos',
-    }, function (start, end, period) {
-        $(this).val(`${start.format('Do MMM YYYY')} - ${end.format('Do MMM YYYY')}`)
-        data_parse.search_by = "date";
-        data_parse.search_data = [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
+    $('#search_date').daterangepicker({
+        "drops": "auto",
+        "opens": "left",
+        "showDropdowns": true,
+        "autoUpdateInput": false,
+        "alwaysShowCalendars": true,
+    }, function (start, end, label) {
+        this.element.val(`${start.format('Do MMM YYYY')} - ${ end.format('Do MMM YYYY')}`)
+        let search_text = $("#search").val();
+        data_parse.search_by = search_text == "" ? "date" : "text-date";
+        data_parse.search_data = [...(search_text == "" ? [] : [search_text]), start.format('YYYY-MM-DD'), end
+            .format('YYYY-MM-DD')
+        ];
         tabulate();
     });
 
@@ -239,7 +256,9 @@
         table_head = [
             "#",
             ...(!["members", "loans.repay"].includes(table_name) && !member ? ["Member"] : []),
-            ...(!["members", "shares"].includes(table_name) || table_name == "shares" && member ? ["Amount"] : []),
+            ...(!["members", "shares", "savings.interest"].includes(table_name) ||
+                table_name == "shares" && member ||
+                table_name == "savings.interest" && context != "total" ? ["Amount"] : []),
             ...(table_name == "shares" && !member ? ["Total Shares"] : []),
             ...table_head,
             ...(table_name == "shares" && !member ? ["Date Updated"] : [])
@@ -272,7 +291,6 @@
             members: "{% url 'dashboard:members' %}",
             "savings.interest": "{% url 'dashboard:savings' %}",
         }
-
         $.ajax({
             url: "{% url 'ajax:dt' %}",
             data: {
@@ -298,8 +316,9 @@
                                 <td><input class="form-check-input" type="checkbox" id="tableChk${i}" value="${item.id}" aria-label="..."></td>
                                 <th scope="row">${i+1}</th>
                                 ${!member 
-                                    ? table_name != "loans.repay" 
-                                        ? table_name != "members"
+                                    ? table_name == "loans.repay" || table_name == "savings.interest" && context == "total"
+                                        ? table_name == "loans.repay" ? '' : `<td>${item.name}</td>`  
+                                        : table_name != "members"
                                             ?
                                                 `<td>
                                                     <a href="${`${urls[table_name]}${item.mid}${
@@ -309,16 +328,16 @@
                                                         ${item.name}
                                                     </a>
                                                 </td>`
-                                            : `<td><a href="${urls[table_name]}${item.id}">${item.name}</a></td>`
-                                        : '' 
+                                            : `<td><a href="${urls[table_name]}${item.id}">${item.name}</a></td>` 
                                     : ''
                                 }
-                                ${table_name != "members" 
-                                    ? (
+                                ${table_name == "members" || table_name == "savings.interest" && context == "total"
+                                    ? ""
+                                    : (
                                         table_name == "savings" 
                                         ? `<td><span class="text-${item.amount.startsWith("+")?"primary":"danger"}">${item.amount.slice(1)}</span></td>` 
                                         : `<td>${item.amount}</td>`
-                                    ) : ""
+                                    )
                                 }
                                 ${table_name == "members" 
                                     ? `<td>${item.balance}</td>
@@ -348,23 +367,34 @@
                                         </td>` 
                                     : ''
                                 }
-                                ${["eoy", "shares", "loans", "loans.repay", "savings", "members", "savings.interest"].includes(table_name) ?`<td>${to_local_time(item.created_at)}</td>`: ''}
-                                ${table_name == "savings.interest" && context == "total"
+                                ${["eoy", "shares", "loans", "loans.repay", "savings", "members"].includes(table_name) || table_name == "savings.interest" && context != "total" ?`<td>${to_local_time(item.created_at)}</td>`: ''}
+                                ${table_name == "savings.interest" && context == "each"
                                     || table_name == "loans"
                                     || table_name == "shares" && !member
                                     ? `<td>${to_local_time(item.updated_at)}</td>` : ""
                                 }
                                 ${table_name == "loans" ? `<td><a href="{% url 'dashboard:loans' %}details/${item.id}/" class="btn btn-primary lh-1">Repayments</a></td>` : ""}
+                                ${table_name == "savings.interest" && context == "total"
+                                    ? `<td>${item.date_range}</td>`
+                                    : ''
+                                }
                             </tr>
                         `
                     }
                     $(".table tbody").html(table_rows);
+                    $("#tin").html(table_name == "savings.interest" && context == "total" ? data.content[0]
+                        .total_interest : '-')
                 } else {
                     $("#tableChkMaster").prop("disabled", true)
                     $(".table tbody").html(
                         `<tr class="text-center"><td colspan="${table_head.length + 1}"><h6>No data</h6></td></tr>`
                     );
                 }
+                $("#tin").html(data.attr.extra && data.content.length != 0 && table_name ==
+                    "savings.interest" && context ==
+                    "total" ? data.attr.extra.total_interest : '-'
+                );
+
 
                 let pagination = `
                     <li
@@ -428,6 +458,9 @@
     })
     $(document).on('click', '.card-header .btn-group input[name="tableTab"]', function () {
         data_parse.context = $(this).val();
+        if (data_parse.table_name == "savings.interest" && data_parse.context == "total") $("#tid").removeClass(
+            "d-none")
+        else $("#tid").addClass("d-none")
         tabulate();
     })
     $(document).on('click', '.pagination #prev, .pagination #next', function () {
@@ -444,8 +477,16 @@
         tabulate();
     })
     $("#search").on('input', function () {
-        data_parse.search_by = "text";
-        data_parse.search_data = $(this).val();
+        let search_date_val = $("#search_date").val();
+        if (search_date_val != "") {
+            let val = search_date_val.split(" - ");
+            var start = val[0],
+                end = val[1];
+            start = moment(start, 'Do MMM YYYY').format('YYYY-MM-DD');
+            end = moment(end, 'Do MMM YYYY').format('YYYY-MM-DD');
+        }
+        data_parse.search_by = search_date_val == "" ? "text" : "text-date";
+        data_parse.search_data = search_date_val == "" ? $(this).val() : [$(this).val(), start, end];
         tabulate();
     });
 

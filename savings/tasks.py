@@ -27,6 +27,10 @@ def daily_interest_calculation_task():
     try:
         with transaction.atomic():
             for member in members:
+                if today.date() == bye.date():
+                    date_range = [bys.date(), bye.date()]
+                    calculate_yearEndBalance(member, date_range)
+
                 is_active = check_activity_exec(member, today)
                 if is_active:
                     savings_intr = SavingsInterestTotal.objects.filter(
@@ -40,9 +44,7 @@ def daily_interest_calculation_task():
                                 member=member,
                                 instance=saving_intr,
                             )
-                if today.date() == bye.date():
-                    date_range = [bys.date(), bye.date()]
-                    calculate_yearEndBalance(member, date_range)
+
     except IntegrityError as e:
         return f"ERROR: Savings Interest Calculation!\nERROR_DESC: {e}"
     else:
@@ -53,7 +55,7 @@ def daily_interest_calculation_task():
 def calc_old_interest():
     try:
         with transaction.atomic():
-            calculate_interest(2015, 2024)
+            calculate_interest(2024, 2025)
     except IntegrityError as e:
         return f"ERROR: Interest Calculation (OLD)\nERROR_DESC: {e}"
     else:

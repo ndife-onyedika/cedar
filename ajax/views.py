@@ -1,3 +1,4 @@
+from datetime import date
 from email.utils import make_msgid
 import json
 from calendar import month_abbr
@@ -33,11 +34,12 @@ from savings.models import (
     SavingsDebit,
     SavingsInterest,
     SavingsInterestTotal,
-    SavingsTotal,
     YearEndBalance,
 )
 from settings.models import AccountChoice
 from shares.models import Shares, SharesTotal
+from django.db.models.aggregates import Sum
+from django.db.models import DateField, ExpressionWrapper
 
 
 # Create your views here.
@@ -393,12 +395,19 @@ def data_table(request):
     search_data = request.GET.get("search_data")
     table_context = request.GET.get("table_context")
 
-    if search_by == "date":
-        search_data = request.GET.getlist("search_data[]")
+    if search_by:
+        text = search_data
+        if search_by == "date" or search_by == "text-date":
+            search_data = request.GET.getlist("search_data[]")
+            date_range = search_data
+            if search_by == "text-date":
+                text = search_data[0]
+                date_range = [search_data[1], search_data[2]]
 
     if member_id:
         member = Member.objects.get(id=member_id)
 
+    tintr = 0
     if table == "members":
         content_list = Member.objects.all().order_by("name")
         table_context = table_context if table_context != "all" else None
@@ -406,10 +415,11 @@ def data_table(request):
             content_list = content_list.filter(
                 account_type=AccountChoice.objects.get(name__icontains=table_context)
             )
-        if search_by == "text":
+        if search_by:
             content_list = content_list.filter(
-                Q(name__icontains=search_data) | Q(email__icontains=search_data)
+                Q(name__icontains=text) | Q(email__icontains=text)
             )
+
         content = paginator_exec(page, per_page, content_list)
         for i in content:
             c = {
@@ -439,18 +449,18 @@ def data_table(request):
         if search_by == "date":
             content_list = (
                 (
-                    savings_credit.filter(created_at__date__range=search_data)
-                    .union(savings_debit.filter(created_at__date__range=search_data))
+                    savings_credit.filter(created_at__date__range=date_range)
+                    .union(savings_debit.filter(created_at__date__range=date_range))
                     .order_by("-created_at")
                 )
                 if table_context == "all"
-                else contexts[table_context].filter(created_at__date__range=search_data)
+                else contexts[table_context].filter(created_at__date__range=date_range)
             )
         elif search_by == "text":
             query = (
-                Q(member__name__icontains=search_data)
-                | Q(member__email__icontains=search_data)
-                | Q(reason__icontains=search_data)
+                Q(member__name__icontains=text)
+                | Q(member__email__icontains=text)
+                | Q(reason__icontains=text)
             )
             if table_context != "all":
                 content_list = content_list.filter(query)
@@ -458,6 +468,31 @@ def data_table(request):
                 content_list = (
                     savings_credit.filter(query)
                     .union(savings_debit.filter(query))
+                    .order_by("-created_at")
+                )
+        elif search_by == "text-date":
+            query = (
+                Q(member__name__icontains=text)
+                | Q(member__email__icontains=text)
+                | Q(reason__icontains=text)
+            )
+            if table_context != "all":
+                content_list = content_list.filter(
+                    query,
+                    created_at__date__range=date_range,
+                )
+            else:
+                content_list = (
+                    savings_credit.filter(
+                        query,
+                        created_at__date__range=date_range,
+                    )
+                    .union(
+                        savings_debit.filter(
+                            query,
+                            created_at__date__range=date_range,
+                        )
+                    )
                     .order_by("-created_at")
                 )
 
@@ -480,38 +515,101 @@ def data_table(request):
             "all": SavingsInterest.objects.all().order_by(
                 "-created_at", "member__name", "-total_interest"
             ),
-            "total": SavingsInterestTotal.objects.all().order_by(
+            "each": SavingsInterestTotal.objects.all().order_by(
                 "member__name", "-created_at"
             ),
         }
-        content_list = contexts[table_context]
+
+        def total_context_exec(
+            text=None,
+            date_range=[timezone.datetime(2014, 4, 1).date(), timezone.now().date()],
+        ):
+            start_date = (
+                date_range[0]
+                if isinstance(date_range[0], date)
+                else timezone.datetime.strptime(date_range[0], "%Y-%m-%d").date()
+            )
+            end_date = (
+                date_range[1]
+                if isinstance(date_range[1], date)
+                else timezone.datetime.strptime(date_range[1], "%Y-%m-%d").date()
+            )
+            data = (
+                Member.objects.filter(
+                    savingsinterest__created_at__date__range=date_range,
+                    **({} if not text else {"name__icontains": text}),
+                )
+                .order_by("name")
+                .annotate(t_interest=Sum("savingsinterest__interest"))
+            )
+            _date_range = "{} - {}".format(
+                start_date.strftime("%d %b, %Y"), end_date.strftime("%d %b, %Y")
+            )
+            interest = data.aggregate(Sum("t_interest"))["t_interest__sum"] or 0
+            return data, _date_range, interest
+
+        if table_context != "total":
+            content_list = contexts[table_context]
+        else:
+            content_list, _date_range, tintr = total_context_exec()
 
         if member_id:
             content_list = content_list.filter(member=member)
 
         if search_by == "date":
-            content_list = content_list.filter(created_at__date__range=search_data)
+            if table_context != "total":
+                content_list = content_list.filter(created_at__date__range=date_range)
+            else:
+                content_list, _date_range, tintr = total_context_exec(
+                    date_range=date_range
+                )
         elif search_by == "text":
-            content_list = content_list.filter(
-                Q(member__name__icontains=search_data)
-                | Q(member__email__icontains=search_data)
-            )
+            if table_context != "total":
+                content_list = content_list.filter(
+                    Q(member__name__icontains=text) | Q(member__email__icontains=text)
+                )
+            else:
+                content_list, _date_range, tintr = total_context_exec(text=text)
+        elif search_by == "text-date":
+            if table_context != "total":
+                content_list = content_list.filter(
+                    Q(member__name__icontains=text) | Q(member__email__icontains=text),
+                    created_at__date__range=date_range,
+                )
+            else:
+                content_list, _date_range, tintr = total_context_exec(
+                    text=text, date_range=date_range
+                )
 
         content = paginator_exec(page, per_page, content_list)
 
         for i in content:
             c = {
-                "id": i.id,
-                **({} if member_id else {"mid": i.member.id, "name": i.member.name}),
-                "amount": get_amount(amount=i.amount),
-                "savings_amount": get_amount(amount=i.savings.amount),
-                "interest": get_amount(amount=i.interest),
-                "created_at": i.created_at,
                 **(
-                    {"updated_at": i.updated_at}
-                    if table_context != "all"
-                    else {"total_interest": get_amount(amount=i.total_interest)}
-                ),
+                    {
+                        "name": i.name,
+                        "date_range": _date_range,
+                        "interest": get_amount(amount=i.t_interest),
+                    }
+                    if table_context == "total"
+                    else {
+                        "id": i.id,
+                        **(
+                            {}
+                            if member_id
+                            else {"mid": i.member.id, "name": i.member.name}
+                        ),
+                        "amount": get_amount(amount=i.amount),
+                        "savings_amount": get_amount(amount=i.savings.amount),
+                        "interest": get_amount(amount=i.interest),
+                        "created_at": i.created_at,
+                        **(
+                            {"updated_at": i.updated_at}
+                            if table_context != "all"
+                            else {"total_interest": get_amount(amount=i.total_interest)}
+                        ),
+                    }
+                )
             }
             data["content"].append(c)
     elif table == "loans.repay":
@@ -524,7 +622,7 @@ def data_table(request):
             content_list = []
         else:
             if search_by == "date":
-                content_list = content_list.filter(created_at__date__range=search_data)
+                content_list = content_list.filter(created_at__date__range=date_range)
 
         content = paginator_exec(page, per_page, content_list)
         for i in content:
@@ -542,11 +640,15 @@ def data_table(request):
             content_list = content_list.filter(member=member)
 
         if search_by == "date":
-            content_list = content_list.filter(created_at__date__range=search_data)
+            content_list = content_list.filter(created_at__date__range=date_range)
         elif search_by == "text":
             content_list = content_list.filter(
-                Q(member__name__icontains=search_data)
-                | Q(member__email__icontains=search_data)
+                Q(member__name__icontains=text) | Q(member__email__icontains=text)
+            )
+        elif search_by == "text-date":
+            content_list = content_list.filter(
+                Q(member__name__icontains=text) | Q(member__email__icontains=text),
+                created_at__date__range=date_range,
             )
 
         content = paginator_exec(page, per_page, content_list)
@@ -583,11 +685,15 @@ def data_table(request):
             content_list = Shares.objects.filter(member=member).order_by("-created_at")
 
         if search_by == "date":
-            content_list = content_list.filter(created_at__date__range=search_data)
+            content_list = content_list.filter(created_at__date__range=date_range)
         elif search_by == "text":
             content_list = content_list.filter(
-                Q(member__name__icontains=search_data)
-                | Q(member__email__icontains=search_data)
+                Q(member__name__icontains=text) | Q(member__email__icontains=text)
+            )
+        elif search_by == "text-date":
+            content_list = content_list.filter(
+                Q(member__name__icontains=text) | Q(member__email__icontains=text),
+                created_at__date__range=date_range,
             )
 
         content = paginator_exec(page, per_page, content_list)
@@ -615,11 +721,15 @@ def data_table(request):
         if member_id:
             content_list = content_list.filter(member=member).order_by("-created_at")
         if search_by == "date":
-            content_list = content_list.filter(created_at__date__range=search_data)
+            content_list = content_list.filter(created_at__date__range=date_range)
         elif search_by == "text":
             content_list = content_list.filter(
-                Q(member__name__icontains=search_data)
-                | Q(member__email__icontains=search_data)
+                Q(member__name__icontains=text) | Q(member__email__icontains=text)
+            )
+        elif search_by == "text-date":
+            content_list = content_list.filter(
+                Q(member__name__icontains=text) | Q(member__email__icontains=text),
+                created_at__date__range=date_range,
             )
 
         content = paginator_exec(page, per_page, content_list)
@@ -632,7 +742,7 @@ def data_table(request):
                 **({} if member_id else {"mid": i.member.id, "name": i.member.name}),
             }
             data["content"].append(c)
-
+    data["attr"]["extra"] = {"total_interest": get_amount(tintr)}
     data["attr"]["has_other_pages"] = content.has_other_pages()
     data["attr"]["number"] = content.number
     data["attr"]["page_range"] = []
