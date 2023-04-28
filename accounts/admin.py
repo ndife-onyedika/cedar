@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.admin.models import LogEntry
 from accounts.actions import run_task, set_nok
-
+from accounts.forms import UserChangeForm, UserCreationForm
 from accounts.models import Member, User
 from cedar.admin import CustomAdmin
 
@@ -28,6 +28,8 @@ class LogEntryAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class UserAdmin(CustomAdmin):
+    add_form = UserCreationForm
+    form = UserChangeForm
     list_display = ("name", "email", "is_superuser")
     # "country",
     list_display_links = ("name",)
