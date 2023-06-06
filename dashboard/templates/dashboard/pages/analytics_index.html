@@ -272,7 +272,7 @@
             $(".card .btn-group").html(
                 `${(table_tab.map((tab, i) => `
                     <input type="radio" class="btn-check" value="${tab[0]}" name="tableTab" id="tab${i}" autocomplete="off" ${context == tab[0] ? 'checked' : ''}>
-                    <label class="btn btn-outline-primary px-4" for="tab${i}">${tab[1]}</label>`)).join("")
+                    <label class="btn btn-outline-primary px-1 px-md-4 align-middle" for="tab${i}">${tab[1]}</label>`)).join("")
                 }`
             )
         }
