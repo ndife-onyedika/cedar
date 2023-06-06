@@ -164,9 +164,9 @@ def check_activity_exec(member, date: datetime):
             notify.send(
                 admin,
                 level="error",
-                # timestamp=date,
+                timestamp=date,
                 recipient=recipients,
-                timestamp=make_aware(date),
+                # timestamp=make_aware(date),
                 verb=f"Account: Activity - {member.name}",
                 description=f"{member.name} account has been set INACTIVE due to none operation for {display_duration(account_activity_duration)}.",
             )
