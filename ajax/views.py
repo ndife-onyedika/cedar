@@ -536,8 +536,8 @@ def data_table(request):
             )
             data = (
                 Member.objects.filter(
-                    savingsinterest__created_at__date__range=date_range,
                     **({} if not text else {"name__icontains": text}),
+                    savingsinterest__created_at__date__range=date_range,
                 )
                 .order_by("name")
                 .annotate(t_interest=Sum("savingsinterest__interest"))
@@ -554,7 +554,13 @@ def data_table(request):
             content_list, _date_range, tintr = total_context_exec()
 
         if member_id:
-            content_list = content_list.filter(member=member)
+            content_list = content_list.filter(
+                **(
+                    {"id": member.id}
+                    if table_context == "total"
+                    else {"savings__member": member}
+                )
+            )
 
         if search_by == "date":
             if table_context != "total":
@@ -566,7 +572,8 @@ def data_table(request):
         elif search_by == "text":
             if table_context != "total":
                 content_list = content_list.filter(
-                    Q(member__name__icontains=text) | Q(member__email__icontains=text)
+                    Q(savings__member__name__icontains=text)
+                    | Q(savings__member__email__icontains=text)
                 )
             else:
                 content_list, _date_range, tintr = total_context_exec(text=text)
