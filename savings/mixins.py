@@ -202,8 +202,10 @@ def calculate_interest(start_year, end_year):
 
     for year in range(start_year, end_year):
         prev_year = year - 1
-        start_date = datetime(2023, 4, 1).date()
-        end_date = datetime(2023, 4, 30).date()
+        # start_date = datetime(2023, 4, 1).date()
+        # end_date = datetime(2023, 8, 23).date()
+        start_date = datetime(prev_year, 4, 1).date()
+        end_date = datetime(year, 4, 1).date()
         for month in months_between(start_date, end_date):
             for day in range(1, get_last_day_month(month.month, month.year) + 1):
                 current_date = datetime.combine(

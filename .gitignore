@@ -5,3 +5,4 @@ media/
 static/
 doc/
 .~lock*
+.vscode/

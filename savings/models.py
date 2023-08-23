@@ -148,8 +148,8 @@ def post_savings_credit_save(sender, instance: SavingsCredit, **kwargs):
         savings=instance, member=instance.member, created_at=instance.created_at
     )[0]
     si.amount = instance.amount
-    si.updated_at = instance.created_at
-    # si.updated_at = timezone.now()
+    # si.updated_at = instance.created_at
+    si.updated_at = timezone.now()
     if instance.reason == "credit-eoy":
         si.start_comp = True
         eoy = YearEndBalance.objects.get_or_create(

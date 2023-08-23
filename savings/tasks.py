@@ -55,7 +55,8 @@ def daily_interest_calculation_task():
 def calc_old_interest():
     try:
         with transaction.atomic():
-            calculate_interest(2024, 2025)
+            # calculate_interest(2024, 2025)
+            calculate_interest(2015, 2024)
     except IntegrityError as e:
         return f"ERROR: Interest Calculation (OLD)\nERROR_DESC: {e}"
     else:
