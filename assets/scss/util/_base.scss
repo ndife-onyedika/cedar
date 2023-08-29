@@ -1,5 +1,5 @@
 $primary: #198754;
-$border-radius: 0.25rem;
+$border-radius: 0.5rem;
 @font-face {
     font-family: Poppins;
     src: url(/static/fonts/Poppins-Regular.ttf);
@@ -14,12 +14,17 @@ $bp-sm: 767.98px; //600px
 $bp-xs: 575.98px; //400px
 
 body {
+    font-size: small;
     font-family: Poppins !important;
 }
 
 .bi {
     height: 1rem;
     width: 1rem;
+}
+
+.fw-midbold {
+    font-weight: 500 !important;
 }
 
 .notify {
@@ -185,6 +190,11 @@ body {
     }
 }
 
+.big-toggle {
+    width: 3rem !important;
+    padding: 0.8rem !important;
+}
+
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
     -webkit-appearance: none !important;
@@ -192,4 +202,55 @@ input::-webkit-inner-spin-button {
 }
 input[type="number"] {
     -moz-appearance: textfield !important;
+}
+
+.small {
+    font-size: small !important;
+}
+
+input,
+textarea {
+    &::placeholder {
+        font-size: small !important;
+    }
+}
+
+.offcanvas-backdrop.show,
+.modal-backdrop.show {
+    opacity: 1;
+    backdrop-filter: blur(5px);
+    background: #19103d85;
+}
+
+ul.collapse,
+ul.collapsing {
+    list-style: none !important;
+}
+
+.spinner-border {
+    &-slim {
+        --bs-spinner-border-width: 0.1em;
+    }
+}
+
+.card {
+    --bs-card-border-color: rgba(0, 0, 0, 0.1);
+}
+
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link {
+    font-weight: bold;
+    color: var(--bs-primary) !important;
+    background-color: rgba(var(--bs-primary-rgb), 0.25) !important;
+}
+
+.select-active {
+    --bs-dropdown-link-active-bg: rgba(var(--bs-primary-rgb), 0.25);
+    --bs-dropdown-link-active-color: var(--bs-primary);
+    font-weight: bold;
+}
+
+.form-select:not(:disabled):hover,
+.form-control:not(:disabled):hover {
+    border-color: #8cc3aa;
 }

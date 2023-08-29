@@ -17,10 +17,15 @@ from cedar.mixins import (
     get_shares_total,
     get_data_equivalent,
 )
+from loans.forms import LoanRepaymentForm, LoanRequestForm
 from savings.forms import SavingsCreditForm, SavingsDebitForm
 from savings.models import SavingsCredit, SavingsDebit, SavingsTotal
 from settings.models import AccountChoice
 from django.db.models.aggregates import Sum
+from django.http import JsonResponse
+
+from shares.forms import ShareAddForm
+
 
 from .forms import CustomPasswordResetForm, EditMemberForm, LoginForm, RegistrationForm
 
@@ -35,14 +40,14 @@ class MemberListView(LoginRequiredMixin, TemplateView):
                 "context": "members",
                 "buttons": [
                     {
-                        "target": "#mm",
                         "title": "Add Member",
                         "class": "btn-primary",
+                        "url": resolve_url("dashboard:members.add"),
                     }
                 ],
             },
         }
-        template = f"dashboard/pages/records.html"
+        template = f"dashboard/pages/index.html"
         return render(request, template, context)
 
 
@@ -52,47 +57,16 @@ class MemberView(MemberListView):
         context = {
             "savings": {},
             "member": member,
-            "sdf": SavingsCreditForm(),
-            "swf": SavingsDebitForm(),
             "form": EditMemberForm(instance=member),
+            "asf": ShareAddForm(initial={"member": member}),
+            "lf": LoanRequestForm(initial={"member": member}),
+            "swf": SavingsDebitForm(initial={"member": member}),
+            "sdf": SavingsCreditForm(initial={"member": member}),
+            "lrf": LoanRepaymentForm(initial={"member": member}),
             "dashboard": {
+                "back": True,
                 "context": "members",
                 "title": "Member Details",
-                "buttons": [
-                    {"id": "editBtn", "title": "Edit", "class": "btn-primary"},
-                    {
-                        "id": "setBtn",
-                        "target": "#cm",
-                        "title": "Set {}".format(
-                            "Active" if not member.is_active else "Inactive"
-                        ),
-                        "class": "btn-{}".format(
-                            "primary" if not member.is_active else "danger"
-                        ),
-                        "value": json.dumps(
-                            {
-                                "id": [member.id],
-                                "context": "status",
-                                "value": "active"
-                                if not member.is_active
-                                else "inactive",
-                            }
-                        ),
-                    },
-                    {
-                        "id": "delBtn",
-                        "target": "#cm",
-                        "title": "Delete",
-                        "class": "btn-danger",
-                        "value": json.dumps(
-                            {
-                                "id": [member.id],
-                                "context": "delete",
-                                "sub_context": "member",
-                            }
-                        ),
-                    },
-                ],
             },
         }
         st = get_savings_total(member=member)
@@ -124,41 +98,56 @@ class MemberView(MemberListView):
             }
             for txn in savings_credit.union(savings_debit).order_by("-created_at")[:10]
         ]
-        template = f"accounts/member.html"
+        template = f"dashboard/pages/views/member/index.html"
         return render(request, template, context)
+
+    def post(self, request, member_id: int, *args, **kwargs):
+        data = {}
+        code = 400
+        status = "error"
+        member = get_object_or_404(Member, id=member_id)
+        form = EditMemberForm(instance=member, data=request.POST, files=request.FILES)
+
+        if form.is_valid():
+            code = 200
+            status = "success"
+            member = form.save()
+            data["message"] = "{} profile updated successfully".format(member.name)
+        else:
+            data["data"] = {
+                field: error[0]["message"]
+                for field, error in form.errors.get_json_data(escape_html=True).items()
+            }
+        data["status"] = status
+        return JsonResponse(data, status=code)
 
 
 @login_required
 def registration_view(request):
     form = RegistrationForm(
-        {}
-        if request.method == "GET"
-        else {"data": request.POST, "files": request.FILES}
+        **(
+            {}
+            if request.method == "GET"
+            else {"data": request.POST, "files": request.FILES}
+        )
     )
     if request.method == "POST" and form.is_valid():
         try:
             with transaction.atomic():
-                member = form.save(commit=False)
-                member.account_type = AccountChoice.objects.get(
-                    id=form.cleaned_data.get("account_type")
-                )
-                member.save()
-                NextOfKin.objects.create(
-                    member=member,
-                    name=form.cleaned_data.get("nok_name"),
-                    email=form.cleaned_data.get("nok_email"),
-                    phone=form.cleaned_data.get("nok_phone"),
-                    address=form.cleaned_data.get("nok_address"),
-                    relationship=form.cleaned_data.get("nok_relationship"),
-                )
+                member = form.save()
         except IntegrityError as e:
             print(f"REGISTRATION-ERROR: {e}")
-            flash_messages.error(request, "Error registering account")
+            flash_messages.error(request, "Error adding account")
         else:
-            flash_messages.success(request, "Account registered successfully")
+            flash_messages.success(request, "Member added successfully")
             return redirect("dashboard:members")
     return render(
-        request, context={"form": form}, template_name="accounts/register.html"
+        request,
+        template_name="dashboard/pages/views/member/add.html",
+        context={
+            "form": form,
+            "dashboard": {"back": True, "title": "Add Member", "context": "members"},
+        },
     )
 
 
@@ -169,7 +158,6 @@ def login_view(request):
     if request.method == "POST" and form.is_valid():
         user = form.user_cache
         login(request, user)
-        flash_messages.success(request, "Sign in successful")
         return redirect("dashboard:home")
     return render(request, "accounts/login.html", {"form": form})
 

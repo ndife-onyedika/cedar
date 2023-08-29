@@ -1,0 +1,12 @@
+{% extends 'dashboard/pages/index.html' %}
+
+{% block services_hidden %}
+<input type="hidden" id="attr" value='{
+    "page":1,
+    "per_page":50,
+    "sort_by":null,
+    "selected_id":[],
+    "search_text":null,
+    "search_date":null
+}' />
+{% endblock  %}

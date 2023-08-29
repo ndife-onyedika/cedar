@@ -30,6 +30,13 @@ class UserCreationForm(forms.ModelForm):
         model = User
         fields = ("email",)
 
+    def is_valid(self) -> bool:
+        result = super().is_valid()
+        for field in self.errors:
+            attrs = self.fields[field].widget.attrs
+            attrs.update({"class": attrs.get("class", "") + " is-invalid"})
+        return result
+
     def clean_password(self) -> str:
         password = self.cleaned_data.get("password")
         if not password:
@@ -50,6 +57,13 @@ class UserChangeForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ("email", "password", "is_active", "is_superuser")
+
+    def is_valid(self) -> bool:
+        result = super().is_valid()
+        for field in self.errors:
+            attrs = self.fields[field].widget.attrs
+            attrs.update({"class": attrs.get("class", "") + " is-invalid"})
+        return result
 
     def clean_password(self) -> str:
         password = self.cleaned_data.get("password")
@@ -75,68 +89,72 @@ class MemberForm(forms.ModelForm):
     nok_relationship = forms.ChoiceField(
         required=False,
         label="Relationship",
-        choices=[(None, "Select Relationship")] + RELATIONSHIP_CHOICE,
+        choices=[(None, "Choose one"), *RELATIONSHIP_CHOICE],
     )
 
     class Meta:
         model = Member
-        exclude = ["is_active", "date_joined"]
+        exclude = ["date_joined"]
 
-    def validate(self, data):
-        data["address"] = _validate_empty(
-            data=data.get("address"), field="address", ignore_empty=True
-        )
-        data["occupation"] = _validate_empty(
-            data=data.get("occupation"), field="occupation", ignore_empty=True
-        )
-        data["nok_name"] = _validate_name(
-            name=data.get("nok_name"), field="nok_name", ignore_empty=True
-        )
-        data["nok_email"] = _validate_email(
-            email=data.get("nok_email"), field="nok_email", ignore_empty=True
-        )
-        data["nok_phone"] = _validate_phone(
-            phone=data.get("nok_phone"), field="nok_phone", ignore_empty=True
-        )
-        data["nok_address"] = _validate_empty(
-            data=data.get("nok_address"), field="nok_address", ignore_empty=True
-        )
-        data["nok_relationship"] = _validate_empty(
-            data=data.get("nok_relationship"), field="nok_relationship"
-        )
+    def __init__(self, *args, **kwargs):
+        super(MemberForm, self).__init__(*args, **kwargs)
+        self.fields["account_type"].choices = [
+            (None, "Choose one"),
+            *list(self.fields["account_type"].choices)[1:],
+        ]
+
+    def clean(self):
+        data = super(MemberForm, self).clean()
+        if nok_name := data.get("nok_name"):
+            data["nok_name"] = _validate_name(
+                form=self, name=nok_name, field="nok_name"
+            )
+        if nok_email := data.get("nok_email"):
+            data["nok_email"] = _validate_email(
+                form=self, email=nok_email, field="nok_email"
+            )
+        if nok_phone := data.get("nok_phone"):
+            data["nok_phone"] = _validate_phone(
+                form=self, phone=nok_phone, field="nok_phone"
+            )
         return data
 
 
 class RegistrationForm(MemberForm):
     def __init__(self, *args, **kwargs):
-        super(MemberForm, self).__init__(*args, **kwargs)
-        self.fields["account_type"].widget = forms.RadioSelect()
-        self.fields["account_type"].choices = get_account_choices(form=False)
+        super(RegistrationForm, self).__init__(*args, **kwargs)
+        del self.fields["is_active"]
+
+    def is_valid(self) -> bool:
+        result = super().is_valid()
+        for field in self.errors:
+            attrs = self.fields[field].widget.attrs
+            attrs.update({"class": attrs.get("class", "") + " is-invalid"})
+        return result
 
     def clean(self):
-        data = self.cleaned_data
-        name = data["name"] = _validate_name(name=data.get("name"), field="name")
-        phone = data["phone"] = _validate_phone(
-            phone=data.get("phone"), field="phone", check_exist=True, ignore_empty=True
-        )
-        email = data["email"] = _validate_email(
-            email=data.get("email"), field="email", check_exist=True, ignore_empty=True
-        )
+        data = super(RegistrationForm, self).clean()
 
-        data = self.validate(data)
+        name = data["name"] = _validate_name(
+            form=self, name=data.get("name"), field="name"
+        )
+        if phone := str(data.get("phone")):
+            data["phone"] = _validate_phone(
+                form=self, phone=phone, field="phone", check_exist=True
+            )
+        if email := data.get("email"):
+            data["email"] = _validate_email(
+                form=self, email=email, field="email", check_exist=True
+            )
 
-        if name != "" and data["nok_name"] != "" and name == data["nok_name"]:
-            raise forms.ValidationError(
-                {"nok_name": "Identical name used for registration"}
+        if name and data.get("nok_name") and name == data["nok_name"]:
+            self.add_error("nok_name", "Member cannot have same name with Kin")
+        if email and data.get("nok_email") and email == data["nok_email"]:
+            self.add_error(
+                "nok_email", "Member cannot have same email address with Kin"
             )
-        if email != "" and data["nok_email"] != "" and email == data["nok_email"]:
-            raise forms.ValidationError(
-                {"nok_email": "Identical email used for registration"}
-            )
-        if phone != "" and data["nok_phone"] != "" and phone == data["nok_phone"]:
-            raise forms.ValidationError(
-                {"nok_phone": "Identical phone number used for registration"}
-            )
+        if phone and data.get("nok_phone") and phone == data["nok_phone"]:
+            self.add_error("nok_phone", "Member cannot have same phone number with Kin")
         return data
 
     def save(self):
@@ -171,46 +189,40 @@ class EditMemberForm(MemberForm):
         updated_initial["nok_phone"] = self.member.nextofkin.get_phone
         updated_initial["nok_address"] = self.member.nextofkin.address
         updated_initial["nok_relationship"] = self.member.nextofkin.relationship
-
         # Finally update the kwargs initial reference
         kwargs.update(initial=updated_initial)
         super(EditMemberForm, self).__init__(*args, **kwargs)
-        del self.fields["account_type"]
 
     def clean(self):
-        data = self.cleaned_data
-        name = data["name"] = _validate_name(name=data.get("name"), field="name")
-        phone = data["phone"] = _validate_phone(
-            phone=data.get("phone"), field="phone", ignore_empty=True
-        )
-        email = data["email"] = _validate_email(
-            email=data.get("email"), field="email", ignore_empty=True
-        )
+        member = self.instance
+        data = super(EditMemberForm, self).clean()
+        excluded_member = Member.objects.exclude(id=member.id)
 
-        excluded_member = Member.objects.exclude(id=self.member.id)
-        if email != "":
-            email_exists = excluded_member.filter(phone=phone).exists()
-            if email_exists:
-                raise forms.ValidationError(
-                    {"email": "Email address used by another member"}
-                )
-
-        if phone != "":
+        name = data["name"] = _validate_name(
+            form=self, name=data.get("name"), field="name"
+        )
+        if phone := str(data.get("phone")):
+            data["phone"] = _validate_phone(form=self, phone=phone, field="phone")
             phone_exists = excluded_member.filter(phone=phone).exists()
             if phone_exists:
-                raise forms.ValidationError(
-                    {"phone": "Phone number used by another member"}
-                )
+                self.add_error("phone", "Phone number linked to another member.")
 
-        data = self.validate(data)
-        if "" not in (name, data["nok_name"]) and name == data["nok_name"]:
-            raise forms.ValidationError({"nok_name": "Identical name with member"})
-        if "" not in (email, data["nok_email"]) and email == data["nok_email"]:
-            raise forms.ValidationError({"nok_email": "Identical email with member"})
-        if "" not in (phone, data["nok_phone"]) and phone == data["nok_phone"]:
-            raise forms.ValidationError(
-                {"nok_phone": "Identical phone number with member"}
+        if email := data.get("email"):
+            data["email"] = _validate_email(form=self, email=email, field="email")
+            email_exists = excluded_member.filter(email=email).exists()
+            if email_exists:
+                self.add_error("email", "Email address linked to another member.")
+
+        if name and data.get("nok_name") and name == data["nok_name"]:
+            self.add_error("nok_name", "Member cannot have same name with Kin")
+
+        if email and data.get("nok_email") and email == data["nok_email"]:
+            self.add_error(
+                "nok_email", "Member cannot have same email address with Kin"
             )
+        if phone and data.get("nok_phone") and phone == data["nok_phone"]:
+            self.add_error("nok_phone", "Member cannot have same phone number with Kin")
+
         return data
 
     def save(self):
@@ -219,7 +231,9 @@ class EditMemberForm(MemberForm):
         instance.name = data.get("name", instance.name)
         instance.email = data.get("email", instance.email)
         instance.phone = data.get("phone", instance.phone)
+        instance.avatar = data.get("avatar", instance.avatar)
         instance.address = data.get("address", instance.address)
+        instance.is_active = data.get("is_active", instance.is_active)
         instance.occupation = data.get("occupation", instance.occupation)
         instance.nextofkin.name = data.get("nok_name", instance.nextofkin.name)
         instance.nextofkin.email = data.get("nok_email", instance.nextofkin.email)

@@ -3,56 +3,82 @@
 
 
 <!-- Sidebar -->
-<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-  <div class="position-sticky pt-3 sidebar-sticky">
-    <ul class="nav flex-column h-100">
-      <li class="nav-item" data-context="home">
-        <a class="nav-link" href="/">
-          Dashboard
-        </a>
-      </li>
-      <li class="nav-item" data-context="members">
-        <a class="nav-link" href="{% url 'dashboard:members' %}">
-          Members
-        </a>
-      </li>
-      <li class="nav-item" data-context="savings">
-        <a class="nav-link" href="{% url 'dashboard:savings' %}">
-          Savings
-        </a>
-      </li>
-      <li class="nav-item" data-context="savings.interest">
-        <a class="nav-link" href="{% url 'dashboard:savings.interest' %}">
-          Savings Interests
-        </a>
-      </li>
-      <li class="nav-item" data-context="loans">
-        <a class="nav-link" href="{% url 'dashboard:loans' %}">
-          Loans
-        </a>
-      </li>
-      <li class="nav-item" data-context="shares">
-        <a class="nav-link" href="{% url 'dashboard:shares' %}">
-          Shares
-        </a>
-      </li>
-      <li class="nav-item" data-context="eoy">
-        <a class="nav-link" href="{% url 'dashboard:eoy' %}">
-          Year End Balance
-        </a>
-      </li>
+<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-white sidebar collapse overflow-auto">
+  <div class="position-sticky sidebar-sticky h-100">
 
-      <li class="nav-item mt-0 mt-md-auto" data-context="settings">
-        <a class="nav-link" href="{% url 'dashboard:settings' %}">
-          Settings
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="{% url 'sign_out' %}">
-          Logout
-        </a>
-      </li>
-    </ul>
+    <div style="height: 4rem" class="navbar-brand text-bg-dark d-flex align-items-center p-3 ">
+      <h4 class="fw-bold mb-0">Marafa Cedar</h4>
+    </div>
+
+    <div style="height:calc(100vh - 4.5rem)" class="px-4 py-3 py-md-4 d-flex flex-column">
+      <h6 class="sidebar-heading fw-bold d-flex justify-content-between align-items-center mb-1">
+        <span>Home</span>
+      </h6>
+
+      <ul class="nav flex-column gap-1">
+        <li class="nav-item" data-context="home">
+          <a class="nav-link rounded-2" href="/">
+            Overview
+          </a>
+        </li>
+        <li class="nav-item" data-context="members">
+          <a class="nav-link rounded-2" href="{% url 'dashboard:members' %}">
+            Members
+          </a>
+        </li>
+        <li class="nav-item" data-context="shares">
+          <a class="nav-link rounded-2" href="{% url 'dashboard:shares' %}">
+            Shares
+          </a>
+        </li>
+        <li class="nav-item" data-context="settings">
+          <a class="nav-link rounded-2" href="{% url 'dashboard:settings' %}">
+            Settings
+          </a>
+        </li>
+
+      </ul>
+
+      <h6 class="sidebar-heading fw-bold d-flex justify-content-between align-items-center mb-1 mt-4">
+        <span>Savings</span>
+      </h6>
+      <ul class="nav flex-column gap-1">
+        <li class="nav-item" data-context="savings">
+          <a class="nav-link rounded-2" href="{% url 'dashboard:savings' %}">
+            Savings
+          </a>
+        </li>
+        <li class="nav-item" data-context="savings_interest">
+          <a class="nav-link rounded-2" href="{% url 'dashboard:savings_interest' %}">
+            Savings Interests
+          </a>
+        </li>
+        <li class="nav-item" data-context="eoy">
+          <a class="nav-link rounded-2" href="{% url 'dashboard:eoy' %}">
+            Year End Balance
+          </a>
+        </li>
+      </ul>
+
+      <h6 class="sidebar-heading fw-bold d-flex justify-content-between align-items-center mb-1 mt-4">
+        <span>Loan</span>
+      </h6>
+      <ul class="nav flex-column">
+        <li class="nav-item" data-context="loans">
+          <a class="nav-link rounded-2" href="{% url 'dashboard:loans' %}">
+            Loans
+          </a>
+        </li>
+      </ul>
+
+      <ul class="nav flex-column mt-auto ps-0">
+        <li class="nav-item">
+          <a class="nav-link rounded-2" href="{% url 'sign_out' %}">
+            Sign out
+          </a>
+        </li>
+      </ul>
+    </div>
   </div>
 </nav>
 <!-- /#sidebar-wrapper -->

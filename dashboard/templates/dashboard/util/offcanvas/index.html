@@ -1,0 +1,213 @@
+{% load static %}
+{% load widget_tweaks %}
+
+{% comment %} SAVINGS DEPOSIT FORM {% endcomment %}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="sdc" aria-labelledby="sdcl">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title fw-bold" id="sdcl">Deposit to Savings</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form data-name="sdc">
+            {% csrf_token %}
+            <div class="mb-2">
+                <label for="{{sdf.member.id_for_label}}" class="col-form-label p-0">{{sdf.member.label}}</label>
+                {{sdf.member|add_class:"search-select"|attr:"aria-label:Select Member"}}
+                <div class="invalid-feedback"></div>
+            </div>
+            <div class="mb-2">
+                <label for="{{sdf.amount.id_for_label}}" class="col-form-label p-0">{{sdf.amount.label}}</label>
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="Naira">&#8358;</span>
+                    {{sdf.amount|add_class:"form-control"|attr:"aria-label:Amount"|attr:"placeholder:10000"}}
+                </div>
+            </div>
+            <div>
+                <label for="{{sdf.created_at.id_for_label}}"
+                    class="col-form-label p-0 fw-bold">{{sdf.created_at.label}}</label>
+                {{sdf.created_at|add_class:"form-control datetime"|attr:"aria-label:Timestamp"|attr:"placeholder:Timestamp"}}
+                <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="hstack gap-2 mt-4">
+                <button type="submit" class="btn btn-primary rounded-2">Deposit</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="offcanvas">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% comment %} SAVINGS WITHDRAWAL FORM {% endcomment %}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="swc" aria-labelledby="swcl">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title fw-bold" id="swcl">Withdraw from Savings</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form data-name="swc">
+            {% csrf_token %}
+            <div class="mb-2">
+                <label for="{{swf.member.id_for_label}}" class="col-form-label p-0 fw-bold">{{swf.member.label}}</label>
+                {{swf.member|add_class:"search-select"|attr:"aria-label:Select Member"}}
+                <div class="invalid-feedback"></div>
+            </div>
+            <div class="mb-2">
+                <label for="{{swf.amount.id_for_label}}" class="col-form-label p-0 fw-bold">{{swf.amount.label}}</label>
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="Naira">&#8358;</span>
+                    {{swf.amount|add_class:"form-control"|attr:"aria-label:Amount"|attr:"placeholder:10000"}}
+                </div>
+            </div>
+            <div>
+                <label for="{{swf.created_at.id_for_label}}"
+                    class="col-form-label p-0 fw-bold">{{swf.created_at.label}}</label>
+                {{swf.created_at|add_class:"form-control datetime"|attr:"aria-label:Timestamp"|attr:"placeholder:Timestamp"}}
+                <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="hstack gap-2 mt-4">
+                <button type="submit" class="btn btn-primary rounded-2">Withdraw</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="offcanvas">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% comment %} SHARES FORM {% endcomment %}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="sc" aria-labelledby="scl">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title fw-bold" id="scl">Add Share</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form data-name="sc">
+            {% csrf_token %}
+            <div class="mb-2">
+                <label for="{{asf.member.id_for_label}}" class="col-form-label p-0 fw-bold">{{asf.member.label}}</label>
+                {{asf.member|add_class:"search-select"|attr:"aria-label:Select Member"}}
+                <div class="invalid-feedback"></div>
+            </div>
+            <div class="mb-2">
+                <label for="{{asf.amount.id_for_label}}" class="col-form-label p-0 fw-bold">{{asf.amount.label}}</label>
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="Naira">&#8358;</span>
+                    {{asf.amount|add_class:"form-control"|attr:"aria-label:Amount"|attr:"placeholder:10000"}}
+                    <div class="invalid-feedback"></div>
+
+                </div>
+            </div>
+            <div>
+                <label for="{{asf.created_at.id_for_label}}"
+                    class="col-form-label p-0 fw-bold">{{asf.created_at.label}}</label>
+                {{asf.created_at|add_class:"form-control datetime"|attr:"aria-label:Timestamp"|attr:"placeholder:Timestamp"}}
+                <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="hstack gap-2 mt-4">
+                <button type="submit" class="btn btn-primary rounded-2">Add</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="offcanvas">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% comment %} LOAN FORM {% endcomment %}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="lc" aria-labelledby="lcl">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title fw-bold" id="lcl">Request Loan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form data-name="lc">
+            {% csrf_token %}
+            <div class="mb-2">
+                <label for="{{lf.member.id_for_label}}" class="col-form-label p-0 fw-bold">{{lf.member.label}}</label>
+                {{lf.member|add_class:"search-select"|attr:"aria-label:Select Member"}}
+                <div class="invalid-feedback"></div>
+            </div>
+            <div class="mb-2">
+                <label for="{{lf.amount.id_for_label}}" class="col-form-label p-0 fw-bold">{{lf.amount.label}}</label>
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="Naira">&#8358;</span>
+                    {{lf.amount|add_class:"form-control"|attr:"aria-label:Amount"|attr:"placeholder:10000"}}
+                </div>
+            </div>
+            <div class="mb-2">
+                <div class="form-floating">
+                    {{lf.guarantors|add_class:"search-select search-select-large"|attr:"aria-label:Select Guarantors"}}
+                    <label for="{{lf.guarantors.id_for_label}}" class="fw-bold"
+                        style="opacity: 0.65; transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem)">
+                        {{lf.guarantors.label}}
+                    </label>
+                </div>
+                <div class="invalid-feedback"></div>
+            </div>
+            <div>
+                <label for="{{lf.created_at.id_for_label}}"
+                    class="col-form-label p-0 fw-bold">{{lf.created_at.label}}</label>
+                {{lf.created_at|add_class:"form-control datetime"|attr:"aria-label:Timestamp"|attr:"placeholder:Timestamp"}}
+                <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="hstack gap-2 mt-4">
+                <button type="submit" class="btn btn-primary rounded-2">Request</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="offcanvas">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% comment %} LOAN REPAYMENT FORM {% endcomment %}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="lrc" aria-labelledby="lrcl">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title fw-bold" id="lrcl">Repay Loan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form data-name="lrc">
+            {% csrf_token %}
+            <div class="mb-2">
+                <label for="{{lrf.member.id_for_label}}" class="col-form-label p-0 fw-bold">{{lrf.member.label}}</label>
+                {{lrf.member|add_class:"search-select"|attr:"aria-label:Select Member"}}
+                <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="form-floating mb-2">
+                <input type="text" class="form-control" aria-label="Loan" name="loan" data-id id="id_loan" value="-"
+                    readonly>
+                <label for="id_loan">Loan</label>
+            </div>
+
+            <div class="card mb-2 text-bg-primary">
+                <div class="card-body d-flex justify-content-between p-2">
+                    <span class="fw-bold">Current Outstanding:</span>
+                    <span class="fw-bold" id="outAmt" data-value>-</span>
+                </div>
+            </div>
+
+
+            <div class="mb-2">
+                <label for="{{lrf.amount.id_for_label}}" class="col-form-label p-0 fw-bold">{{lrf.amount.label}}</label>
+                {{lrf.amount|add_class:"form-control"|attr:"aria-label:Amount"}}
+                <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="mb-2">
+                <label for="outAmt2" class="col-form-label p-0 fw-bold">Outstanding after payment</label>
+                <input type="text" class="form-control" data-name="out_amt" id="outAmt2" value="-" readonly>
+            </div>
+
+            <div>
+                <label for="{{lrf.created_at.id_for_label}}"
+                    class="col-form-label p-0 fw-bold">{{lrf.created_at.label}}</label>
+                {{lrf.created_at|add_class:"form-control datetime"|attr:"aria-label:Timestamp"|attr:"placeholder:Timestamp"}}
+                <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="hstack gap-2 mt-4">
+                <button type="submit" class="btn btn-primary rounded-2">Add</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="offcanvas">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>

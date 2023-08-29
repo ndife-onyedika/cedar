@@ -2,66 +2,42 @@
 {% load static %}
 
 {% block mini-dash_content %}
-<div class="row h-100 ms-0 w-100">
-  <div class="col-lg-8 col-12 p-0 mt-0">
-    <nav class="navbar navbar-expand-lg bg-white position-sticky" style="top:4rem;z-index:2">
-      <div class="container-fluid py-1 py-md-2 px-2 px-md-3">
-        <span class="navbar-brand mb-0 h1 fw-bold">Dashboard</span>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#mm">Add Member</button>
-      </div>
-    </nav>
+<div class="ms-0 w-100 main-content">
+  <div class="px-md-5 px-2 col-12 mt-0">
+    <div class="px-md-3">
 
-    <div class="px-2 px-md-3 my-3 d-block d-lg-none">
-      {% include "dashboard/pages/widget/savings.html" %}
-    </div>
-
-    <div class="services px-2 px-md-3 mt-0 mt-md-3 mb-3">
-      {% for card in dashboard.cards %}
-      <div class="card shadow-sm border-0">
-        <div class="card-body h-100">
-          <span style="width:3rem;height:3rem"
-            class="me-auto mb-3 d-flex align-items-center justify-content-center badge rounded-circle bg-primary bg-opacity-10 text-primary">
-            <svg style="width:2rem;height:2rem;fill:currentColor;">
-              <use xlink:href="{% static 'svg/sprite.svg' %}#icon-{{card.icon}}"></use>
-            </svg>
-          </span>
-          <h6 class="card-subtitle text-muted">{{card.title}}</h6>
-          <h5 class="card-title fw-bold">{{card.detail}}</h5>
+      <div class="my-3 d-block">
+        <div class="card">
+          {% include "dashboard/pages/views/widget/savings.html" %}
         </div>
       </div>
-      {% endfor %}
-    </div>
 
-    <div class="px-2 px-md-3 mb-3">
-      <div class="card shadow border-0">
+      <div class="services services-sub mt-0 mt-md-3 mb-3">
+        {% for card in dashboard.cards %}
+        <div class="card">
+          <div class="card-body h-100">
+            <span style="width:2.5rem;height:2.5rem"
+              class="me-auto mb-3 d-flex align-items-center justify-content-center border rounded-3">
+              <svg style="width:1.3rem;height:1.3rem;fill:currentColor;">
+                <use xlink:href="{% static 'svg/sprite.svg' %}#icon-{{card.icon}}"></use>
+              </svg>
+            </span>
+            <p class="card-subtitle text-muted">{{card.title}}</p>
+            <p style="font-size:large" class="card-title fw-bold mb-0 lh-1">{{card.detail}}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="card">
         <div class="card-body h-auto">
           <canvas id="chart" class="w-100"></canvas>
         </div>
       </div>
-    </div>
 
-    <div class="d-block d-lg-none">
-      <div class="px-2 px-md-3 my-3">
-        {% include "dashboard/pages/widget/savings-txn.html" %}
+      <div class="mt-0 mt-md-3">
+        {% include "dashboard/pages/views/widget/savings-txn.html" %}
       </div>
-
-      <div class="px-2 px-md-3 my-3">
-        {% include "dashboard/pages/widget/card.html" %}
-      </div>
-    </div>
-  </div>
-
-  <div class="col-4 bg-white p-0 mt-0 d-none d-lg-block">
-    <div class="px-2 px-md-3 my-3">
-      {% include "dashboard/pages/widget/savings.html" %}
-    </div>
-
-    <div class="px-2 px-md-3 my-3">
-      {% include "dashboard/pages/widget/savings-txn.html" %}
-    </div>
-
-    <div class="px-2 px-md-3 my-3">
-      {% include "dashboard/pages/widget/card.html" %}
     </div>
   </div>
 </div>

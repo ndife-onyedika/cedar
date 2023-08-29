@@ -1,0 +1,124 @@
+{% extends 'dashboard/pages/base_layout.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block service_block %}
+<div class="p-3 p-md-5 pb-3 pb-md-5">
+    <div class="card">
+        <div class="card-body">
+            <form method="post" class="d-flex flex-column gap-3" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="profile-image mx-auto ms-md-0">
+                    <img src="{% static 'img/avatar/default_avatar.png' %}" alt="Avatar" />
+
+                    <label for="{{form.avatar.id_for_label}}">
+                        <svg style="width:1.2rem;height:1.2rem">
+                            <use xlink:href="{% static 'svg/sprite.svg' %}#icon-camera-bold"></use>
+                        </svg>
+                        {{.avatar}}
+                        <input type="file" name="avatar" id="pro-edit-btn" accept="image/*" />
+                    </label>
+                </div>
+
+                <div class="row g-2">
+                    <span class="profile-span">Account Info</span>
+                    <div class="col-md-6">
+                        <div>
+                            <label for="{{form.account_type.id_for_label}}">{{form.account_type.label}}</label>
+                            {{form.account_type|add_class:"search-select"|attr:"placeholder:Account Type"}}
+                            {{form.account_type.errors}}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div>
+                            <label for="{{form.account_number.id_for_label}}">{{form.account_number.label}}</label>
+                            {{form.account_number|add_class:"form-control"|attr:"placeholder:Account number"}}
+                            {{form.account_number.errors}}
+                        </div>
+                    </div>
+                    <span class="profile-span">Personal Information</span>
+                    <div class="col-md-6">
+                        <div>
+                            <label for="{{form.name.id_for_label}}">{{form.name.label}}</label>
+                            {{form.name|add_class:"form-control"|attr:"placeholder:Name"}}
+                            {{form.name.errors}}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div>
+                            <label for="{{form.email.id_for_label}}">{{form.email.label}}</label>
+                            {{form.email|add_class:"form-control"|attr:"placeholder:name@example.com"}}
+                            {{form.email.errors}}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div>
+                            <label for="{{form.phone.id_for_label}}">{{form.phone.label}}</label>
+                            {{form.phone|add_class:"form-control"|attr:"placeholder:Phonenumber"}}
+                            {{form.phone.errors}}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div>
+                            <label for="{{form.occupation.id_for_label}}">{{form.occupation.label}}</label>
+                            {{form.occupation|add_class:"form-control"|attr:"placeholder:Occupation"}}
+                            {{form.occupation.errors}}
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div>
+                            <label for="{{form.address.id_for_label}}">{{form.address.label}}</label>
+                            {{form.address|add_class:"form-control"|attr:"rows:2"|attr:"placeholder:Address"}}
+                            {{form.address.errors}}
+                        </div>
+                    </div>
+
+
+                    <span class="profile-span mt-3">Next of Kin Information</span>
+                    <div class="col-md-6">
+                        <div>
+                            <label for="{{form.nok_name.id_for_label}}">{{form.nok_name.label}}</label>
+                            {{form.nok_name|add_class:"form-control"|attr:"placeholder:Next of Kin Name"}}
+                            {{form.nok_name.errors}}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div>
+                            <label for="{{form.nok_email.id_for_label}}">{{form.nok_email.label}}</label>
+                            {{form.nok_email|add_class:"form-control"|attr:"placeholder:Next of Kin Email address"}}
+                            {{form.nok_email.errors}}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div>
+                            <label for="{{form.nok_phone.id_for_label}}">{{form.nok_phone.label}}</label>
+                            {{form.nok_phone|add_class:"form-control"|attr:"placeholder:Next of Kin Phone number"}}
+                            {{form.nok_phone.errors}}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div>
+                            <label for="{{form.nok_relationship.id_for_label}}">{{form.nok_relationship.label}}</label>
+                            {{form.nok_relationship|add_class:"search-select"}}
+                            {{form.nok_relationship.errors}}
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div>
+                            <label for="{{form.nok_address.id_for_label}}">{{form.nok_address.label}}</label>
+                            {{form.nok_address|add_class:"form-control"|attr:"rows:2"|attr:"placeholder:Address"}}
+                            {{form.nok_address.errors}}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-center">
+                    <button type="submit" id="saveBtn"
+                        class="btn btn-primary btn-lg mx-auto px-5 py-2 fs-5">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% load static %}
+<div class="card-body h-100 d-flex align-items-end justify-content-between flex-wrap gap-3">
+    <div class="vstack gap-1">
+        <p class="card-subtitle mb-0 text-muted d-flex align-items-center justify-content-between w-100">
+            Savings Balance
+        </p>
+        <h3 data-context="savings" class="card-title fw-bold mb-0 total">{{savings.balance}}</h3>
+        <p class="hstack gap-1 text-muted align-items-end mb-0 lh-1">
+            <span>Total Interest:</span>
+            <span class="fw-bold fs-6 total">{{savings.interest}}</span>
+        </p>
+    </div>
+    <div class="hstack gap-1 align-self-auto ms-auto">
+        <button type="button" data-bs-toggle="offcanvas" data-bs-target="#sdc" class="btn btn-dark">
+            <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-4.5 -4.5 24 24" width="32" fill="currentColor">
+                <path d="M8.9 6.9v-5a1 1 0 1 0-2 0v5h-5a1 1 0 1 0 0 2h5v5a1 1 0 1 0 2 0v-5h5a1 1 0 1 0 0-2h-5z">
+                </path>
+            </svg>
+            Deposit</button>
+        <button type="button" data-bs-toggle="offcanvas" data-bs-target="#swc" class="btn btn-light">
+            <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-5 -11 24 24" width="32" fill="currentColor">
+                <path d="M1 0h12a1 1 0 0 1 0 2H1a1 1 0 1 1 0-2z"></path>
+            </svg>
+            Withdraw
+        </button>
+    </div>
+</div>

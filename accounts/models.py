@@ -56,8 +56,11 @@ class Member(models.Model):
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
 
+    class Meta:
+        ordering = ["name"]
+
     def __str__(self):
-        return self.name
+        return "{} ({})".format(self.name, "Active" if self.is_active else "Inactive")
 
     @property
     def get_phone(self) -> str:

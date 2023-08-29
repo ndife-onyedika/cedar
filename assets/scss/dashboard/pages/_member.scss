@@ -1,0 +1,13 @@
+.member {
+    > div {
+        &:first-child {
+            flex-basis: 20%;
+            @media (max-width: $bp-md) {
+                flex-basis: 100%;
+            }
+        }
+        &:last-child {
+            flex: 1;
+        }
+    }
+}

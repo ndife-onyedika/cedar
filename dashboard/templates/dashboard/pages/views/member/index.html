@@ -1,0 +1,202 @@
+{% extends 'dashboard/pages/base_layout.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block service_block %}
+<div class="p-3 p-md-5 pb-3 pb-md-5">
+    <div class="card row flex-row">
+        <div class="col-lg-3 p-0">
+            <div class="d-flex flex-column-reverse flex-lg-column flex-wrap-reverse">
+                <div class="card-header border-bottom-0 bg-light d-flex py-0 pb-3 py-md-3 px-3">
+                    <p id="member_name" class="fw-semibold fs-5 mb-0">{{member.name}}</p>
+                </div>
+                <ul id="tabs" class="nav nav-pills p-3 p-lg-0 flex-row flex-lg-column " role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button role="tab" type="button" aria-selected="true" data-bs-toggle="pill"
+                            id="pills-profile-tab" aria-controls="pills-profile" data-bs-target="#pills-profile"
+                            class="nav-link custom-btn w-100 text-dark text-start rounded-0 py-md-3 active ">
+                            Profile
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button role="tab" type="button" aria-selected="true" data-bs-toggle="pill"
+                            id="pills-shares-tab" aria-controls="pills-shares" data-bs-target="#pills-shares"
+                            class="nav-link custom-btn w-100 text-dark text-start rounded-0 py-md-3 ">
+                            Shares
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button role="tab" type="button" aria-selected="true" data-bs-toggle="pill"
+                            id="pills-savings-tab" aria-controls="pills-savings" data-bs-target="#pills-savings"
+                            class="nav-link custom-btn w-100 text-dark text-start rounded-0 py-md-3 ">
+                            Savings
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button role="tab" type="button" aria-selected="true" data-bs-toggle="pill" id="pills-loans-tab"
+                            aria-controls="pills-loans" data-bs-target="#pills-loans"
+                            class="nav-link custom-btn w-100 text-dark text-start rounded-0 py-md-3 ">
+                            Loans
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button role="tab" type="button" aria-selected="true" data-bs-toggle="pill"
+                            id="pills-savings_interest-tab" aria-controls="pills-savings_interest"
+                            data-bs-target="#pills-savings_interest"
+                            class="nav-link custom-btn w-100 text-dark text-start rounded-0 py-md-3 ">
+                            Savings Interest
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button role="tab" type="button" aria-selected="true" data-bs-toggle="pill" id="pills-eoy-tab"
+                            aria-controls="pills-eoy" data-bs-target="#pills-eoy"
+                            class="nav-link custom-btn w-100 text-dark text-start rounded-0 py-md-3 ">
+                            End of Year Balances
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-lg-9 p-0">
+            <div class="card-body">
+                <div class="tab-content">
+                    {% include "dashboard/pages/views/member/profile.html" %}
+                    {% include "dashboard/pages/views/member/shares.html" %}
+                    {% include "dashboard/pages/views/member/savings.html" %}
+                    {% include "dashboard/pages/views/member/loans.html" %}
+                    {% include "dashboard/pages/views/member/savings_interest.html" %}
+                    {% include "dashboard/pages/views/member/eoy.html" %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block dashboard_script %}
+<script>
+    $(document).ready(function () {
+        let hasQueryParam = window.location.search !== "";
+        if (hasQueryParam) {
+            let query = window.location.search.slice(1)
+            let query1 = query.split("&");
+            let query2 = query1.map(item => item.split("="));
+            query2 = Object.fromEntries(query2)
+            $(`[data-bs-toggle='pill']`).each(function () {
+                $(this).removeClass("active");
+                if ($(this).attr("id") == `pills-${query2.tab}-tab`) $(this).addClass("active")
+            })
+            $(`[role='tabpanel']`).each(function () {
+                $(this).removeClass("show active");
+                if ($(this).attr("id") == `pills-${query2.tab}`) $(this).addClass("show active")
+            })
+            if (query2.sub_tab) {
+                let table = $(`[data-table-name='${query2.tab}']`);
+                let table_name = table.attr("data-table-name");
+                let table_attr = JSON.parse(table.attr("data-table-attr"));
+                table_attr = {
+                    ...table_attr,
+                    ...(["loans", "savings_interest"].includes(table_name) ? {
+                        table_context: query2.sub_tab
+                    } : {})
+                }
+                tabulate(table_name, table_attr);
+            }
+        }
+
+        $('#tabs').on("show.bs.tab", function (e) {
+            // e.target - currentTarget
+            // e.relatedTarget - prevTarget
+            window.history.pushState(null, null,
+                `${window.location.origin}${window.location.pathname}?tab=${e.target.id.split("-")[1]}`
+            )
+        })
+    })
+
+    var updateFormSubmit = {
+        ValidateSubmit: ({
+            form,
+            data,
+            btnData
+        }) => {
+            // send request to handler
+            return $.ajax({
+                data: data,
+                type: "POST",
+                cache: false,
+                contentType: false,
+                processData: false,
+                url: "/dashboard/members/{{member.id}}/",
+                success: res => { // <----- make sure you use .then
+                    form.find(".is-invalid").removeClass("is-invalid");
+                    form.find(".invalid-feedback").removeClass("d-block");
+                    form.find(".invalid-feedback").html();
+
+                    if (res.status == "success") {
+                        $("#member_name").html(data.get("name"));
+                        toast(res.status, res.message);
+                    } else {
+                        if (res.message) toast(res.status, res.message);
+                        else Object.entries(res.data).forEach(field => {
+                            let _name = field[0];
+                            let _error = field[1];
+                            let target = form.find(`#id_${_name}`);
+                            target.addClass("is-invalid");
+                            target.parent().find(".invalid-feedback").html(_error);
+                            target.parent().find(".invalid-feedback").addClass("d-block");
+                        });
+                    }
+
+                    btnData[0].html(btnData[1]);
+                    btnData[0].prop("disabled", false);
+                }
+            });
+        }
+    }
+
+    $("#pills-profile form #pro-edit-btn").on("change", function () {
+        let image = $(this);
+        if (image[0].files[0]) image.parent().prev().attr("src", URL.createObjectURL(image[0].files[0]))
+    });
+
+    $("#pills-profile form").submit(function (e) {
+        e.preventDefault();
+        let form = this;
+        let self = $(this);
+        let formData = new FormData();
+        let btn = self.find("button[type='submit']");
+        self.find(
+            `select,
+            textarea,
+            input:not([name='csrfmiddlewaretoken'])
+            `
+        ).each(function () {
+            formData.append($(this).attr("name"), $(this).val())
+        });
+
+        formData.append('csrfmiddlewaretoken', self.find("input[name='csrfmiddlewaretoken']").val());
+
+        let check_box = self.find("input[type='checkbox']");
+        if (check_box.length) check_box.each(function () {
+            formData.append($(this).attr("name"), $(this).is(":checked"))
+        })
+
+        let image = self.find("input[type='file']");
+        if (image.length) formData.append(image.attr("name"), image[0].files[0]);
+
+        let old_html = btn.html();
+        btn.prop("disabled", true);
+        btn.html(`
+            <span class="spinner-border spinner-border-sm spinner-border-slim" role="status" aria-hidden="true"></span>
+            Saving...
+        `);
+
+        return updateFormSubmit.ValidateSubmit({
+            form: self,
+            data: formData,
+            btnData: [btn, old_html],
+        });
+    });
+</script>
+{% endblock  %}

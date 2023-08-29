@@ -23,6 +23,7 @@ class Savings(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ["-created_at"]
 
 
 class SavingsCredit(Savings):
@@ -89,6 +90,7 @@ class YearEndBalance(CustomAbstractTable):
     class Meta:
         verbose_name = "Year End Balance"
         verbose_name_plural = "Year End Balances"
+        ordering = ["-created_at", "member__name"]
 
     def __str__(self):
         return "YEB({}, {}, {})".format(
@@ -105,6 +107,7 @@ class SavingsInterest(Savings):
 
     class Meta:
         verbose_name_plural = "Savings Interests"
+        ordering = ["-created_at", "member__name", "-total_interest"]
 
     def __str__(self):
         return "SI({}, {}, {}, {}, {}, {})".format(
@@ -126,6 +129,7 @@ class SavingsInterestTotal(Savings):
     updated_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
+        ordering = ["member__name", "-created_at"]
         verbose_name_plural = "Savings Interests Total"
 
     def __str__(self):

@@ -3,8 +3,8 @@ from django import forms
 from email_validator import EmailNotValidError, validate_email
 from phonenumbers.phonenumberutil import NumberParseException
 
-from accounts.models import Member
-from cedar.mixins import get_member_choices
+from accounts.models import Member, User
+from django.utils.timezone import now
 
 
 class ServiceForm(forms.ModelForm):
@@ -13,93 +13,92 @@ class ServiceForm(forms.ModelForm):
     )
 
     def __init__(self, *args, **kwargs):
+        member = kwargs.get("initial", {}).get("member")
         super(ServiceForm, self).__init__(*args, **kwargs)
-        self.fields["member"].widget = forms.Select()
-        self.fields["member"].choices = get_member_choices()
+        self.fields["member"].choices = [
+            (None, "Choose one"),
+            *list(self.fields["member"].choices)[1:],
+        ]
+        if member:
+            self.fields["member"].disabled = True
+            self.fields["member"].initial = member
+            self.fields["member"].widget.attrs = {"readonly": True}
+
+        if self.fields.get("created_at"):
+            self.fields["created_at"].label = "Timestamp"
 
     def clean(self):
-        data = self.cleaned_data
-        data["amount"] = _validate_amount(amount=data.get("amount"))
+        data = super(ServiceForm, self).clean()
+        data["amount"] = _validate_amount(
+            form=self, field="amount", amount=data.get("amount")
+        )
+        if (created_at := data.get("created_at")) and created_at.date() == now().date():
+            data["created_at"] = now()
         return data
 
 
-def _validate_email(email: str, ignore_empty=False, **kwargs):
-    email = _validate_empty(data=email, kwargs=kwargs)
-    if email != "":
-        try:
-            is_valid = validate_email(email=email)
-        except EmailNotValidError:
-            raise forms.ValidationError(
-                "Invalid" if not "field" in kwargs else {kwargs["field"]: "Invalid"}
+def _validate_email(form, field: str, email: str, check_exist=False):
+    email = _validate_empty(form, field, email)
+    try:
+        is_valid = validate_email(email=email)
+    except EmailNotValidError:
+        form.add_error(field, "Invalid email address")
+    else:
+        email = is_valid.ascii_email
+        if check_exist:
+            is_exist = User.objects.filter(email=email).exists()
+            if is_exist:
+                form.add_error(field, "Email address already used")
+    return email.lower()
+
+
+def _validate_phone(form, field: str, phone: str, check_exist=False):
+    phone = _validate_empty(form, field, phone)
+    add_error = lambda message: form.add_error(field, message)
+
+    try:
+        number = phonenumbers.parse(phone, "NG")
+    except NumberParseException:
+        add_error(message="Invalid phone number")
+    else:
+        is_valid = phonenumbers.is_possible_number(number)
+        if is_valid:
+            phone = phonenumbers.format_number(
+                number, phonenumbers.PhoneNumberFormat.INTERNATIONAL
             )
         else:
-            email = is_valid.ascii_email
-            if kwargs and "check_exist" in kwargs:
-                is_exist = Member.objects.filter(email=email).exists()
-                if is_exist:
-                    raise forms.ValidationError(
-                        "Already used"
-                        if not "field" in kwargs
-                        else {kwargs["field"]: "Already used"}
-                    )
-    return email
+            add_error(message="Invalid phone number")
 
+        phone = "".join(phone.replace("-", "").split())
+        if len(phone) != 14:
+            add_error(message="Invalid phone number")
 
-def _validate_phone(phone: str, ignore_empty=False, **kwargs):
-    phone = _validate_empty(data=phone, ignore_empty=ignore_empty, kwargs=kwargs)
-    raise_error = lambda message: forms.ValidationError(
-        message if not "field" in kwargs else {kwargs["field"]: message}
-    )
-    if phone != "":
-        try:
-            number = phonenumbers.parse(str(phone), "NG")
-        except NumberParseException:
-            message = "Invalid phone number"
-            raise raise_error(message=message)
-        else:
-            is_valid = phonenumbers.is_possible_number(number)
-            if is_valid:
-                phone = phonenumbers.format_number(
-                    number, phonenumbers.PhoneNumberFormat.INTERNATIONAL
-                )
-            else:
-                message = "Invalid phone number"
-                raise raise_error(message=message)
-
-            phone = "".join(phone.replace("-", "").split())
-            if kwargs and "check_exist" in kwargs:
-                is_exist = Member.objects.filter(phone=phone).exists()
-                if is_exist:
-                    message = "Already used"
-                    raise raise_error(message=message)
+        if check_exist:
+            is_exist = Member.objects.filter(phone=phone).exists()
+            if is_exist:
+                add_error(message="Phone number already used")
     return phone
 
 
-def _validate_empty(data: str, ignore_empty=False, **kwargs):
-    if ignore_empty:
-        data = data if data != "" or data is not None else ""
-    else:
-        if data == "" or data is None:
-            raise forms.ValidationError(
-                "This field is required"
-                if not "field" in kwargs
-                else {kwargs["field"]: "This field is required"}
-            )
+def _validate_empty(form, field: str, data: str):
+    if not data:
+        form.add_error(field, "This field is required")
     return data
 
 
-def _validate_name(name: str, **kwargs):
-    name = _validate_empty(data=name, kwargs=kwargs)
-    return " ".join([item.capitalize() for item in name.split()])
+def _validate_name(form, field: str, name: str):
+    name = _validate_empty(form, field, name)
+    name = name.split()
+    return " ".join([item.capitalize() for item in name])
 
 
-def _validate_amount(amount, **kwargs):
-    amount = str(amount)
-    if amount.count("e") > 0:
-        raise forms.ValidationError(
-            "Input a number"
-            if not "field" in kwargs
-            else {kwargs["field"]: "Input a number"}
-        )
-
-    return int(float(amount) * 100)
+def _validate_amount(form, field: str, amount):
+    amount = _validate_empty(form, field, amount)
+    if str(amount).count(".") > 0:
+        amount = str(amount).split(".")
+        if len(amount[1]) > 2:
+            form.add_error(field, "Check amount")
+        amount = ".".join(amount)
+    elif str(amount).count("e") > 0:
+        form.add_error(field, "Check amount")
+    return None if not amount else int(float(amount) * 100)

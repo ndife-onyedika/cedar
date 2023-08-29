@@ -72,8 +72,12 @@
 
 
         $('#backBtn').click(() => window.history.back());
-        const to_local_time = (timestamp) => timestamp ?
+        const to_local_datetime = (timestamp) => timestamp ?
             moment.utc(timestamp).local().format("MMM DD, YYYY, hh:mm a") :
+            "-";
+
+        const to_local_date = timestamp => timestamp ?
+            moment.utc(timestamp).local().format("MMM DD, YYYY") :
             "-";
 
         const relative_time = (timestamp) => timestamp ?
@@ -89,6 +93,11 @@
             }
         }
         const capitalize = str => str.replace(/(?:^|\s|["'([{])+\S/g, match => match.toUpperCase());
+        const matches_width = width => window.matchMedia(`(max-width: ${width})`).matches
+
+        $.fn.hasAttr = function (name) {
+            return this.attr(name) !== undefined && this.attr(name) !== false;
+        };
     </script>
     {% block script %}{% endblock  %}
     <script src="{% static 'js/index.js' %}"></script>

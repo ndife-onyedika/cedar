@@ -1,0 +1,20 @@
+{% load static %}
+
+<div class="card mb-md-3">
+    <div class="p-2 p-md-3">
+        <h6 class="fw-bold w-100 me-2 mb-4 hstack gap-2 flex-wrap">
+            Recent Transactions
+            <a href="{% url 'dashboard:savings' %}" class="btn btn-outline-primary px-2 py-1 lh-1 ms-auto">See more</a>
+        </h6>
+    </div>
+    <div class="card-body p-2 p-md-3">
+        <div class="txn" data-table-name="savings" data-table-attr='{"page":1, "per_page":10, "sort_by":null}'>
+            <div class="txn-body overflow-auto">
+                <table class="table mb-0 home">
+                    <thead class="table position-sticky top-0"></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -26,18 +26,7 @@ class Dashboard(LoginRequiredMixin, TemplateView):
             "mf": RegistrationForm(),
             "sdf": SavingsCreditForm(),
             "swf": SavingsDebitForm(),
-            "dashboard": {
-                "cards": [],
-                "title": "Home",
-                "context": "home",
-                "buttons": [
-                    {
-                        "title": "Add Member",
-                        "class": "btn-primary",
-                        "url": resolve_url("dashboard:members.add"),
-                    }
-                ],
-            },
+            "dashboard": {"cards": [], "title": "Home", "context": "home"},
         }
         total_savings = (
             SavingsTotal.objects.all().aggregate(Sum("amount"))["amount__sum"] or 0
@@ -81,20 +70,17 @@ class Dashboard(LoginRequiredMixin, TemplateView):
         context["dashboard"]["cards"] = [
             {
                 "icon": "user-outline",
-                "title": "Total Members Registered",
+                "title": "Members Registered",
                 "detail": Member.objects.count(),
             },
             {
-                "icon": "loan-outline",
-                "title": "Total Loan Disbursed",
-                "detail": get_amount(
-                    LoanRequest.objects.all().aggregate(Sum("amount"))["amount__sum"]
-                    or 0
-                ),
+                "icon": "gp-outline",
+                "title": "Total Shares",
+                "detail": get_amount(amount=total_shares),
             },
             {
                 "icon": "credit-outline",
-                "title": "Total Savings Deposited",
+                "title": "Total Deposits",
                 "detail": get_amount(
                     savings_credit.filter(reason="credit-deposit").aggregate(
                         Sum("amount")
@@ -104,7 +90,7 @@ class Dashboard(LoginRequiredMixin, TemplateView):
             },
             {
                 "icon": "debit-outline",
-                "title": "Total Savings Withdrawn",
+                "title": "Total Withdrawals",
                 "detail": get_amount(
                     savings_debit.filter(reason="debit-withdrawal").aggregate(
                         Sum("amount")
@@ -112,9 +98,17 @@ class Dashboard(LoginRequiredMixin, TemplateView):
                     or 0
                 ),
             },
+            {
+                "icon": "loan-outline",
+                "title": "Loan Disbursed",
+                "detail": get_amount(
+                    LoanRequest.objects.all().aggregate(Sum("amount"))["amount__sum"]
+                    or 0
+                ),
+            },
         ]
 
-        return render(request, "dashboard/pages/home.html", context)
+        return render(request, "dashboard/pages/views/home.html", context)
 
 
 class Settings(LoginRequiredMixin, TemplateView):
@@ -124,13 +118,12 @@ class Settings(LoginRequiredMixin, TemplateView):
         context = {
             "dashboard": {"title": "Settings", "context": "settings"},
         }
-        formset = AccountChoiceFormSet(
-            queryset=AccountChoice.objects.filter(name__in=["Normal", "Staff"]),
+        context["formset"] = AccountChoiceFormSet(
+            queryset=AccountChoice.objects.filter(name__in=["Normal", "Staff"])
         )
-        context["formset"] = formset
         context["form"] = BusinessYearForm(instance=BusinessYear.objects.last())
 
-        template = "dashboard/pages/settings.html"
+        template = "dashboard/pages/views/settings.html"
         return render(request, template, context)
 
     def post(self, request, *args, **kwargs):

@@ -26,29 +26,10 @@ class LoanRequestAdmin(CustomAdmin):
     autocomplete_fields = ["member"]
 
     fieldsets = (
-        (
-            "Details",
-            {
-                "fields": (
-                    "member",
-                    "amount",
-                    "duration",
-                    "status",
-                )
-            },
-        ),
-        ("Guarantors", {"fields": ("guarantor_1", "guarantor_2")}),
-        (
-            "Calculation",
-            {"fields": ("outstanding_amount",)},
-        ),
-        (
-            "Advanced Options",
-            {
-                "classes": ("collapse",),
-                "fields": ("terminated_at",),
-            },
-        ),
+        ("Details", {"fields": ("member", "amount", "duration", "status")}),
+        ("Guarantors", {"fields": ("guarantors",)}),
+        ("Calculation", {"fields": ("outstanding_amount",)}),
+        ("Advanced Options", {"classes": ("collapse",), "fields": ("terminated_at",)}),
     )
 
     def new_amount(self, obj):

@@ -6,12 +6,7 @@ from .models import Shares
 class ShareAddForm(ServiceForm):
     class Meta:
         model = Shares
-        fields = ["member", "amount"]
-
-    def clean(self):
-        data = self.cleaned_data
-        data["amount"] = _validate_amount(amount=data.get("amount"))
-        return data
+        fields = ["member", "amount", "created_at"]
 
     def save(self):
         data = self.cleaned_data

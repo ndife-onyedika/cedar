@@ -5,7 +5,7 @@ from django import forms
 
 class BaseForm(ServiceForm):
     class Meta:
-        fields = ["member", "amount"]
+        fields = ["member", "amount", "created_at"]
 
 
 class SavingsCreditForm(BaseForm):

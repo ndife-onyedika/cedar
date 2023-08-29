@@ -1,0 +1,140 @@
+{% load static %}
+{% load widget_tweaks %}
+
+<div tabindex="0" role="tabpanel" id="pills-profile" aria-labelledby="pills-profile-tab"
+    class="tab-pane fade mb-4 show active">
+    <form class="d-flex flex-column gap-3">
+        {% csrf_token %}
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-3">
+            <h4 class="text-muted fw-semibold mb-0">Profile</h4>
+            <div class="hstack gap-3">
+                <div class="form-check form-switch d-flex align-items-center gap-1 ">
+                    {{form.is_active|add_class:"form-check-input m-0 rounded-pill big-toggle"|attr:"role:switch"}}
+                    <label class="form-check-label lh-1 fw-semibold"
+                        for="{{form.is_active.id_for_label}}">{{form.is_active.label}}?</label>
+                </div>
+                <button type="button" class="prompt_modal btn btn-danger"
+                    data-value='{"button":"Delete","title":"Are you sure?","detail":"You are about to permanently delete <strong>{{member.name}}</strong> profile. All associating contents will be deleted and will no longer be accessible."}'>
+                    <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-3 -2 24 24" width="24"
+                        fill="currentColor">
+                        <path
+                            d="M6 2V1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1h4a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-.133l-.68 10.2a3 3 0 0 1-2.993 2.8H5.826a3 3 0 0 1-2.993-2.796L2.137 7H2a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h4zm10 2H2v1h14V4zM4.141 7l.687 10.068a1 1 0 0 0 .998.932h6.368a1 1 0 0 0 .998-.934L13.862 7h-9.72zM7 8a1 1 0 0 1 1 1v7a1 1 0 0 1-2 0V9a1 1 0 0 1 1-1zm4 0a1 1 0 0 1 1 1v7a1 1 0 0 1-2 0V9a1 1 0 0 1 1-1z">
+                        </path>
+                    </svg>
+                    Delete
+                </button>
+            </div>
+        </div>
+
+
+        <div class="profile-image mx-auto ms-md-0">
+            <img src="{{member.avatar.url}}" alt="Avatar" />
+
+            <label for="pro-edit-btn">
+                <svg>
+                    <use xlink:href="{% static 'svg/sprite.svg' %}#icon-camera-bold"></use>
+                </svg>
+                <input type="file" name="avatar" id="pro-edit-btn" accept="image/*" />
+            </label>
+        </div>
+
+        <div class="row g-2">
+            <span class="profile-span">Account Info</span>
+            <div class="col-md-6">
+                <div>
+                    <label for="{{form.account_type.id_for_label}}">{{form.account_type.label}}</label>
+                    {{form.account_type|add_class:"search-select"|attr:"placeholder:Account Type"}}
+                    {{form.account_type.errors}}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div>
+                    <label for="{{form.account_number.id_for_label}}">{{form.account_number.label}}</label>
+                    {{form.account_number|add_class:"form-control"|attr:"placeholder:Name"}}
+                    {{form.account_number.errors}}
+                </div>
+            </div>
+
+            <span class="profile-span">Personal Info</span>
+            <div class="col-md-6">
+                <div>
+                    <label for="{{form.name.id_for_label}}">{{form.name.label}}</label>
+                    {{form.name|add_class:"form-control"|attr:"placeholder:Name"}}
+                    {{form.name.errors}}
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div>
+                    <label for="{{form.email.id_for_label}}">{{form.email.label}}</label>
+                    {{form.email|add_class:"form-control"|attr:"placeholder:name@example.com"}}
+                    {{form.email.errors}}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div>
+                    <label for="{{form.phone.id_for_label}}">{{form.phone.label}}</label>
+                    {{form.phone|add_class:"form-control"|attr:"placeholder:Phonenumber"}}
+                    {{form.phone.errors}}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div>
+                    <label for="{{form.occupation.id_for_label}}">{{form.occupation.label}}</label>
+                    {{form.occupation|add_class:"form-control"|attr:"placeholder:Occupation"}}
+                    {{form.occupation.errors}}
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div>
+                    <label for="{{form.address.id_for_label}}">{{form.address.label}}</label>
+                    {{form.address|add_class:"form-control"|attr:"rows:2"|attr:"placeholder:Address"}}
+                    {{form.address.errors}}
+                </div>
+            </div>
+
+
+            <span class="profile-span mt-3">Next of Kin Info</span>
+            <div class="col-md-6">
+                <div>
+                    <label for="{{form.nok_name.id_for_label}}">{{form.nok_name.label}}</label>
+                    {{form.nok_name|add_class:"form-control"|attr:"placeholder:Next of Kin Name"}}
+                    {{form.nok_name.errors}}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div>
+                    <label for="{{form.nok_email.id_for_label}}">{{form.nok_email.label}}</label>
+                    {{form.nok_email|add_class:"form-control"|attr:"placeholder:Next of Kin Email address"}}
+                    {{form.nok_email.errors}}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div>
+                    <label for="{{form.nok_phone.id_for_label}}">{{form.nok_phone.label}}</label>
+                    {{form.nok_phone|add_class:"form-control"|attr:"placeholder:Next of Kin Phone number"}}
+                    {{form.nok_phone.errors}}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div>
+                    <label for="{{form.nok_relationship.id_for_label}}">{{form.nok_relationship.label}}</label>
+                    {{form.nok_relationship|add_class:"search-select"}}
+                    {{form.nok_relationship.errors}}
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div>
+                    <label for="{{form.nok_address.id_for_label}}">{{form.nok_address.label}}</label>
+                    {{form.nok_address|add_class:"form-control"|attr:"rows:2"|attr:"placeholder:Address"}}
+                    {{form.nok_address.errors}}
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center">
+            <button type="submit" id="saveBtn" class="btn btn-primary btn-lg mx-auto px-5 py-2 fs-5">Save</button>
+        </div>
+    </form>
+</div>

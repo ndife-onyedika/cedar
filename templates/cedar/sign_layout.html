@@ -12,10 +12,11 @@
         <div style="margin-bottom: 1rem;width:150px;">
             <img src="{% static 'img/logo.png' %}" alt="Marafa Cedar Logo" />
         </div>
-        <h2 class="h1 mb-2">Marafa Cedar</h2>
-        <h1 class="h3">{% block sign_head %}{% endblock sign_head %}</h1>
+        <h2 class="h3 mb-2">Marafa Cedar</h2>
+        <h1 class="h5">{% block sign_head %}{% endblock sign_head %}</h1>
+        {% block sign_detail %}{% endblock sign_detail %}
     </section>
-    <section class="container-fluid">
+    <section class="{% block extra_class %}{% endblock extra_class %}">
         {% block sign_view %}{% endblock sign_view %}
         <p class="mt-5 mb-3 text-muted">Marafa Cedar &copy; {% now "Y" %}</p>
     </section>

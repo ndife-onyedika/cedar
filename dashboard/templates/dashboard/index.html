@@ -5,15 +5,18 @@
 
 {% block title %} {{ dashboard.title }} | Dashboard | Marafa Cedar {% endblock  %}
 
+{% block mini_head %}
+<link rel="stylesheet" href="{% static 'vendor/css/daterangepicker.css' %}">
+<link rel="stylesheet" href="{% static 'vendor/css/print.min.css' %}">
+{% endblock mini_head %}
 
 {% block mini_content %}
-{% include 'dashboard/util/routes/nav.html' %}
-
-<div class="">
+<div class="h-100">
     <div class="row g-0">
         {% include 'dashboard/util/routes/sidebar.html' %}
 
-        <main class="col-md-9 ms-sm-auto col-lg-10">
+        <main class="col-md-9 ms-sm-auto col-lg-10 bg-light">
+            {% include 'dashboard/util/routes/nav.html' %}
             {% block mini-dash_content %}{% endblock  %}
         </main>
     </div>
@@ -23,24 +26,653 @@
     <span class="screen_loader"></span>
 </div>
 {% include 'dashboard/util/modals/index.html' %}
+{% include 'dashboard/util/offcanvas/index.html' %}
 {% endblock %}
 
 {% block script %}
+<script src="{% static 'vendor/js/daterangepicker.js' %}"></script>
+<script src="{% static 'vendor/js/print.min.js' %}"></script>
 <script>
+    var printData = [];
+    var data_stringify = null;
+    var data_parse = JSON.parse($('#attr').val() || "{}");
+
+    var member_id = "{{member.id}}";
+    member_id = member_id !== "" ? member_id : null;
+
+    var loan_id = "{{loan_id}}";
+    loan_id = loan_id !== "" ? loan_id : null;
+
+    const table_name = $("[data-table-name]").attr("data-table-name");
+
+    const table_tabs = {
+        loans: [
+            ["disbursed", "Disbursed"],
+            ["terminated", "Terminated"]
+        ],
+        "savings_interest": [
+            ["total", "Total Interests"],
+            ["all", "Interests"],
+            ["each", "Savings Interests"],
+        ],
+    }
+    const table_heads = {
+        "savings_interest": {
+            total: ["Total Interest", "Date Range"],
+            all: ["Interest", "Total Interest", "Date Created"],
+            each: ["Interest", "Date Created", "Date Updated"],
+        },
+        loans: {
+            disbursed: ["Outstanding Amount", "Rate", "Duration", "Guarantors",
+                "Date Created", "Date Updated", ""
+            ],
+            terminated: ["Rate", "Duration", "Guarantors", "Date Created",
+                "Date Terminated", ""
+            ]
+        },
+        eoy: ["Dated Created"],
+        shares: ["Dated Created", ""],
+        "loans_repayment": ["Date Paid", ""],
+        savings: ["Reason", "Date Created", ""],
+        members: ["Name", "Balance", "Status", "Account Type", "Account Number", "Date Registered", ""],
+    }
+    const table_filters = {
+        members: [{
+                type: "text",
+                label: "Search",
+                name: "search_text",
+            },
+            {
+                type: "date",
+                name: "search_date",
+                label: "Search by Date"
+            },
+            {
+                type: "text",
+                name: "account_number",
+                label: "Account Number"
+            },
+            {
+                type: "select",
+                name: "account_type",
+                label: "Account Type",
+                options: [
+                    [null, "Select..."],
+                    ["normal", "Normal"],
+                    ["staff", "Staff"]
+                ],
+            },
+            {
+                type: "select",
+                label: "Status",
+                name: "is_active",
+                options: [
+                    [null, "Select..."],
+                    [true, "Active"],
+                    [false, "Inactive"]
+                ],
+            },
+        ],
+        shares: [{
+                type: "text",
+                label: "Search",
+                name: "search_text",
+            },
+            {
+                type: "date",
+                name: "search_date",
+                label: "Search by Date"
+            },
+            {
+                type: "date",
+                name: "updated_at",
+                label: "Search by Date Updated"
+            },
+
+        ],
+        savings: [{
+                type: "text",
+                label: "Search",
+                name: "search_text",
+            },
+            {
+                type: "date",
+                name: "search_date",
+                label: "Search by Date"
+            },
+            {
+                type: "select",
+                name: "context",
+                label: "Context",
+                options: [
+                    [null, "Select..."],
+                    ["credit", "Credit"],
+                    ["debit", "Debit"]
+                ],
+            },
+            {
+                type: "select",
+                name: "reason",
+                label: "Reason",
+                options: [
+                    [null, "Select..."],
+                    ["credit-deposit", "Deposit"],
+                    ["debit-withdrawal", "Withdrawal"],
+                    ["credit-eoy", "End of Year Balance"],
+                ],
+            },
+        ],
+        eoy: [{
+                type: "text",
+                label: "Search",
+                name: "search_text",
+            },
+            {
+                type: "date",
+                name: "search_date",
+                label: "Search by Date"
+            }
+        ],
+        savings_interest: [{
+                type: "text",
+                label: "Search",
+                name: "search_text",
+            },
+            {
+                type: "date",
+                name: "search_date",
+                label: "Search by Date"
+            }
+        ],
+        loans: [{
+                type: "text",
+                label: "Search",
+                name: "search_text",
+            },
+            {
+                type: "date",
+                name: "search_date",
+                label: "Search by Date"
+            }
+        ],
+        loans_repayment: [{
+            type: "text",
+            label: "Search",
+            name: "search_text",
+        }, {
+            type: "date",
+            name: "search_date",
+            label: "Search by Date"
+        }]
+    }
+
+    const onsubmitFormTableUpdateHandler = () => $("[data-table-name]").each(function () {
+        let table = $(this);
+        let table_name = table.attr("data-table-name");
+        let table_attr = JSON.parse(table.attr("data-table-attr"));
+        Object.entries(table_filters).forEach(filter => {
+            if (table_name == filter[0]) {
+                let fields = filter[1].map(item => `
+                    <div>
+                        <label for="${item.name}_filter" class="col-form-label p-0">${item.label}</label>
+                        ${item.type == "text"
+                            ? `<input type="text" class="form-control rounded-2 small" name="${item.name}" id="${item.name}_filter" placeholder="Search..." aria-label="${item.label}">`
+                            : item.type == "date"
+                                ? `<input readonly type="text" name="${item.name}" class="form-control daterange small" id="${item.name}_filter" placeholder="Search..." aria-label="${item.label}">`
+                                : item.type == "select"
+                                    ? `<select name="${item.name}" data-class="small" id="${item.name}_filter" class="search-select" data-menu-class="w-auto" aria-label="Show per page">
+                                            ${item.options.map((option,i)=> `<option ${i==0 ? "selected": ""} value="${option[0]}">${option[1]}</option>`).join("")}
+                                        </select>`
+                                    :""
+                        }
+                    </div>
+                `).join("");
+                $(`[data-table-name='${table_name}'] .search form>div#filter_fields`).html(
+                    fields);
+            }
+        });
+
+        table_attr = {
+            ...table_attr,
+            ...(["loans", "savings_interest"].includes(table_name) ? {
+                table_context: table_tabs[table_name][0][0]
+            } : {})
+        }
+
+        tabulate(table_name, table_attr);
+
+        if (!member_id) {
+            let hasQueryParam = window.location.search !== "";
+            if (hasQueryParam) {
+                let query = window.location.search.slice(1)
+                let query1 = query.split("&");
+                let query2 = query1.map(item => item.split("="));
+                query2 = Object.fromEntries(query2)
+                $(`.txn-head .btn-group input`).each(function () {
+                    let value = $(this).val();
+                    $(this).prop("checked", value == query2.tab);
+                    if (value == query2.tab) {
+                        table_attr.table_context = value;
+                        if (table_name == "savings_interest") {
+                            if (value == "total") $("#tid").removeClass("d-none");
+                            else $("#tid").addClass("d-none");
+                            setTimeout(() => {
+                                tabulate(table_name, table_attr);
+                            }, 1000)
+                        }
+                    }
+                })
+            }
+        }
+    });
+
+    const resetDateTime = () => $('input.datetime').each(function () {
+        let datetime = $(this);
+        let value = datetime.val();
+        if (value !== "") {
+            let new_value = moment(value, 'YYYY-MM-DD hh:mm:ss')
+            datetime.data("daterangepicker").setStartDate(new_value);
+            datetime.data("daterangepicker").setEndDate(new_value);
+            datetime.val(new_value.format('MMM DD, YYYY, hh:mm a'));
+        }
+    });
+
+
+
     $(document).ready(function () {
+        onsubmitFormTableUpdateHandler();
+
         $('#sidebarMenu .nav-item').each(function () {
             var context = "{{ dashboard.context }}";
             if ($(this).attr("data-context") == context) {
                 $(this).children().addClass("active");
-                $(this).children().attr("aria-current", "page")
+                $(this).children().attr("aria-current", "page");
             }
         });
+
+        $('input.daterange').daterangepicker({
+            "drops": "auto",
+            "opens": "left",
+            "showDropdowns": true,
+            "autoUpdateInput": false,
+            "linkedCalendars": false,
+            "alwaysShowCalendars": true,
+            "locale": {
+                "cancelLabel": 'Clear',
+            }
+        }, function (start, end, label) {
+            this.element.val(`${start.format('Do MMM YYYY')} - ${ end.format('Do MMM YYYY')}`);
+        }).prop("readonly", true);
+
+        $(`input.date`).daterangepicker({
+            "drops": "auto",
+            "opens": "left",
+            "showDropdowns": true,
+            "autoUpdateInput": false,
+            "singleDatePicker": true,
+            "alwaysShowCalendars": true,
+            "locale": {
+                "cancelLabel": 'Clear',
+                "format": 'MMM DD, YYYY'
+            }
+        }, function (start, end, label) {
+            this.element.val(start.format('MMM DD, YYYY'));
+        }).prop("readonly", true);
+
+        $(`input.datetime`).daterangepicker({
+            "drops": "auto",
+            "opens": "left",
+            "timePicker": true,
+            "showDropdowns": true,
+            "autoUpdateInput": false,
+            "singleDatePicker": true,
+            "alwaysShowCalendars": true,
+            "locale": {
+                "cancelLabel": 'Clear',
+                "format": 'MMM DD, YYYY, hh:mm a'
+            }
+        }, function (start, end, label) {
+            this.element.val(start.format('MMM DD, YYYY, hh:mm a'));
+        }).prop("readonly", true);
+
+        resetDateTime();
+        $('input.date, input.daterange').on('cancel.daterangepicker', function (ev, picker) {
+            $(this).val('');
+        });
+    });
+
+    const tabulate = (table_name, table_attr) => {
+        populateTable({
+            ...table_attr,
+            table_name: table_name,
+            ...(member_id ? {
+                member_id: member_id
+            } : {}),
+            ...(loan_id ? {
+                loan_id: loan_id
+            } : {})
+        });
+        let table_attr_stringify = JSON.stringify(table_attr);
+        $(`[data-table-name='${table_name}']`).attr("data-table-attr", table_attr_stringify);
+    }
+
+    function populateTable({
+        page,
+        sort_by,
+        per_page,
+        table_name,
+        ...kwargs
+    }) {
+        let table_context = kwargs.table_context;
+        let table_tab = table_tabs[table_name];
+        if (table_tab) {
+            $(`[data-table-name='${table_name}'] .btn-group`).removeClass("d-none");
+            $(`[data-table-name='${table_name}'] .btn-group`).html(
+                `${(table_tab.map((tab, i) => `
+                    <input type="radio" class="btn-check" value="${tab[0]}" name='${table_name}_tab' id="tab${i}_${table_name}" autocomplete="off" ${table_context == tab[0] ? 'checked' : ''}>
+                    <label class="btn btn-outline-primary btn-lg rounded-2 border-0 d-inline-flex align-items-center justify-content-center" for="tab${i}_${table_name}">${tab[1]}</label>`)).join("")
+                }`
+            );
+        }
+
+        let table_head = !table_context ?
+            table_heads[table_name] : table_heads[table_name][table_context];
+
+        table_head = [
+            "#",
+            ...(!["members", "loans_repayment"].includes(table_name) && !member_id ? ["Member"] : []),
+            ...(!["members", "savings_interest"].includes(table_name) ||
+                table_name == "savings_interest" && table_context != "total" ? ["Amount"] : []),
+            ...(!$(`[data-table-name='${table_name}'] .table`).hasClass("home") ?
+                table_head : table_head.slice(0, -1)),
+        ]
+
+        $(`[data-table-name='${table_name}'] .table thead`).html(
+            `<tr>
+                ${!$(`[data-table-name='${table_name}'] .table`).hasClass("home") ? 
+                    `<th scope="col"><input class="form-check-input p-0 tableChkMaster" type="checkbox" aria-label="..."></th>`
+                    : ""
+                }
+                ${table_head.map(title => `<th scope="col">${title}</th>`)}
+            </tr>`
+        );
+
+        $.ajax({
+            dataType: 'json',
+            url: "{% url 'ajax:dt' %}",
+            data: {
+                page: page,
+                per_page: per_page,
+                table_name: table_name,
+                ...kwargs
+            },
+            success: data => {
+                if (data.content.length != 0) {
+                    let table_rows = ``;
+                    for (let i = 0; i < data.content.length; i++) {
+                        let item = data.content[i];
+                        table_rows += `
+                            <tr class="align-middle">
+                                ${!$(`[data-table-name='${table_name}'] .table`).hasClass("home") ? 
+                                    `<td><input id="tableChk${i}" class="form-check-input" type="checkbox" value="${item.id}" aria-label="..."></td>`
+                                    : ""
+                                }
+                                <th scope="row">${i+1}</th>
+                                
+                                ${table_name == "members" 
+                                    ? `<td>
+                                            <a href="{% url 'dashboard:members' %}${item.id}">${item.name}</a>
+                                        </td>
+                                        <td>${item.balance}</td>
+                                        <td>
+                                            <span 
+                                                class="p-1 px-2 small bg-opacity-25 rounded-2 text-${item.is_active ? "primary" : "danger"} bg-${item.is_active ? "primary" : "danger"}">
+                                                ${item.is_active?"active":"inactive"}
+                                            </span>
+                                        </td>
+                                        <td>${item.account_type}</td>
+                                        <td>${item.account_number}</td>
+                                        <td>${to_local_date(item.created_at)}</td>
+                                        <td>
+                                            <button 
+                                                type="button"
+                                                data-value='{"button":"Delete","title":"Are you sure?","detail":"You are about to permanently delete the record <strong>${item.name}</strong>. All associating contents will be deleted and will no longer be accessible."}'
+                                                class="prompt_modal btn btn-link text-danger fw-semibold text-decoration-none">
+                                                    Delete
+                                                </button>
+                                        </td>` 
+                                    : ''
+                                }
+                                ${table_name == "shares" 
+                                    ? `${!member_id ? `<td>
+                                            <a href="{% url 'dashboard:members' %}${item.mid}/?tab=shares">${item.name}</a>
+                                        </td>`:""}
+                                        <td>${item.amount}</td>
+                                        <td>${to_local_datetime(item.created_at)}</td>
+                                        <td>
+                                            <button 
+                                                type="button"
+                                                class="btn btn-link text-primary fw-semibold text-decoration-none">
+                                                    Edit
+                                            </button>
+                                            <button 
+                                                type="button"
+                                                data-value='{"button":"Delete","title":"Are you sure?","detail":"You are about to permanently delete ${!member_id?`the sahres record for <strong>${item.name}</strong>`:"this shares record"}. All associating contents will be deleted and will no longer be accessible."}'
+                                                class="prompt_modal btn btn-link text-danger fw-semibold text-decoration-none">
+                                                    Delete
+                                            </button>
+                                        </td>` 
+                                    : ''
+                                }
+                                ${table_name == "savings" 
+                                    ? `${!member_id ? `<td>
+                                            <a href="{% url 'dashboard:members' %}${item.mid}/?tab=savings">${item.name}</a>
+                                        </td>`:""}
+                                        <td>
+                                            <span class="${item.amount.startsWith("+")?"text-primary":"text-danger"}">
+                                                ${item.amount.startsWith("+")?item.amount.slice(1):item.amount}
+                                            </span>
+                                        </td>
+                                        <td>${item.reason}</td>
+                                        <td>${to_local_datetime(item.created_at)}</td>
+                                        ${!$(`[data-table-name='${table_name}'] .table`).hasClass("home") ?
+                                            `<td>
+                                                <button 
+                                                    type="button"
+                                                    class="btn btn-link text-primary fw-semibold text-decoration-none">
+                                                        Edit
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    data-value='{"button":"Delete","title":"Are you sure?","detail":"You are about to permanently delete ${!member_id?`the savings record for <strong>${item.name}</strong>`:"this savings record"}. All associating contents will be deleted and will no longer be accessible."}'
+                                                    class="prompt_modal btn btn-link text-danger fw-semibold text-decoration-none">
+                                                        Delete
+                                                </button>
+                                            </td>`
+                                            : ""
+                                        }` 
+                                    : ''
+                                }
+                                ${table_name == "eoy" 
+                                    ? `${!member_id ? `<td>
+                                            <a href="{% url 'dashboard:members' %}${item.mid}/?tab=eoy">${item.name}</a>
+                                        </td>`:""}
+                                        <td>${item.amount}</td>
+                                        <td>${to_local_datetime(item.created_at)}</td>`
+                                    : ''
+                                }
+                                ${table_name == "loans" 
+                                    ? `${!member_id ? `<td>
+                                            <a href="{% url 'dashboard:members' %}${item.mid}/?tab=loans&sub_tab=${table_context}">${item.name}</a>
+                                        </td>`:""}
+                                        <td>${item.amount}</td>
+                                        ${table_context == "disbursed"
+                                            ? `<td>${item.outstanding_amount}</td>`
+                                            : ""
+                                        }
+                                        <td>${item.rate}</td>
+                                        <td>${item.duration}</td>
+                                        <td class="py-0">
+                                            ${item.guarantors.length > 0 
+                                                ? item.guarantors.map(guar=>`<a href="{% url 'dashboard:home' %}members/${guar.mid}">${guar.name}</a>`).join(", ")
+                                                : "N/A"
+                                            }
+                                        </td>
+                                        <td>${to_local_datetime(item.created_at)}</td>
+                                        <td>${to_local_datetime(item.updated_at)}</td>
+                                        <td>
+                                            <a 
+                                                href="{% url 'dashboard:loans' %}${item.id}/"
+                                                class="btn btn-link text-primary fw-semibold text-decoration-none">
+                                                    View
+                                            </a>
+                                            <button 
+                                                type="button"
+                                                data-value='{"button":"Delete","title":"Are you sure?","detail":"You are about to permanently delete ${!member_id?`the loan record for <strong>${item.name}</strong>`:"this loan record"}. All associating contents will be deleted and will no longer be accessible."}'
+                                                class="prompt_modal btn btn-link text-danger fw-semibold text-decoration-none">
+                                                    Delete
+                                            </button>
+                                        </td>`
+                                    : ''
+                                }
+                                ${table_name == "loans_repayment" 
+                                    ? `${!["members", "loans_repayment"].includes(table_name) && !member_id ? `<td>
+                                            <a href="{% url 'dashboard:loans' %}${item.id}">${item.name}</a>
+                                        </td>`:""}
+                                        <td>${item.amount}</td>
+                                        <td>${to_local_datetime(item.created_at)}</td>
+                                        <td>
+                                            <button 
+                                                type="button"
+                                                data-value='{"button":"Delete","title":"Are you sure?","detail":"You are about to permanently delete ${!member_id?`the loan repayment record for <strong>${item.name}</strong>`:"this loan repayment record"}. All associating contents will be deleted and will no longer be accessible."}'
+                                                class="prompt_modal btn btn-link text-danger fw-semibold text-decoration-none">
+                                                    Delete
+                                            </button>
+                                        </td>`
+                                    : ''
+                                }
+                                ${table_name == "savings_interest" && table_context == "total" 
+                                    ? `${!member_id ? `<td>
+                                            <a href="{% url 'dashboard:members' %}${item.id}/?tab=savings_interest&sub_tab=${table_context}">${item.name}</a>
+                                        </td>`:""}
+                                        <td>${item.interest}</td>
+                                        <td>${item.date_range}</td>` 
+                                    : ''
+                                }
+                                ${table_name == "savings_interest" && table_context == "all" 
+                                    ? `${!member_id ? `<td>
+                                            <a href="{% url 'dashboard:members' %}${item.mid}/?tab=savings_interest&sub_tab=${table_context}">${item.name}</a>
+                                        </td>`:""}
+                                        <td>${item.amount}</td>
+                                        <td>${item.interest}</td>
+                                        <td>${item.total_interest}</td>
+                                        <td>${to_local_datetime(item.created_at)}</td>` 
+                                    : ''
+                                }
+                                ${table_name == "savings_interest" && table_context == "each" 
+                                    ? `${!member_id ? `<td>
+                                            <a href="{% url 'dashboard:members' %}${item.mid}/?tab=savings_interest&sub_tab=${table_context}">${item.name}</a>
+                                        </td>`:""}
+                                        <td>${item.amount}</td>
+                                        <td>${item.interest}</td>
+                                        <td>${to_local_datetime(item.created_at)}</td> 
+                                        <td>${to_local_datetime(item.updated_at)}</td>` 
+                                    : ''
+                                }
+                            </tr>
+                        `
+                    }
+                    $(`[data-table-name='${table_name}'] .table tbody`).html(table_rows);
+                } else $(`[data-table-name='${table_name}'] .table tbody`).html(
+                    `<tr class="text-center"><td colspan="${table_head.length + 1}"><p class="fw-semibold text-muted mb-0">No data</p></td></tr>`
+                );
+
+
+                let pagination = `
+                    <li class="page-item">
+                        <button 
+                            id="prev"
+                            type="button" 
+                            aria-label="Previous"  
+                            data-page="${data.attr.prev ?? ""}"
+                            ${!data.attr.prev ? "disabled" : ""}
+                            class="border rounded-1 btn btn-light fw-semibold">
+                            <span aria-hidden="true">&laquo;</span>
+                        </button>
+                    </li>
+                    <li class="page-item hstack gap-2">
+                        <input 
+                            step="1" 
+                            type="number" 
+                            placeholder="1" 
+                            max="${data.attr.pages}" 
+                            aria-label="Page number" 
+                            value="${data.attr.current}" 
+                            name="pagination-page-number"
+                            ${!(data.attr.next || data.attr.prev) ? 'disabled' : ''} 
+                            class="form-control text-center h-100 rounded-1 px-2 py-1" style="width: 2rem;">
+                        / 
+                        <span>${data.attr.pages}</span>
+                    </li>
+                    <li class="page-item">
+                        <button 
+                            id="next"
+                            type="button" 
+                            aria-label="Previous"
+                            data-page="${data.attr.next ?? ''}"
+                            ${!data.attr.next ? 'disabled' : ''}
+                            class="border rounded-1 btn btn-light fw-semibold">
+                            <span aria-hidden="true">&raquo;</span>
+                        </button>
+                    </li>
+                `
+                if (data.attr.extra && data.content.length != 0 && table_name ==
+                    "savings_interest" && table_context == "total") {
+                    $("#tid").removeClass("d-none");
+                    $("#tin").html(data.attr.extra.total_interest);
+                }
+                if (table_name == "savings_interest" && !data.attr.extra && data.content.length == 0 &&
+                    table_context != "total") {
+                    $("#tid").addClass("d-none");
+                    $("#tin").html("N/A");
+                }
+
+                $(`[data-table-name='${table_name}'] .table .tableChkMaster`).prop("disabled", data.content
+                    .length == 0);
+                $(`[data-table-name='${table_name}'] .txn-foot .pagination`).html(pagination);
+                $(`[data-table-name='${table_name}'] .txn-foot select option`).each(function () {
+                    if ($(this).val() == data.attr.per_page)
+                        $(this).attr("selected", "selected")
+                });
+            }
+        });
+    }
+
+
+    $(document).on("click", ".prompt_modal", function () {
+        let modal = $("#promptModal");
+        const MODAL = new bootstrap.Modal($("#promptModal"));
+        let data = JSON.parse($(this).attr("data-value"));
+        modal.find(".btn[type='submit']").html(data.button);
+        modal.find("#body").html(`
+            <h3 class="text-center">${data.title}</h3>
+            <p class="mb-0 text-center">${data.detail}</p>
+        `)
+        MODAL.show();
     });
 
     const fetchNotifications = count => $.ajax({
         type: 'GET',
         dataType: 'json',
         url: `{% url 'ajax:notify.list' %}?count=${count}`,
+        beforeSend: xhr => {
+            let btn = $("#notification_btn>button#loadBtn");
+            btn.prop("disabled", true);
+            btn.html(`
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                Loading...
+            `);
+        },
         success: data => {
             let messages = "";
             if (data.list.length > 0) {
@@ -54,17 +686,15 @@
                             data-bs-target="#nc${i}"
                             data-bs-toggle="collapse"   
                             class="list-group-item border-0 border-bottom list-group-item-action ${item.unread?'bg-light fw-bold':''}">
-                            <div class="hstack gap-2">
-                                <div class="d-flex align-items-center justify-content-center">
-                                    <span class="bg-${item.level != "error" ? item.level : 'danger'} rounded-circle d-flex align-items-center justify-content-center bg-opacity-25 text-${item.level != "error" ? item.level : 'danger'}" style="height:2.5rem;width:2.5rem;">
-                                        <svg style="width:2rem;height:2rem;fill:currentColor;">
-                                            <use xlink:href="{% static 'svg/sprite.svg' %}#icon-${item.level}-bold"></use>
-                                        </svg>
-                                    </span>
-                                </div>
+                            <div style="display:grid;grid-template-columns:min-content 1fr;gap:.5rem">
+                                <span class="bg-${item.level != "error" ? item.level : 'danger'} rounded-circle d-flex align-items-center justify-content-center bg-opacity-25 text-${item.level != "error" ? item.level : 'danger'}" style="height:1.5rem;width:1.5rem;">
+                                    <svg style="width:1rem;height:1rem;fill:currentColor;">
+                                        <use xlink:href="{% static 'svg/sprite.svg' %}#icon-${item.level}-bold"></use>
+                                    </svg>
+                                </span>
                                 <div class="d-flex w-100 justify-content-between">
                                     <div>
-                                        <h5 class="lh-1 mb-1 ${item.unread?'fw-bold':''}">${item.verb}</h5>
+                                        <h6 class="lh-1 mb-0 ${item.unread?'fw-bold':''}">${item.verb}</h6>
                                         <small class="text-muted">${relative_time(item.timestamp)}</small>
                                     </div>
                                     <button data-id="${item.id}" style="width:3px;height:3px" type="button" class="btn-close mb-auto ms-auto"></button>
@@ -77,22 +707,26 @@
                     `;
                 }).join('');
                 $('#notification_btn').removeClass("d-none");
+                let btn = $("#notification_btn>button#loadBtn");
+                btn.attr("data-value", count);
+                btn.prop("disabled", false);
+                btn.html(`Load More`);
             } else {
-                messages = `
+                messages += `
                     <li 
                         style="cursor:pointer"
-                        class="list-group-item border-0 border-bottom list-group-item-action fw-bold">
+                        class="list-group-item border-0 list-group-item-action">
                         <div class="hstack gap-2">
                             <div class="d-flex align-items-center justify-content-center">
-                                <span class="bg-light bg-opacity-25 text-muted rounded-circle d-flex align-items-center justify-content-center" style="height:2.5rem;width:2.5rem;">
-                                    <svg style="width:2rem;height:2rem;fill:currentColor;">
+                                <span class="bg-secondary bg-opacity-25 text-muted rounded-circle d-flex align-items-center justify-content-center" style="height:1.5rem;width:1.5rem;">
+                                    <svg style="width:1rem;height:1rem;fill:currentColor;">
                                         <use xlink:href="{% static 'svg/sprite.svg' %}#icon-error-bold"></use>
                                     </svg>
                                 </span>
                             </div>
                             <div class="d-flex w-100 justify-content-between">
                                 <div>
-                                    <h5 class="lh-1 mb-1">No Notification</h5>
+                                    <h6 class="lh-1 mb-1">No Notification</h6>
                                     <small class="text-muted">-</small>
                                 </div>
                             </div>
@@ -105,15 +739,10 @@
         }
     });
 
-    $('#notify').on("show.bs.dropdown", () => fetchNotifications(10));
-    $('#notification_btn>.btn-check').on("change", function () {
-        if ($(this).is(":checked")) {
-            fetchNotifications("*");
-            $(this).next().html("Collapse");
-        } else {
-            fetchNotifications(10);
-            $(this).next().html("View all")
-        }
+    $('#notify').on("show.bs.dropdown", () => fetchNotifications(5));
+    $('#notification_btn>button#loadBtn').on("click", function () {
+        let count = parseInt($(this).attr("data-value"));
+        fetchNotifications(count += 5);
     })
 
     $(document).on('click', '#notifications>li', function (e) {
@@ -146,11 +775,14 @@
         });
     })
 
-    setInterval(() => $.ajax({
+    $(document).on("click", "#notifications-main .btn-close-main", () => bootstrap.Dropdown
+        .getInstance($(".not-drpdwn")).hide());
+
+    /*setInterval(() => $.ajax({
         type: 'GET',
         url: "{% url 'ajax:notify.unread_count' %}",
         success: data => $('#bubble').css("display", data.count > 0 ? "block" : "none")
-    }), 2000);
+    }), 2000);*/
 
     $(".modal#lrm #id_member").on("change", function () {
         let value = "-"
@@ -195,154 +827,346 @@
     })
 
     var formSubmit = {
-        ValidateSubmit: (btn_data, url, form_data) => {
+        ValidateSubmit: ({
+            context,
+            btnData,
+            url,
+            formData
+        }) => {
             // send request to handler
             return $.ajax({
                 url: url,
                 type: "POST",
                 cache: false,
-                data: form_data,
+                data: formData,
                 contentType: false,
                 processData: false,
-                success: res => { // <----- make sure you use .then
+                beforeSend: xhr => {
                     $(".is-invalid").removeClass("is-invalid");
                     $(".invalid-feedback").removeClass("d-block");
                     $(".invalid-feedback").html();
+                },
+                success: res => { // <----- make sure you use .then
+                    toast(res.status, res.message);
+                    onsubmitFormTableUpdateHandler();
+                    if (["shares", "savings.debit", "savings.credit"].includes(context))
+                        $(`.total[data-context='${context.split(".")[0]}']`).html(
+                            res.data.total);
+                    const offcanvas = $('.offcanvas.show');
+                    offcanvas.find("form")[0].reset();
+                    offcanvas.removeClass("show");
+                    $(".offcanvas-backdrop").removeClass("show");
+                    resetDateTime();
 
-                    if (res.status == "success") {
-                        toast(res.status, res.message);
-                        setTimeout(() => window.location.reload(), 300);
-                    } else {
-                        if (res.message) toast(res.status, res.message);
-                        else Object.entries(res.data).forEach(field => {
-                            let _name = field[0];
-                            let _error = field[1];
-                            let target = $(`#id_${_name}`);
-                            target.addClass("is-invalid");
-                            if (target.parent().hasClass("form-floating")) {
-                                target.parent().find(".invalid-feedback").html(_error);
-                                target.parent().find(".invalid-feedback").addClass(
-                                    "d-block");
-                            } else {
-                                target.next(".invalid-feedback").html(_error);
-                                target.next(".invalid-feedback").addClass("d-block");
-                            }
-                        });
-                    }
-                    btn_data[0].html(btn_data[1]);
-                    btn_data[0].prop("disabled", false);
+                    btnData[0].html(btnData[1]);
+                    btnData[0].prop("disabled", false);
+                },
+                error: ({
+                    responseJSON: res
+                }) => {
+                    console.log(res.data)
+                    if (res.message) toast(res.status, res.message);
+                    else Object.entries(res.data).forEach(field => {
+                        let _name = field[0];
+                        let _error = field[1];
+                        let target = $(`#id_${_name}`);
+                        target.addClass("is-invalid");
+                        if (target.parent().hasClass("form-floating")) {
+                            target.parent().parent().find(".invalid-feedback").html(
+                                _error);
+                            target.parent().parent().find(".invalid-feedback").addClass(
+                                "d-block");
+                        } else {
+                            target.next(".invalid-feedback").html(_error);
+                            target.next(".invalid-feedback").addClass("d-block");
+                        }
+                        create_custom_dropdowns();
+                    });
+
+                    btnData[0].html(btnData[1]);
+                    btnData[0].prop("disabled", false);
                 }
             })
         }
     }
 
-    $(".modal .modal-footer>.btn-primary").on("click", function () {
-        let self = $(this);
-        let form = self.parent().prev().find("form");
-        let form_data = new FormData();
+    $(document).on("submit", ".offcanvas:not(#mtc) form", function (e) {
+        e.preventDefault();
+        let form = $(this);
+        let formData = new FormData();
         let name = form.attr("data-name");
-        form_data.append('csrfmiddlewaretoken', form.find("input[name='csrfmiddlewaretoken']").val());
+        let btn = form.find("button[type='submit']");
+        let btnText = btn.html();
+        let url = null;
+        let contexts = {
+            lc: "loans",
+            sc: "shares",
+            swc: "savings.debit",
+            sdc: "savings.credit",
+            lrc: "loans.repayment",
+        }
+
+        if (name != "cm") url = `/ajax/sc/${contexts[name]}`;
+        else url = "{% url 'ajax:pa' %}";
 
         form.find(
             `input:not(
+                .date,
+                .datetime,
+                .dd-searchbox,
                 [type='file'],
                 [type='radio'],
-                [type='checkbox'],
-                [readonly='readonly'],
-                [name='csrfmiddlewaretoken']
+                [type='checkbox']
             ), 
-            select, 
             textarea`
         ).each(function () {
-            form_data.append($(this).attr("name"), $(this).val());
+            if (
+                ($(this).is(":disabled") && $(this).hasAttr("readonly")) ||
+                (!$(this).is(":disabled") && !$(this).hasAttr("readonly"))
+            )
+                formData.append($(this).attr("name"), $(this).val());
         });
 
+        let select = form.find("select");
+        if (select.length) select.each(function () {
+            let self = $(this);
+            if (
+                (self.is(":disabled") && self.hasAttr("readonly")) ||
+                (!self.is(":disabled") && !self.hasAttr("readonly"))
+            ) {
+                if (!self.hasAttr("multiple"))
+                    formData.append(self.attr("name"), self.val());
+                else self.find("option:selected").each(function () {
+                    formData.append(self.attr("name"), $(this).val());
+                })
+            }
+        })
+
+        if (member_id) formData.append("isMember", true);
 
         let image = form.find("input[type='file']");
-        if (image.length) form_data.append(image.attr("name"), image[0].files[0])
+        if (image.length) formData.append(image.attr("name"), image[0].files[0])
 
-        let check_box = form.find("input[type='checkbox']");
+        let check_box = form.find("input[type='checkbox']:not(.dropdown-check)");
         if (check_box.length) check_box.each(function () {
-            form_data.append($(this).attr("name"), $(this).is(":checked"))
+            formData.append($(this).attr("name"), $(this).is(":checked"))
         })
 
         let radio = form.find("input[type='radio']");
         if (radio.length) radio.each(function () {
-            if ($(this).is(":checked")) form_data.append($(this).attr("name"), $(this).val());
+            if ($(this).is(":checked")) formData.append($(this).attr("name"), $(this).val());
         })
 
-        let url = null;
-        if (name != "cm") {
-            let contexts = {
-                lm: "loan",
-                asm: "share",
-                mm: "member",
-                lrm: "loan.repay",
-                swm: "savings.deb",
-                sdm: "savings.cred",
-            }
-            let context = contexts[name];
-            url = name != "mm" ? `/ajax/sc/${context}` : `{% url 'ajax:reg' %}`;
-        } else url = "{% url 'ajax:pa' %}";
+        let datetimes = form.find("input.datetime");
+        if (datetimes.length) datetimes.each(function () {
+            formData.append($(this).attr("name"), $(this).val() != '' ? moment($(this).val(),
+                'MMM DD, YYYY, hh:mm a').format() : '');
+        })
 
-        let old_html = self.html();
-        self.prop("disabled", true);
-        self.html(
-            `
-                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                Processing...
-            `
-        )
+        btn.prop("disabled", true);
+        btn.html(`
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            Processing...
+        `);
 
-        return formSubmit.ValidateSubmit([self, old_html], url, form_data);
+        return formSubmit.ValidateSubmit({
+            context: name != "cm" ? contexts[name] : "",
+            btnData: [btn, btnText],
+            url,
+            formData
+        });
+
     });
 
-    $("#delBtn").on("click", function () {
-        $("#cm form>input[name='data']").val($(this).attr("data-value"));
-        $("#cm form>p").html("Are you sure you want to delete?");
-        $("#cm .modal-title").html("Delete");
-        $("#cm .modal-footer>.btn-primary").html("Delete");
-    });
-    $("#setBtn").on("click", function () {
-        $("#cm form>input[name='data']").val($(this).attr("data-value"));
-        $("#cm form>p").html("Are you sure you want to change member(s) status?");
-        $("#cm .modal-title").html("Update");
-        $("#cm .modal-footer>.btn-primary").html("Update");
-    });
-    $("#accBtn").on("click", function () {
-        $("#cm form>input[name='data']").val($(this).attr("data-value"));
-        $("#cm form>p").html("Are you sure you want to change member(s) account type?");
-        $("#cm .modal-title").html("Change");
-        $("#cm .modal-footer>.btn-primary").html("Change");
-    });
+    // TABLE
+    const check = table => {
+        let table_name = table.dataset["tableName"];
+        let table_attr = JSON.parse(table.dataset["tableAttr"]);
 
-    $("#pro-edit-btn, #id_avatar").on("change", function () {
-        let self = $(this);
-        let file = $(this)[0].files[0];
-        let reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onloadend = () => self.parent().prev().attr("src", reader.result);
+        let list = [...(table_attr.selected_id || [])];
 
-        if (self.attr("id") == "pro-edit-btn") {
-            let form_data = new FormData();
-            form_data.append('image', $(this)[0].files[0]);
-            form_data.append('csrfmiddlewaretoken', $(document).find("input[name='csrfmiddlewaretoken']")
-                .val());
-            $.ajax({
-                type: "POST",
-                cache: false,
-                data: form_data,
-                contentType: false,
-                processData: false,
-                url: `/ajax/ca/{{member.id}}`,
-                success: res => { // <----- make sure you use .then
-                    if (res.status == "success") {
-                        toast(res.status, res.message);
-                        setTimeout(() => window.location.reload(), 300);
-                    } else toast(res.status, res.message);
-                }
-            });
+        let masterCheck = table.querySelector("th>input[type='checkbox']");
+        let childCheck = table.querySelectorAll("td>input[type='checkbox']");
+        childCheck.forEach(child => {
+            let id = parseInt(child.value);
+            let index = list.indexOf(id);
+            let checked = child.checked;
+            if (checked && index < 0) list.push(id);
+            if (!checked && index >= 0) list.splice(index, 1);
+        });
+
+        let arrLen = list.length;
+        masterCheck.indeterminate = arrLen > 0 && arrLen !== childCheck.length;
+        if (arrLen == childCheck.length) masterCheck.checked = true;
+        if (arrLen == 0) masterCheck.checked = false;
+        table.querySelector(".action>button").disabled = !(arrLen > 0);
+
+        table_attr.selected_id = list;
+        let table_attr_stringify = JSON.stringify(table_attr);
+        table.dataset["tableAttr"] = table_attr_stringify;
+
+    };
+
+    $(document).on('change', '#sort_by', function () {
+        let table = $(this).closest("[data-table-name]");
+        let table_name = table.attr("data-table-name");
+        let table_attr = JSON.parse(table.attr("data-table-attr"));
+        table_attr.sort_by = $(this).val();
+        tabulate(table_name, table_attr);
+    })
+    $(document).on('click', '.txn-head .btn-group label', function () {
+        let value = $(this).prev().val();
+        let table = $(this).closest("[data-table-name]");
+        let table_name = table.attr("data-table-name");
+        let table_attr = JSON.parse(table.attr("data-table-attr"));
+        table_attr.table_context = value;
+
+        if (table_name == "savings_interest") {
+            if (value == "total") $("#tid").removeClass("d-none");
+            else $("#tid").addClass("d-none");
         }
+
+        tabulate(table_name, table_attr);
+
+        if (member_id) window.history.pushState(null, null,
+            `${window.location.origin}${window.location.pathname}?tab=${table_name}&sub_tab=${value}`
+        );
+        else window.history.pushState(null, null,
+            `${window.location.origin}${window.location.pathname}?tab=${value}`
+        );
+    })
+
+    // TABLE FOOT
+    $(document).on('click', '.pagination #prev, .pagination #next', function () {
+        let table = $(this).closest("[data-table-name]");
+        let table_name = table.attr("data-table-name");
+        let table_attr = JSON.parse(table.attr("data-table-attr"));
+        table_attr.page = $(this).attr('data-page');
+        tabulate(table_name, table_attr);
+    })
+    $(document).on('input', '.pagination input', function () {
+        let page = null;
+        let value = $(this).val().trim();
+        let table = $(this).closest("[data-table-name]");
+        let table_name = table.attr("data-table-name");
+        let table_attr = JSON.parse(table.attr("data-table-attr"));
+
+        if (value !== "") page = value;
+        if (parseInt(value) == 0) page = 1;
+        if (page) {
+            table_attr.page = page;
+            tabulate(table_name, table_attr);
+        }
+    })
+    $(document).on('change', '.txn-foot select', function () {
+        let table = $(this).closest("[data-table-name]");
+        let table_name = table.attr("data-table-name");
+        let table_attr = JSON.parse(table.attr("data-table-attr"));
+        table_attr.per_page = $(this).val();
+        tabulate(table_name, table_attr);
+    })
+
+    $(".search form").submit(function (e) {
+        e.preventDefault();
+        let table = $(this).closest("[data-table-name]");
+        let table_name = table.attr("data-table-name");
+        let table_attr = JSON.parse(table.attr("data-table-attr"));
+        $(this).find("select, input:not([type='hidden'])").each(function () {
+            let field = $(this);
+            if (!field.hasClass("daterange"))
+                table_attr[field.attr("name")] = field.val() && field.val() !== "null" ?
+                field.val() : "";
+            else {
+                let values = field.val().split("-");
+                if (values.length == 2)
+                    table_attr[field.attr("name")] = [moment(values[0], 'Do MMM YYYY').format(
+                            "YYYY-MM-DD"),
+                        moment(values[1], 'Do MMM YYYY').format("YYYY-MM-DD")
+                    ].join(",");
+            }
+        });
+        tabulate(table_name, table_attr);
+    });
+    $(".search #clear_search").on("click", function () {
+        let form = $(this).closest("form");
+        let table = form.closest("[data-table-name]");
+        let table_name = table.attr("data-table-name");
+        let table_attr = JSON.parse(table.attr("data-table-attr"));
+        form.find("select, input:not([type='hidden'])").each(function () {
+            let field = $(this);
+            table_attr[field.attr("name")] = null;
+        });
+        form[0].reset();
+        create_custom_dropdowns();
+        tabulate(table_name, table_attr);
+    });
+
+    $(document).on("change", ".tableChkMaster", function () {
+        let self = $(this);
+        let isChecked = self.is(":checked");
+        let table = $(this).closest("[data-table-name]");
+        table.find("td>input[type='checkbox']").each(function () {
+            $(this).prop("checked", isChecked)
+        });
+        check(table[0]);
+    });
+
+    $(document).on("change", "td>input[type='checkbox']", function () {
+        check($(this).closest("[data-table-name]")[0]);
+    });
+
+    $("#prtBtn").on("click", function () {
+        let self = $(this);
+        let rows = [];
+        let head = Object.assign({}, data_parse.head);
+        $("td>input[type='checkbox']").each(function () {
+            let checkbox = $(this);
+            let isChecked = checkbox.is(":checked");
+            if (isChecked) {
+                let row = {};
+                let count = 0;
+                $(checkbox.parents()[1]).each(function () {
+                    let row = {};
+                    $(this).children().slice(1).each(function () {
+                        let child = $(this);
+                        let tagName = child.children().prop('tagName');
+                        if (
+                            !child.children().length || (child.children().length &&
+                                tagName != "BUTTON")
+                        ) {
+                            let column = "";
+                            if (!child.children().length)
+                                column = child.html().trim();
+                            else {
+                                if (tagName == "A" || tagName == "SPAN")
+                                    column = child.children().html().trim();
+                                else if (tagName == "UL") {
+                                    let li = child.children().children();
+                                    let _lst = [];
+                                    li.each(function () {
+                                        _lst.push($(this).children().html()
+                                            .trim())
+                                    })
+                                    let str =
+                                        `<ul style="padding:unset;list-style-position:inside;">${_lst.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                                    column = str;
+                                }
+                            }
+                            row[head[count]] = column;
+                        }
+                        count++;
+                    })
+                    rows.push(row);
+                })
+            };
+        });
+        printJS({
+            type: 'json',
+            printable: rows,
+            properties: data_parse.head,
+            header: `<h3 class="custom-h3">{{dashboard.title}} ${"{{dashboard.sub_context}}" != "" ? " (Repayments)":''} ${$('#search_date').val()!=""?` (${$('#search_date').val()})`:''}</h3>`,
+            style: "body {font-family: Poppins} table td,table th{text-align:center}"
+        })
     });
 </script>
 {% block dashboard_script %}{% endblock  %}

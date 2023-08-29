@@ -4,12 +4,13 @@
 
 {% block sign_head %}Sign In{% endblock sign_head %}
 {% block sign_sub_title %}Sign In{% endblock %}
+{% block extra_class %}p-3 px-md-0 px-3 justify-content-center{% endblock extra_class %}
+
 
 {% block sign_view %}
 <form method="post" class="form-signin">
     {% csrf_token %}
-    <h3 class="h1 mb-1 fw-normal text-center">Welcome Back!</h3>
-    <p class="h6 mb-3 fw-bold text-center">Sign in to the dashboard</p>
+    <h2 class="mb-4 fw-normal text-center">Welcome Back!</h2>
 
     {% if form.non_field_errors %}
     <div class="alert alert-danger d-flex align-items-center" role="alert">
@@ -42,9 +43,24 @@
         </div>
     </div>
 
-    <div class="mb-2 text-end">
+    <p class="mb-4 fw-bold d-block text-end">
         <a href="{% url 'password_reset' %}">Forgot Password?</a>
+    </p>
+    <div class="text-center">
+        <button class="btn btn-lg btn-primary px-4" type="submit">
+            Log in
+        </button>
     </div>
-    <button class="w-100 btn btn-lg btn-primary" type="submit">Sign in</button>
 </form>
+{% endblock  %}
+
+{% block script %}
+<script>
+    $("button[type='submit']").on("click", function () {
+        $(this).html(`
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            Log in
+        `);
+    })
+</script>
 {% endblock  %}

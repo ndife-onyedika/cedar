@@ -1,7 +1,7 @@
 def update_shares_total(member, date):
     from .models import Shares, SharesTotal
 
-    shares = Shares.objects.filter(member=member, created_at__date__lte=date.date())
+    shares = Shares.objects.filter(member=member)
     total_amount = 0
     if shares.count() > 0:
         for share in shares:

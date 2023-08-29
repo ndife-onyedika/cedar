@@ -1,4 +1,5 @@
 from re import T
+import re
 
 from django.db import IntegrityError, models, transaction
 from django.db.models.signals import post_delete, post_save, pre_save
@@ -28,12 +29,8 @@ class LoanRequest(models.Model):
     status = models.CharField(
         max_length=50, choices=LOAN_STATUS_CHOICES, default="disbursed"
     )
-
-    guarantor_1 = models.ForeignKey(
-        Member, null=True, related_name="guarantor_1", on_delete=models.SET_NULL
-    )
-    guarantor_2 = models.ForeignKey(
-        Member, null=True, related_name="guarantor_2", on_delete=models.SET_NULL
+    guarantors = models.ManyToManyField(
+        Member, blank=True, related_name="loan_guarantors"
     )
 
     created_at = models.DateTimeField(default=timezone.now, blank=True, null=True)
@@ -41,6 +38,7 @@ class LoanRequest(models.Model):
     terminated_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
+        ordering = ["-created_at"]
         verbose_name_plural = "Loan Requests"
 
     def __str__(self):
@@ -64,6 +62,7 @@ class LoanRepayment(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
+        ordering = ["-created_at"]
         verbose_name_plural = "Loan Repayments"
 
     def __str__(self):

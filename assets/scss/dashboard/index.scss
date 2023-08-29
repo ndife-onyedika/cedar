@@ -1,2 +1,7 @@
 @import "./routes/index.scss";
 @import "./pages/index.scss";
+
+.main-content,
+.home-side {
+    min-height: calc(100vh - 4rem);
+}

@@ -3,51 +3,47 @@
 {% load notifications_tags %}
 {% notifications_unread as unread_count %}
 <!-- routes -->
-<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap shadow pe-md-0 pe-3">
-  <span class="navbar-brand col-md-3 col-lg-2 me-0 px-3 h3 mb-0">Marafa Cedar</span>
-  <div class="hstack gap-2">
-    <ul class="nav col-md-auto justify-content-center text-small">
-      <li id="notify" class="dropdown d-flex align-items-center">
-        <span
-          class="rounded-circle p-2 d-flex align-items-center justify-content-center link-dark text-decoration-none dropdown-toggle position-relative"
-          data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-          <svg class="d-block mx-auto" width="24" height="24">
-            <use xlink:href="{% static 'svg/sprite.svg' %}#icon-notification-outline" />
-          </svg>
-          <span id="bubble" style="top:30%;left:70%;"
-            class="position-absolute translate-middle p-1 bg-danger border border-light rounded-circle">
-            <span class="visually-hidden">New alerts</span>
-          </span>
+<nav style="justify-content: unset;"
+  class="navbar navbar-1 navbar-dark sticky-top bg-dark flex-md-nowrap p-3 py-2 py-md-3">
+  <button class="navbar-toggler d-md-none collapsed" type="button" data-bs-toggle="collapse"
+    data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <ul class="nav col-md-auto ms-auto align-items-center justify-content-center text-small">
+    <li id="notify" class="dropdown d-flex align-items-center">
+      <span
+        class="rounded-circle p-2 d-flex align-items-center justify-content-center link-dark text-decoration-none dropdown-toggle not-drpdwn position-relative"
+        data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+        <svg class="d-block mx-auto" width="24" height="24">
+          <use xlink:href="{% static 'svg/sprite.svg' %}#icon-notification-outline" />
+        </svg>
+        <span id="bubble" style="top:30%;left:65%;"
+          class="position-absolute translate-middle p-1 bg-danger border border-light rounded-circle">
+          <span class="visually-hidden">New alerts</span>
         </span>
+      </span>
 
-        <ul style="width:25rem;" class="dropdown-menu dropdown-menu-end py-3 text-small shadow border-0">
-          <li>
-            <h6 class="fs-5 dropdown-header fw-bold">Notifications</h6>
-          </li>
-          <li>
-            <hr class="dropdown-divider">
-          </li>
-          <li>
-            <ul class="list-group rounded-0 overflow-auto" style="max-height: 30rem;" id="notifications"></ul>
-          </li>
-          <li>
-            <hr class="dropdown-divider">
-          </li>
-          <li class="d-none" id="notification_btn">
-            <input type="checkbox" class="btn-check" id="btn-check" autocomplete="off">
-            <label class="btn btn-light border-0 dropdown-item text-center fw-bold" for="btn-check">View all</label>
-          </li>
-        </ul>
-      </li>
-      <li class="d-none d-md-block">
-        <a class="nav-link px-3 link-light" href="{% url 'sign_out' %}">Sign out</a>
-      </li>
-    </ul>
-    <div class="vr bg-white"></div>
-    <button class="navbar-toggler d-md-none collapsed" type="button" data-bs-toggle="collapse"
-      data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-  </div>
-
-</header>
+      <ul style="width:25rem;" id="notifications-main"
+        class="dropdown-menu border-0 shadow dropdown-menu-end py-0 py-md-3  text-small">
+        <li class="hstack justify-content-between py-2 py-md-0">
+          <h6 class="fs-6 dropdown-header fw-bold">Notifications</h6>
+          <button type="button" class="btn-close btn-close-main d-md-none p-2 me-1" aria-label="Close"></button>
+        </li>
+        <li class="overflow-auto">
+          <ul class="list-group rounded-0" id="notifications"></ul>
+        </li>
+        <li class="d-none border-top p-3 pb-md-0 d-flex" id="notification_btn">
+          <button id="loadBtn" data-value type="button"
+            class="btn btn-sm btn-light fw-bold border-0 dropdown-item text-center w-auto me-md-auto d-flex d-md-inline-block align-items-center justify-content-center">
+            Load More
+          </button>
+        </li>
+      </ul>
+    </li>
+    <li class="vr mx-2 bg-white d-none d-md-block"></li>
+    <li class="d-none d-md-block">
+      <a class="nav-link px-3 link-light" href="{% url 'sign_out' %}">Sign out</a>
+    </li>
+  </ul>
+</nav>
