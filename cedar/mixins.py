@@ -2,6 +2,7 @@ import calendar
 import json
 import os
 from functools import lru_cache
+from pathlib import Path
 
 import jwt
 import redis
@@ -16,6 +17,8 @@ from .constants import (
     LOAN_STATUS_CHOICES,
     RELATIONSHIP_CHOICE,
 )
+from fpdf import FPDF
+from fpdf.fonts import FontFace
 
 
 redis_instance = redis.StrictRedis(
@@ -383,3 +386,41 @@ def months_between(start_date, end_date):
             year += 1
         else:
             month += 1
+
+
+def exportPDF(title: str, data: list):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("helvetica", size=5)
+
+    headers = list(data[0].keys())
+    logo = f"{dj_sett.STATIC_ROOT}/img/favicon.png"
+    pdf.image(logo, x=10, y=None, w=20, h=0, type="png", link="")
+    pdf.ln(h=5)
+
+    pdf.set_font("helvetica", "B", 10)
+    pdf.cell(w=10, h=5, txt=title)
+    pdf.ln(h=8)
+
+    pdf.set_font("helvetica", "", 5)
+    pdf.set_fill_color(r=255, g=255, b=255)
+    pdf.cell(w=0, h=3, txt="", border=0, new_y="NEXT", fill=True)
+    pdf.set_fill_color(r=0, g=-1, b=-1)
+    pdf.cell(w=0, h=0, txt="")
+
+    with pdf.table(
+        text_align="LEFT",
+        cell_fill_mode="ROWS",
+        cell_fill_color=(240, 240, 240),
+        borders_layout="SINGLE_TOP_LINE",
+        headings_style=FontFace(emphasis="BOLD"),
+    ) as table:
+        row = table.row()
+        for head in headers:
+            row.cell(" ".join([item.capitalize() for item in head.split("_")]))
+        for item in data:
+            row = table.row()
+            for dt in item.values():
+                row.cell(dt)
+    content = pdf.output()
+    return content

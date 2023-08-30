@@ -23,7 +23,6 @@ class Savings(models.Model):
 
     class Meta:
         abstract = True
-        ordering = ["-created_at"]
 
 
 class SavingsCredit(Savings):
@@ -35,6 +34,7 @@ class SavingsCredit(Savings):
     )
 
     class Meta:
+        ordering = ["-created_at"]
         verbose_name_plural = "Savings Credit"
 
     def __str__(self):
@@ -55,6 +55,7 @@ class SavingsDebit(Savings):
     )
 
     class Meta:
+        ordering = ["-created_at"]
         verbose_name_plural = "Savings Debit"
 
     def __str__(self):

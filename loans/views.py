@@ -16,7 +16,7 @@ from cedar.mixins import (
 )
 from loans.forms import LoanRepaymentForm, LoanRequestForm
 
-from .models import LoanRequest
+from .models import LoanRepayment, LoanRequest
 
 
 # Create your views here.
@@ -69,7 +69,7 @@ class LoanListView(LoginRequiredMixin, TemplateView):
         return code, status, message, data
 
 
-class LoanView(LoanListView):
+class LoanView(LoginRequiredMixin, TemplateView):
     def get(self, request, loan_id: int, *args, **kwargs):
         loan = get_object_or_404(LoanRequest, id=loan_id)
         context = {
@@ -110,37 +110,34 @@ class LoanView(LoanListView):
         template = f"dashboard/pages/views/analysis.html"
         return render(request, template, context)
 
-
-@login_required
-@require_http_methods(["POST"])
-def loan_repayment_view(request, *args, **kwargs):
-    code = 400
-    data = None
-    message = None
-    status = "error"
-    form = LoanRepaymentForm(data=request.POST)
-    print(form.errors)
-    if form.is_valid():
-        code = 200
-        status = "success"
-        loan_repayment = form.save()
-        message = "Transaction recorded successfully"
-        notify.send(
-            User.objects.get(is_superuser=True),
-            level="success",
-            recipient=User.objects.exclude(is_superuser=False),
-            verb="Loan: Repayment - {}".format(loan_repayment.member.name),
-            description="{}'s loan repayment of {} has been recorded. Outstanding Amount: {}".format(
-                loan_repayment.member.name,
-                get_amount(loan_repayment.amount),
-                get_amount(loan_repayment.loan.outstanding_amount)
-                if hasattr(loan_repayment, "loan")
-                else "",
-            ),
-        )
-    else:
-        data = {
-            field: error[0]["message"]
-            for field, error in form.errors.get_json_data(escape_html=True).items()
-        }
-    return code, status, message, data
+    def post(request, *args, **kwargs):
+        code = 400
+        data = None
+        message = None
+        status = "error"
+        form = LoanRepaymentForm(data=request.POST)
+        print(form.errors)
+        if form.is_valid():
+            code = 200
+            status = "success"
+            loan_repayment = form.save()
+            message = "Transaction recorded successfully"
+            notify.send(
+                User.objects.get(is_superuser=True),
+                level="success",
+                recipient=User.objects.exclude(is_superuser=False),
+                verb="Loan: Repayment - {}".format(loan_repayment.member.name),
+                description="{}'s loan repayment of {} has been recorded. Outstanding Amount: {}".format(
+                    loan_repayment.member.name,
+                    get_amount(loan_repayment.amount),
+                    get_amount(loan_repayment.loan.outstanding_amount)
+                    if hasattr(loan_repayment, "loan")
+                    else "",
+                ),
+            )
+        else:
+            data = {
+                field: error[0]["message"]
+                for field, error in form.errors.get_json_data(escape_html=True).items()
+            }
+        return code, status, message, data

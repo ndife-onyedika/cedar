@@ -4,21 +4,23 @@ from .views import (
     data_table,
     get_chart,
     get_loan,
-    perform_action,
+    service_delete,
     notify_list,
     notify_delete,
     notify_mark_read,
     notify_unread_count,
     service_create,
+    service_export,
     update_settings,
 )
 
 app_name = "ajax"
 urlpatterns = [
-    path("pa", perform_action, name="pa"),
     path("gc", get_chart, name="gc"),
     path("dt", data_table, name="dt"),
     path("us", update_settings, name="us"),
+    path("se/<str:context>", service_export, name="se"),
+    path("sd/<str:context>", service_delete, name="sd"),
     path("sc/<str:context>", service_create, name="sc"),
     path("gld/<int:member_id>", get_loan, name="gld"),
     path("notify/list", notify_list, name="notify.list"),

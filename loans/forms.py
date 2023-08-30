@@ -37,7 +37,7 @@ class LoanRequestForm(ServiceForm):
         if not is_eligible:
             self.add_error(
                 "amount",
-                "Member do not have {}% of loan in savings.".format(
+                "Member does not have {}% of loan in savings.".format(
                     member.account_type.lsr
                 ),
             )
@@ -60,7 +60,7 @@ class LoanRequestForm(ServiceForm):
 class LoanRepaymentForm(ServiceForm):
     class Meta:
         model = LoanRepayment
-        fields = ["member", "amount", "created_at"]
+        fields = ["member", "loan", "amount", "created_at"]
 
     def __init__(self, *args, **kwargs):
         super(ServiceForm, self).__init__(*args, **kwargs)

@@ -12,123 +12,13 @@
     </div>
 
     <div class="txn" data-table-name="shares" data-table-attr='{"page":1, "per_page":5, "sort_by":null}'>
-        <div class="txn-head hstack gap-2 flex-wrap-reverse">
-
-            {% if request.user.is_staff %}
-            <div
-                class="action dropdown {% if dashboard.context != 'investments' and dashboard.context != 'remittances' and request.user.is_staff %}ms-auto{% endif %}">
-                <button disabled style="font-size:small" class="btn btn-lg btn-primary dropdown-toggle hstack gap-1"
-                    type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                    <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-9 -2 24 24" width="32"
-                        fill="currentColor">
-                        <path
-                            d="M3 6a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 14a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z">
-                        </path>
-                    </svg>
-                    Actions
-                </button>
-                <ul class="dropdown-menu border-0 shadow-sm">
-                    <li>
-                        <button id="action_btn" data-action="export" class="dropdown-item hstack gap-2" type="button">
-                            <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-5 -5 24 24" width="24"
-                                fill="currentColor">
-                                <path
-                                    d="M8 3.414v5.642a1 1 0 1 1-2 0V3.414L4.879 4.536A1 1 0 0 1 3.464 3.12L6.293.293a.997.997 0 0 1 1.414 0l2.829 2.828A1 1 0 1 1 9.12 4.536L8 3.414zM3 6a1 1 0 1 1 0 2H2v4h10V8h-1a1 1 0 0 1 0-2h1a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1z">
-                                </path>
-                            </svg>
-                            Export
-                        </button>
-                    </li>
-                    <li>
-                        {% if dashboard.context != "wallet.transactions" and dashboard.context != "bills" %}
-                        <button type="button" class="prompt_modal dropdown-item hstack gap-2"
-                            data-value='{"button":"Delete","title":"Are you sure?","detail":"You are about to permanently delete multiple record(s). All associating contents will be deleted and will no longer be accessible."}'
-                            style="--bs-dropdown-link-active-bg:var(--bs-danger);--bs-dropdown-link-active-color:var(--bs-white);--bs-dropdown-link-color:var(--bs-danger);--bs-dropdown-link-hover-color:var(--bs-danger);">
-                            <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-3 -2 24 24" width="24"
-                                fill="currentColor">
-                                <path
-                                    d="M6 2V1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1h4a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-.133l-.68 10.2a3 3 0 0 1-2.993 2.8H5.826a3 3 0 0 1-2.993-2.796L2.137 7H2a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h4zm10 2H2v1h14V4zM4.141 7l.687 10.068a1 1 0 0 0 .998.932h6.368a1 1 0 0 0 .998-.934L13.862 7h-9.72zM7 8a1 1 0 0 1 1 1v7a1 1 0 0 1-2 0V9a1 1 0 0 1 1-1zm4 0a1 1 0 0 1 1 1v7a1 1 0 0 1-2 0V9a1 1 0 0 1 1-1z">
-                                </path>
-                            </svg>
-                            Delete
-                        </button>
-                        {% endif %}
-                    </li>
-                </ul>
-            </div>
-            {% endif %}
-            <div class="search dropdown">
-                <button style="font-size:small"
-                    class="btn btn-lg btn-outline-light bg-white border text-muted dropdown-toggle hstack gap-2"
-                    type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                    <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-2.5 -2.5 24 24" width="32"
-                        fill="currentColor">
-                        <path
-                            d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zm6.32-1.094l3.58 3.58a1 1 0 1 1-1.415 1.413l-3.58-3.58a8 8 0 1 1 1.414-1.414z">
-                        </path>
-                    </svg>
-                    Search
-                </button>
-                <div style="min-width: 17.5rem;" class="dropdown-menu border-0 shadow py-3 px-2">
-                    <form class="vstack gap-2">
-                        <div id="filter_fields" class="vstack gap-2"></div>
-                        <div class="hstack gap-2 align-items-center justify-content-end">
-                            <button type="button" id="clear_search"
-                                class="fw-midbold btn btn-sm btn-light bg-white hstack gap-1 align-items-center"
-                                style="font-size: small;">
-                                <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-6 -6 24 24" width="32"
-                                    fill="currentColor">
-                                    <path
-                                        d="M7.314 5.9l3.535-3.536A1 1 0 1 0 9.435.95L5.899 4.485 2.364.95A1 1 0 1 0 .95 2.364l3.535 3.535L.95 9.435a1 1 0 1 0 1.414 1.414l3.535-3.535 3.536 3.535a1 1 0 1 0 1.414-1.414L7.314 5.899z">
-                                    </path>
-                                </svg>
-                                Reset
-                            </button>
-                            <button type="submit"
-                                class="fw-midbold btn btn-sm btn-primary hstack gap-1 align-items-center"
-                                style="font-size: small;">
-                                <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-2.5 -2.5 24 24" width="32"
-                                    fill="currentColor">
-                                    <path
-                                        d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zm6.32-1.094l3.58 3.58a1 1 0 1 1-1.415 1.413l-3.58-3.58a8 8 0 1 1 1.414-1.414z">
-                                    </path>
-                                </svg>
-                                Search
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
+        <div class="txn-head hstack gap-2 flex-wrap-reverse"></div>
         <div class="txn-body my-4 overflow-auto">
             <table class="table mb-0">
                 <thead class="table position-sticky top-0"></thead>
                 <tbody></tbody>
             </table>
         </div>
-
-        <div class="txn-foot d-flex justify-content-between">
-            <div>
-                <div class="hstack gap-2">
-                    <label for="per_page" class="lh-1">Per Page:</label>
-                    <select id="per_page" class="search-select" data-menu-class="w-auto" aria-label="Show per page">
-                        <option selected value="5">5</option>
-                        <option value="10">10</option>
-                        <option value="20">20</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                        <option value="200">200</option>
-                        <option value="500">500</option>
-                    </select>
-                </div>
-            </div>
-            <div id="pagination">
-                <nav aria-label="Page navigation example">
-                    <ul class="pagination mb-0 hstack gap-2">
-                    </ul>
-                </nav>
-            </div>
-        </div>
+        <div class="txn-foot d-flex justify-content-between"></div>
     </div>
 </div>
