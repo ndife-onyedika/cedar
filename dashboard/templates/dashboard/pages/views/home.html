@@ -35,7 +35,7 @@
         </div>
       </div>
 
-      <div class="mt-0 mt-md-3">
+      <div class="my-3">
         {% include "dashboard/pages/views/widget/savings-txn.html" %}
       </div>
     </div>
@@ -62,6 +62,7 @@
         dataType: 'json',
         url: "{% url 'ajax:gc' %}",
         success: function (data) {
+          console.log(data)
           const createGradient = (ctx, color) => {
             const chart = ctx.chart;
             if (!chart.chartArea) return color;
@@ -79,30 +80,30 @@
             data: {
               labels: data.chart.map(item => item["month"]),
               datasets: [{
-                  lineTension: 0.5,
                   fill: "start",
+                  lineTension: 0.5,
+                  borderWidth: 1.5,
+                  borderColor: "#ffa600",
                   label: "Loans Requested",
                   data: data.chart.map(item => item["loans"]),
-                  borderColor: "#ffa600",
-                  borderWidth: 1.5,
                   backgroundColor: ctx => createGradient(ctx, "#ffa60090"),
                 },
                 {
-                  lineTension: 0.5,
                   fill: "start",
-                  label: "Deposits Made",
-                  data: data.chart.map(item => item["deposit"]),
-                  borderColor: "#2bc179",
+                  lineTension: 0.5,
                   borderWidth: 1.5,
+                  borderColor: "#2bc179",
+                  label: "Deposits Made",
+                  data: data.chart.map(item => item["deposits"]),
                   backgroundColor: ctx => createGradient(ctx, "#2bc17990"),
                 },
                 {
-                  lineTension: 0.5,
                   fill: "start",
-                  label: "Withdrawals Done",
-                  data: data.chart.map(item => item["withdrawal"]),
-                  borderColor: "#b168bc",
+                  lineTension: 0.5,
                   borderWidth: 1.5,
+                  borderColor: "#b168bc",
+                  label: "Withdrawals Done",
+                  data: data.chart.map(item => item["withdrawals"]),
                   backgroundColor: ctx => createGradient(ctx, "#b168bc90"),
                 }
               ],

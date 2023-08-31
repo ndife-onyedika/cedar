@@ -183,12 +183,12 @@ class RegistrationForm(MemberForm):
 class EditMemberForm(MemberForm):
     def __init__(self, *args, **kwargs):
         updated_initial = {}
-        self.member = kwargs.get("instance")
-        updated_initial["nok_name"] = self.member.nextofkin.name
-        updated_initial["nok_email"] = self.member.nextofkin.email
-        updated_initial["nok_phone"] = self.member.nextofkin.get_phone
-        updated_initial["nok_address"] = self.member.nextofkin.address
-        updated_initial["nok_relationship"] = self.member.nextofkin.relationship
+        member = kwargs.get("instance")
+        updated_initial["nok_name"] = member.nextofkin.name
+        updated_initial["nok_email"] = member.nextofkin.email
+        updated_initial["nok_phone"] = member.nextofkin.get_phone
+        updated_initial["nok_address"] = member.nextofkin.address
+        updated_initial["nok_relationship"] = member.nextofkin.relationship
         # Finally update the kwargs initial reference
         kwargs.update(initial=updated_initial)
         super(EditMemberForm, self).__init__(*args, **kwargs)

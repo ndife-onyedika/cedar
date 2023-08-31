@@ -266,6 +266,12 @@
         }
     });
 
+    const clearForm = container => {
+        container.find("form")[0].reset();
+        create_custom_dropdowns();
+        resetDateTime();
+    }
+
     const setCalenders = () => {
         $('input.daterange').daterangepicker({
             "drops": "auto",
@@ -401,7 +407,7 @@
                 ...kwargs
             },
             success: data => {
-                if (data.content.length != 0) {
+                if (data.content.length > 0) {
                     let table_rows = ``;
                     for (let i = 0; i < data.content.length; i++) {
                         let item = data.content[i];
@@ -446,8 +452,9 @@
                                         <td>
                                             <button 
                                                 type="button"
-                                                class="btn btn-link text-primary fw-semibold text-decoration-none">
-                                                    Edit
+                                                data-value='{"target":"#sc","url":"/ajax/sf/shares/${item.id}"}'
+                                                class="edit_canvas btn btn-link text-primary fw-semibold text-decoration-none">
+                                                Edit
                                             </button>
                                             <button 
                                                 type="button"
@@ -473,13 +480,14 @@
                                             `<td>
                                                 <button 
                                                     type="button"
-                                                    class="btn btn-link text-primary fw-semibold text-decoration-none">
+                                                    class="edit_canvas btn btn-link text-primary fw-semibold text-decoration-none"
+                                                    data-value='{"target":"#${item.amount.startsWith("+")?"sdc":"swc"}","url":"/ajax/sf/savings.${item.amount.startsWith("+")?"credit":"debit"}/${item.id}"}'>
                                                         Edit
                                                 </button>
                                                 <button 
                                                     type="button"
-                                                    data-value='{"id":"${item.id}","url":"/ajax/sd/savings.${item.amount.startsWith("+")?"credit":"debit"}","button":"Delete","title":"Are you sure?","detail":"You are about to permanently delete ${!member_id?`the savings record for <strong>${item.name}</strong>`:"this savings record"}. All associating contents will be deleted and will no longer be accessible."}'
-                                                    class="prompt_modal btn btn-link text-danger fw-semibold text-decoration-none">
+                                                    class="prompt_modal btn btn-link text-danger fw-semibold text-decoration-none"
+                                                    data-value='{"id":"${item.id}","url":"/ajax/sd/savings.${item.amount.startsWith("+")?"credit":"debit"}","button":"Delete","title":"Are you sure?","detail":"You are about to permanently delete ${!member_id?`the savings record for <strong>${item.name}</strong>`:"this savings record"}. All associating contents will be deleted and will no longer be accessible."}'>
                                                         Delete
                                                 </button>
                                             </td>`
@@ -514,12 +522,18 @@
                                         </td>
                                         <td>${to_local_datetime(item.created_at)}</td>
                                         <td>${to_local_datetime(item.updated_at)}</td>
-                                        <td>
+                                        <td class="d-flex flex-column align-items-start">
                                             <a 
                                                 href="{% url 'dashboard:loans' %}${item.id}/"
-                                                class="btn btn-link text-primary fw-semibold text-decoration-none">
+                                                class="btn btn-link text-info fw-semibold text-decoration-none">
                                                     View
                                             </a>
+                                            <button 
+                                                type="button"
+                                                data-value='{"target":"#lc","url":"/ajax/sf/loans/${item.id}"}'
+                                                class="edit_canvas btn btn-link text-primary fw-semibold text-decoration-none">
+                                                Edit
+                                            </button>
                                             <button 
                                                 type="button"
                                                 data-value='{"id":"${item.id}","url":"/ajax/sd/loans","button":"Delete","title":"Are you sure?","detail":"You are about to permanently delete ${!member_id?`the loan record for <strong>${item.name}</strong>`:"this loan record"}. All associating contents will be deleted and will no longer be accessible."}'
@@ -536,6 +550,12 @@
                                         <td>${item.amount}</td>
                                         <td>${to_local_datetime(item.created_at)}</td>
                                         <td>
+                                            <button 
+                                                type="button"
+                                                data-value='{"target":"#lrc","url":"/ajax/sf/loans.repayment/${item.id}"}'
+                                                class="edit_canvas btn btn-link text-primary fw-semibold text-decoration-none">
+                                                Edit
+                                            </button>
                                             <button 
                                                 type="button"
                                                 data-value='{"id":"${item.id}","url":"/ajax/sd/loans.repayment","button":"Delete","title":"Are you sure?","detail":"You are about to permanently delete ${!member_id?`the loan repayment record for <strong>${item.name}</strong>`:"this loan repayment record"}. All associating contents will be deleted and will no longer be accessible."}'
@@ -934,46 +954,58 @@
         success: data => $('#bubble').css("display", data.count > 0 ? "block" : "none")
     }), 2000);*/
 
-    $(".modal#lrm #id_member").on("change", function () {
-        let value = "-"
-        if ($(this).val() != "") $.ajax({
+    const performLoanFetch = (context, offcanvas, value) => {
+        if (value != "") $.ajax({
             type: "GET",
-            dataType: 'json',
-            url: `/ajax/gld/${$(this).val()}`,
+            url: `/ajax/gld/${value}`,
+            error: ({
+                responseJSON: res
+            }) => toast(res.status, res.message),
             success: res => {
-                if (res.status == "success") {
-                    $("#id_loan").val(res.data[0]);
-                    $("#outAmt").html(res.data[1]);
-                    let out_amt = res.data[1];
-                    let curr = out_amt[0];
-                    let out_amt_int = parseFloat(out_amt.slice(1).replaceAll(",", ""));
-                    $("#outAmt").attr("data-value", JSON.stringify({
-                        "currency": curr,
-                        "amount": out_amt_int,
-                    }));
-                    $("#outAmt2").val(res.data.amount);
-                } else toast(res.status, res.message);
+                offcanvas.find("#id_loan").val(res.data.loan);
+                if (context == "change") offcanvas.find("#id_loan").prop("disabled", false);
+                offcanvas.find("#outAmt1").val(res.data.outstanding);
+                offcanvas.find("#outAmt2").val(res.data.outstanding);
+                create_custom_dropdowns();
             }
         });
         else {
-            $("#outAmt").html("-");
-            $("#outAmt").attr("data-value", null);
-            $("#outAmt2").val("-");
+            offcanvas.find("#id_loan").val("");
+            offcanvas.find("#id_amount").val("");
+            offcanvas.find("#outAmt1").val("-");
+            offcanvas.find("#outAmt2").val("-");
+            offcanvas.find("#id_loan").prop("disabled", true);
+            create_custom_dropdowns();
         }
+    }
+
+    $(".offcanvas#lrc #id_member").on("change", function () {
+        let value = $(this).val();
+        let offcanvas = $(this).closest(".offcanvas");
+        performLoanFetch("change", offcanvas, value);
     })
-    $(".modal#lrm #id_amount").on("input", function () {
+    $(".offcanvas#lrc #id_amount").on("input", function () {
         let value = $(this).val();
         value = value.toString().replace("e", "");
         value = value != "" ? parseFloat(value) : null;
-        let data_amt = JSON.parse($("#outAmt").attr("data-value"))
-        let currency = data_amt.currency;
-        let outstanding_amount = data_amt.amount;
+        let data_amt = $("#outAmt1").val();
+        let currency = data_amt[0];
+        let outstanding_amount = data_amt.slice(1).replaceAll(",", "");
         let outstanding_amount_int = parseFloat(outstanding_amount);
-        if (value > outstanding_amount_int) value = outstanding_amount_int;
+        if (value > outstanding_amount_int) {
+            value = outstanding_amount_int;
+            $(this).val(value);
+        };
         let outstanding_amount_str =
             `${currency}${(outstanding_amount_int - value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
         $("#outAmt2").val(outstanding_amount_str);
 
+    })
+
+    $(".offcanvas#lrc").on("shown.bs.offcanvas", function () {
+        let offcanvas = $(this);
+        let value = offcanvas.find("#id_member").val();
+        performLoanFetch("show", offcanvas, value);
     })
 
     var formSubmit = {
@@ -1031,8 +1063,8 @@
                             target.next(".invalid-feedback").html(_error);
                             target.next(".invalid-feedback").addClass("d-block");
                         }
-                        create_custom_dropdowns();
                     });
+                    create_custom_dropdowns();
 
                     btnData[0].html(btnData[1]);
                     btnData[0].prop("disabled", false);
@@ -1046,6 +1078,8 @@
         let form = $(this);
         let formData = new FormData();
         let name = form.attr("data-name");
+        let context = form.attr("data-context");
+        let id = form.find("input[name='id']").val();
         let btn = form.find("button[type='submit']");
         let btnText = btn.html();
 
@@ -1056,7 +1090,7 @@
             sdc: "savings.credit",
             lrc: "loans.repayment",
         }
-        let url = `/ajax/sc/${contexts[name]}`;
+        let url = context == "create" ? `/ajax/sc/${contexts[name]}` : `/ajax/su/${contexts[name]}/${id}`;
 
 
         form.find(
@@ -1129,7 +1163,7 @@
     });
     $(document).on("click", ".prompt_modal", function () {
         let modal = $("#promptModal");
-        const MODAL = new bootstrap.Modal($("#promptModal"));
+        const MODAL = new bootstrap.Modal(modal);
         let data = JSON.parse($(this).attr("data-value"));
         modal.find(".btn[type='submit']").html(data.button);
         modal.find("#body").html(`
@@ -1171,6 +1205,43 @@
         });
 
     });
+
+    $(document).on("click", ".edit_canvas", function () {
+        let data = JSON.parse($(this).attr("data-value"));
+        let canvas = $(`.offcanvas${data.target}`);
+        const CANVAS = new bootstrap.Offcanvas(canvas);
+
+        $.ajax({
+            method: 'GET',
+            url: data.url,
+            success: function (res) {
+                canvas.find("form").attr("data-context", "edit");
+                canvas.find("form").find("input[name='id']").val(data.url.split("/").slice(-1)[0]);
+                Object.entries(res.data).forEach(field => {
+                    let key = field[0];
+                    let value = field[1];
+                    let target = canvas.find("form").find(`#id_${key}`);
+                    if (!Array.isArray(value)) target.val(value);
+                    else {
+                        value.forEach(item => {
+                            target.find(`option[value='${item}']`).prop(
+                                "selected", true);
+                        });
+                    }
+                });
+                CANVAS.show();
+                create_custom_dropdowns();
+                resetDateTime();
+            }
+        });
+    });
+
+    $(".offcanvas").on("hidden.bs.offcanvas", function () {
+        clearForm($(this))
+    })
+    $(".modal").on("hidden.bs.modal", function () {
+        clearForm($(this))
+    })
 
     // TABLE
     // TABLE HEADER
@@ -1256,14 +1327,15 @@
                 } : {})
             },
             beforeSend: xhr => {
-                toast("info", "File export starting...")
+                toast("info", "File export download starting...")
             },
             success: function (data) {
-                toast("success", "File export downloading...")
+                toast("success", "File export downloading. Please wait...")
                 var a = document.createElement('a');
                 var url = window.URL.createObjectURL(data);
                 a.href = url;
-                a.download = 'myfile.pdf';
+                a.download =
+                    `export_${'{{dashboard.title}}'.toLowerCase().replaceAll(" ", "_")}.pdf`;
                 document.body.append(a);
                 a.click();
                 a.remove();

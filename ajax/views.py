@@ -8,7 +8,7 @@ from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import IntegrityError, transaction
 from django.db.models.aggregates import Sum
 from django.db.models.query_utils import Q
-from django.http import FileResponse, HttpResponse, JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from notifications.models import Notification
@@ -18,7 +18,6 @@ from cedar.mixins import (
     display_duration,
     display_rate,
     exportPDF,
-    format_date_model,
     get_amount,
     get_data_equivalent,
     get_savings_total,
@@ -72,7 +71,7 @@ def total_context_exec(
 @login_required
 @require_http_methods(["POST"])
 def service_create(request, context: str):
-    from loans.views import LoanListView, LoanView
+    from loans.views import LoanListView, loan_repayment_view
     from savings.views import savings_credit_view, savings_debit_view
     from shares.views import ShareListView
 
@@ -80,14 +79,71 @@ def service_create(request, context: str):
     contexts = {
         "loans": LoanListView().post,
         "shares": ShareListView().post,
-        "loans.repayment": LoanView().post,
         "savings.debit": savings_debit_view,
         "savings.credit": savings_credit_view,
+        "loans.repayment": loan_repayment_view,
     }
+    print(request.POST)
 
     try:
         code, data["status"], data["message"], data["data"] = contexts[context](
             request=request
+        )
+    except Exception as e:
+        print(f"{e}")
+        code = 400
+        data["status"] = "error"
+        data["message"] = "Invalid Context"
+    return JsonResponse(data, status=code)
+
+
+@login_required
+@require_http_methods(["POST"])
+def service_update(request, context: str, id: int):
+    from loans.views import LoanRepaymentView, LoanView
+    from savings.views import SavingsCreditView, SavingsDebitView
+    from shares.views import ShareView
+
+    data = {}
+    contexts = {
+        "loans": LoanView().post,
+        "shares": ShareView().post,
+        "savings.debit": SavingsCreditView().post,
+        "savings.credit": SavingsDebitView().post,
+        "loans.repayment": LoanRepaymentView().post,
+    }
+
+    try:
+        code, data["status"], data["message"], data["data"] = contexts[context](
+            request=request, id=id
+        )
+    except Exception as e:
+        print(f"{e}")
+        code = 400
+        data["status"] = "error"
+        data["message"] = "Invalid Context"
+    return JsonResponse(data, status=code)
+
+
+@login_required
+@require_http_methods(["GET"])
+def service_fetch(request, context: str, id: int):
+    from loans.views import LoanRepaymentView, LoanView
+    from savings.views import SavingsCreditView, SavingsDebitView
+    from shares.views import ShareView
+
+    data = {}
+    contexts = {
+        "loans": LoanView().get,
+        "shares": ShareView().get,
+        "savings.debit": SavingsCreditView().get,
+        "savings.credit": SavingsDebitView().get,
+        "loans.repayment": LoanRepaymentView().get,
+    }
+
+    try:
+        code, data["status"], data["message"], data["data"] = contexts[context](
+            request=request, id=id
         )
     except Exception as e:
         print(f"{e}")
@@ -139,7 +195,7 @@ def service_delete(request, context: str):
     return JsonResponse(data, status=code)
 
 
-# @login_required
+@login_required
 @require_http_methods(["GET"])
 def service_export(request, context: str):
     data = []
@@ -148,8 +204,6 @@ def service_export(request, context: str):
         "members": Member,
         "loans": LoanRequest,
         "eoy": YearEndBalance,
-        "savings.debit": SavingsDebit,
-        "savings.credit": SavingsCredit,
         "loans.repayment": LoanRepayment,
         "savings_interest.all": SavingsInterest,
         "savings_interest.each": SavingsInterestTotal,
@@ -166,16 +220,27 @@ def service_export(request, context: str):
             timezone.datetime.strptime(range_[0], "%Y-%m-%d").date(),
             timezone.datetime.strptime(range_[1], "%Y-%m-%d").date(),
         ]
+        if context == "savings" or context not in ("savings", "savings_interest.total"):
+            range_ = "{} - {}".format(
+                range_[0].strftime("%d %b, %Y"), range_[1].strftime("%d %b, %Y")
+            )
 
-    if context != "savings_interest.total":
+    if context not in ("savings", "savings_interest.total"):
         model = contexts[context]
-        range_ = "{} - {}".format(
-            range_[0].strftime("%d %b, %Y"), range_[1].strftime("%d %b, %Y")
-        )
         exports = (
             model.objects.all() if id_[0] == "*" else model.objects.filter(id__in=id_)
         )
-    else:
+    elif context == "savings":
+        savings_credit = SavingsCredit.objects.all()
+        savings_debit = SavingsDebit.objects.all()
+        exports = (
+            savings_credit.union(savings_debit).order_by("-created_at")
+            if id_[0] == "*"
+            else savings_credit.filter(id__in=id_)
+            .union(savings_debit.filter(id__in=id_))
+            .order_by("-created_at")
+        )
+    elif context == "savings_interest.total":
         exports, range_, total_interest = total_context_exec(
             **({} if id_[0] == "*" else {"id": id_}),
             **({"date_range": range_} if range_ else {}),
@@ -243,7 +308,7 @@ def service_export(request, context: str):
                         "updated_at": item.updated_at.strftime("%b %d, %y, %H:%M %p"),
                     }
                 )
-            if context in ("savings.debit", "savings.credit"):
+            if context == "savings":
                 data.append(
                     {
                         **({} if member else {"name": item.member.name}),
@@ -359,29 +424,34 @@ def update_settings(request):
 
 @login_required
 @require_http_methods(["GET"])
-def get_loan(request, member_id: str):
-    from loans.models import LoanRequest
-
+def get_loan(request, member_id: int):
     data = {}
-    member = Member.objects.get(id=member_id)
+    code = 404
+    status = "error"
+    message = "Not Found"
+
     try:
-        loan = LoanRequest.objects.get(member=member, status="disbursed")
-    except LoanRequest.DoesNotExist:
-        status = "error"
-        data["message"] = "Member does not have a loan that is not terminated."
+        member = Member.objects.get(id=member_id)
+    except Member.DoesNotExist:
+        pass
     else:
-        status = "success"
-        data["data"] = [
-            "{} | {} | {}".format(
-                get_amount(amount=loan.amount),
-                display_duration(loan.duration),
-                format_date_model(loan.created_at),
-            ),
-            get_amount(loan.outstanding_amount),
-        ]
+        try:
+            loan = LoanRequest.objects.get(member=member, status="disbursed")
+        except LoanRequest.DoesNotExist:
+            status = "error"
+            message = "Member does not have any disbursed loan."
+        else:
+            code = 200
+            status = "success"
+            message = "Loan Fetched"
+            data["data"] = {
+                "loan": loan.id,
+                "outstanding": get_amount(loan.outstanding_amount),
+            }
 
     data["status"] = status
-    return JsonResponse(data)
+    data["message"] = message
+    return JsonResponse(data, status=code)
 
 
 @login_required

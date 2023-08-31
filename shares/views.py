@@ -8,7 +8,7 @@ from notifications.signals import notify
 from accounts.models import Member, User
 from cedar.mixins import get_amount, get_shares_total
 from shares.forms import ShareAddForm
-from shares.models import SharesTotal
+from shares.models import Shares, SharesTotal
 
 
 # Create your views here.
@@ -36,8 +36,8 @@ class ShareListView(LoginRequiredMixin, TemplateView):
         data = None
         message = None
         status = "error"
-        isMember = request.POST.get("isMember").lower() == "true"
         form = ShareAddForm(data=request.POST)
+        isMember = request.POST.get("isMember", "").lower() == "true"
         print(form.errors)
         if form.is_valid():
             code = 200
@@ -57,7 +57,7 @@ class ShareListView(LoginRequiredMixin, TemplateView):
             )
             total_shares = (
                 SharesTotal.objects.filter(
-                    Q(member=share.member) if isMember else ()
+                    Q(member=share.member) if isMember else Q()
                 ).aggregate(Sum("amount"))["amount__sum"]
                 or 0
             )
@@ -76,23 +76,59 @@ class ShareListView(LoginRequiredMixin, TemplateView):
         return code, status, message, data
 
 
-class MemberSharesListView(LoginRequiredMixin, TemplateView):
-    def get(self, request, member_id: int, *args, **kwargs):
-        member = get_object_or_404(Member, id=member_id)
-        context = {
-            "member": member,
-            "asf": ShareAddForm(),
-            "dashboard": {
-                "context": "shares",
-                "title": "Shares - {}".format(member.name),
-                "buttons": [
-                    {
-                        "target": "#asm",
-                        "title": "Add Share",
-                        "class": "btn-primary",
-                    },
-                ],
-            },
-        }
-        template = f"dashboard/pages/index.html"
-        return render(request, template, context)
+class ShareView(LoginRequiredMixin, TemplateView):
+    def getShare(self, share_id):
+        share = None
+        try:
+            share = Shares.objects.get(id=share_id)
+        except Shares.DoesNotExist:
+            code = 404
+            status = "error"
+            message = "Not Found"
+        else:
+            code = 200
+            status = "success"
+            message = "Record fetched"
+        return code, status, message, share
+
+    def get(self, request, id, *args, **kwargs):
+        code, status, message, share = self.getShare(id)
+        data = {}
+        if share:
+            data = {
+                "member": share.member.id,
+                "amount": share.amount / 100,
+                "created_at": share.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            }
+        return code, status, message, data
+
+    def post(self, request, id, *args, **kwargs):
+        code, status, message, share = self.getShare(id)
+        data = {}
+        if share:
+            form = ShareAddForm(instance=share, data=request.POST)
+            isMember = request.POST.get("isMember", "").lower() == "true"
+            if form.is_valid():
+                share = form.save()
+                message = "Transaction updated successfully"
+                total_shares = (
+                    SharesTotal.objects.filter(
+                        Q(member=share.member) if isMember else Q()
+                    ).aggregate(Sum("amount"))["amount__sum"]
+                    or 0
+                )
+                data = {
+                    "id": share.id,
+                    "created_at": share.created_at,
+                    "total": get_amount(total_shares),
+                    "amount": get_amount(share.amount),
+                    "member": {"id": share.member.id, "name": share.member.name},
+                }
+            else:
+                data = {
+                    field: error[0]["message"]
+                    for field, error in form.errors.get_json_data(
+                        escape_html=True
+                    ).items()
+                }
+        return code, status, message, data

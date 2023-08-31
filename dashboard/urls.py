@@ -2,7 +2,7 @@ from django.urls import path
 
 from accounts.views import MemberListView, MemberView, registration_view
 from dashboard.views import Dashboard, Settings
-from loans.views import LoanListView, LoanView
+from loans.views import LoanListView, LoanOverview
 from savings.views import (
     SavingsInterestListView,
     SavingsListView,
@@ -22,7 +22,7 @@ urlpatterns = [
         "savings/interests/", SavingsInterestListView.as_view(), name="savings_interest"
     ),
     path("loans/", LoanListView.as_view(), name="loans"),
-    path("loans/<int:loan_id>/", LoanView.as_view(), name="loans.details"),
+    path("loans/<int:loan_id>/", LoanOverview.as_view(), name="loans.details"),
     path("shares/", ShareListView.as_view(), name="shares"),
     path("year-end-balance/", YearEndBalanceListView.as_view(), name="eoy"),
 ]

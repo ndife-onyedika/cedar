@@ -16,6 +16,7 @@ from cedar.mixins import (
     get_data_equivalent,
     format_date_model,
 )
+from django.db.models.aggregates import Sum
 
 
 # Create your models here.
@@ -98,15 +99,35 @@ def post_loan_save(sender, instance: LoanRequest, **kwargs):
 
 @receiver(post_save, sender=LoanRepayment)
 def post_loan_repay_save(sender, instance: LoanRepayment, **kwargs):
-    if kwargs["created"]:
-        try:
-            with transaction.atomic():
-                loan = instance.loan
-                outstanding_amount = loan.outstanding_amount
-                outstanding_amount -= instance.amount
-                loan.outstanding_amount = outstanding_amount
-                if outstanding_amount == 0:
-                    loan.status = "terminated"
-                loan.save()
-        except IntegrityError as e:
-            return f"LOAN-REPAYMENT-MODEL-ERROR: {e}"
+    try:
+        with transaction.atomic():
+            loan = instance.loan
+            total = (
+                loan.loanrepayment_set.all().aggregate(Sum("amount"))["amount__sum"]
+                or 0
+            )
+            outstanding_amount = loan.amount - total
+            loan.outstanding_amount = outstanding_amount
+            if loan.status == "disbursed" and outstanding_amount == 0:
+                loan.status = "terminated"
+            loan.save()
+    except IntegrityError as e:
+        return f"LOAN-REPAYMENT-MODEL-ERROR: {e}"
+
+
+@receiver(post_delete, sender=LoanRepayment)
+def post_loan_repay_delete(sender, instance: LoanRepayment, **kwargs):
+    try:
+        with transaction.atomic():
+            loan = instance.loan
+            total = (
+                loan.loanrepayment_set.all().aggregate(Sum("amount"))["amount__sum"]
+                or 0
+            )
+            outstanding_amount = loan.amount + total
+            loan.outstanding_amount = outstanding_amount
+            if loan.status == "terminated" and outstanding_amount != 0:
+                loan.status = "disbursed"
+            loan.save()
+    except IntegrityError as e:
+        return f"LOAN-REPAYMENT-MODEL-ERROR: {e}"

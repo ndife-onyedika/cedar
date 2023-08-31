@@ -8,8 +8,9 @@
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
-        <form data-name="sdc">
+        <form data-name="sdc" data-context="create">
             {% csrf_token %}
+            <input type="hidden" name="id">
             <div class="mb-2">
                 <label for="{{sdf.member.id_for_label}}" class="col-form-label p-0">{{sdf.member.label}}</label>
                 {{sdf.member|add_class:"search-select"|attr:"aria-label:Select Member"}}
@@ -20,8 +21,8 @@
                 <div class="input-group mb-3">
                     <span class="input-group-text" id="Naira">&#8358;</span>
                     {{sdf.amount|add_class:"form-control"|attr:"aria-label:Amount"|attr:"placeholder:10000"}}
-                    <div class="invalid-feedback"></div>
                 </div>
+                <div class="invalid-feedback"></div>
             </div>
             <div>
                 <label for="{{sdf.created_at.id_for_label}}"
@@ -45,8 +46,9 @@
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
-        <form data-name="swc">
+        <form data-name="swc" data-context="create">
             {% csrf_token %}
+            <input type="hidden" name="id">
             <div class="mb-2">
                 <label for="{{swf.member.id_for_label}}" class="col-form-label p-0 fw-bold">{{swf.member.label}}</label>
                 {{swf.member|add_class:"search-select"|attr:"aria-label:Select Member"}}
@@ -57,8 +59,8 @@
                 <div class="input-group mb-3">
                     <span class="input-group-text" id="Naira">&#8358;</span>
                     {{swf.amount|add_class:"form-control"|attr:"aria-label:Amount"|attr:"placeholder:10000"}}
-                    <div class="invalid-feedback"></div>
                 </div>
+                <div class="invalid-feedback"></div>
             </div>
             <div>
                 <label for="{{swf.created_at.id_for_label}}"
@@ -82,8 +84,9 @@
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
-        <form data-name="sc">
+        <form data-name="sc" data-context="create">
             {% csrf_token %}
+            <input type="hidden" name="id">
             <div class="mb-2">
                 <label for="{{asf.member.id_for_label}}" class="col-form-label p-0 fw-bold">{{asf.member.label}}</label>
                 {{asf.member|add_class:"search-select"|attr:"aria-label:Select Member"}}
@@ -94,9 +97,8 @@
                 <div class="input-group mb-3">
                     <span class="input-group-text" id="Naira">&#8358;</span>
                     {{asf.amount|add_class:"form-control"|attr:"aria-label:Amount"|attr:"placeholder:10000"}}
-                    <div class="invalid-feedback"></div>
-
                 </div>
+                <div class="invalid-feedback"></div>
             </div>
             <div>
                 <label for="{{asf.created_at.id_for_label}}"
@@ -120,8 +122,9 @@
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
-        <form data-name="lc">
+        <form data-name="lc" data-context="create">
             {% csrf_token %}
+            <input type="hidden" name="id">
             <div class="mb-2">
                 <label for="{{lf.member.id_for_label}}" class="col-form-label p-0 fw-bold">{{lf.member.label}}</label>
                 {{lf.member|add_class:"search-select"|attr:"aria-label:Select Member"}}
@@ -132,8 +135,8 @@
                 <div class="input-group mb-3">
                     <span class="input-group-text" id="Naira">&#8358;</span>
                     {{lf.amount|add_class:"form-control"|attr:"aria-label:Amount"|attr:"placeholder:10000"}}
-                    <div class="invalid-feedback"></div>
                 </div>
+                <div class="invalid-feedback"></div>
             </div>
             <div class="mb-2">
                 <div class="form-floating">
@@ -167,37 +170,44 @@
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
-        <form data-name="lrc">
+        <form data-name="lrc" data-context="create">
             {% csrf_token %}
+            <input type="hidden" name="id">
             <div class="mb-2">
                 <label for="{{lrf.member.id_for_label}}" class="col-form-label p-0 fw-bold">{{lrf.member.label}}</label>
                 {{lrf.member|add_class:"search-select"|attr:"aria-label:Select Member"}}
                 <div class="invalid-feedback"></div>
             </div>
 
-            <div class="form-floating mb-2">
-                <input type="text" class="form-control" aria-label="Loan" name="loan" data-id id="id_loan" value="-"
-                    readonly>
-                <label for="id_loan">Loan</label>
-            </div>
-
-            <div class="card mb-2 text-bg-primary">
-                <div class="card-body d-flex justify-content-between p-2">
-                    <span class="fw-bold">Current Outstanding:</span>
-                    <span class="fw-bold" id="outAmt" data-value>-</span>
-                </div>
-            </div>
-
-
             <div class="mb-2">
-                <label for="{{lrf.amount.id_for_label}}" class="col-form-label p-0 fw-bold">{{lrf.amount.label}}</label>
-                {{lrf.amount|add_class:"form-control"|attr:"aria-label:Amount"}}
+                <label for="{{lrf.loan.id_for_label}}" class="col-form-label p-0 fw-bold">{{lrf.loan.label}}</label>
+                {{lrf.loan|add_class:"search-select"|attr:"aria-label:Select Member"|attr:"disabled"}}
                 <div class="invalid-feedback"></div>
             </div>
 
             <div class="mb-2">
-                <label for="outAmt2" class="col-form-label p-0 fw-bold">Outstanding after payment</label>
-                <input type="text" class="form-control" data-name="out_amt" id="outAmt2" value="-" readonly>
+                <label for="{{lrf.amount.id_for_label}}" class="col-form-label p-0 fw-bold">{{lrf.amount.label}}</label>
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="Naira">&#8358;</span>
+                    {{lrf.amount|add_class:"form-control"|attr:"aria-label:Amount"|attr:"placeholder:10000"}}
+                </div>
+                <div class="invalid-feedback"></div>
+            </div>
+
+
+            <div class="row g-2 mb-2">
+                <div class="col-sm-6">
+                    <div>
+                        <label for="outAmt1" class="col-form-label p-0 fw-bold">Current Outstanding</label>
+                        <input disabled type="text" class="form-control" data-name="out_amt" id="outAmt1" value="-">
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div>
+                        <label for="outAmt2" class="col-form-label p-0 fw-bold">Outstanding after payment</label>
+                        <input disabled type="text" class="form-control" data-name="out_amt" id="outAmt2" value="-">
+                    </div>
+                </div>
             </div>
 
             <div>
@@ -208,7 +218,7 @@
             </div>
 
             <div class="hstack gap-2 mt-4">
-                <button type="submit" class="btn btn-primary rounded-2">Add</button>
+                <button type="submit" class="btn btn-primary rounded-2">Repay</button>
                 <button type="button" class="btn btn-light" data-bs-dismiss="offcanvas">Cancel</button>
             </div>
         </form>
