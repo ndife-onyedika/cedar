@@ -7,7 +7,6 @@
 
 {% block mini_head %}
 <link rel="stylesheet" href="{% static 'vendor/css/daterangepicker.css' %}">
-<link rel="stylesheet" href="{% static 'vendor/css/print.min.css' %}">
 {% endblock mini_head %}
 
 {% block mini_content %}
@@ -31,7 +30,6 @@
 
 {% block script %}
 <script src="{% static 'vendor/js/daterangepicker.js' %}"></script>
-<script src="{% static 'vendor/js/print.min.js' %}"></script>
 <script>
     var loan_id = "{{loan_id}}";
     loan_id = loan_id !== "" ? loan_id : null;
