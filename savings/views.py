@@ -144,7 +144,7 @@ class SavingsDebitView(LoginRequiredMixin, TemplateView):
         code, status, message, debit = self.getSavingsDebit(id)
         data = {}
         if debit:
-            form = SavingsCreditForm(instance=debit, data=request.POST)
+            form = SavingsDebitForm(instance=debit, data=request.POST)
             isMember = request.POST.get("isMember", "").lower() == "true"
             if form.is_valid():
                 debit = form.save()

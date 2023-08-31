@@ -150,10 +150,11 @@ class SavingsInterestTotal(Savings):
 @receiver(post_save, sender=SavingsCredit)
 def post_savings_credit_save(sender, instance: SavingsCredit, **kwargs):
     si = SavingsInterestTotal.objects.get_or_create(
-        savings=instance, member=instance.member, created_at=instance.created_at
+        savings=instance, member=instance.member
     )[0]
     si.amount = instance.amount
     # si.updated_at = instance.created_at
+    si.created_at = instance.created_at
     si.updated_at = timezone.now()
     if instance.reason == "credit-eoy":
         si.start_comp = True

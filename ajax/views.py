@@ -108,8 +108,8 @@ def service_update(request, context: str, id: int):
     contexts = {
         "loans": LoanView().post,
         "shares": ShareView().post,
-        "savings.debit": SavingsCreditView().post,
-        "savings.credit": SavingsDebitView().post,
+        "savings.debit": SavingsDebitView().post,
+        "savings.credit": SavingsCreditView().post,
         "loans.repayment": LoanRepaymentView().post,
     }
 
@@ -136,8 +136,8 @@ def service_fetch(request, context: str, id: int):
     contexts = {
         "loans": LoanView().get,
         "shares": ShareView().get,
-        "savings.debit": SavingsCreditView().get,
-        "savings.credit": SavingsDebitView().get,
+        "savings.debit": SavingsDebitView().get,
+        "savings.credit": SavingsCreditView().get,
         "loans.repayment": LoanRepaymentView().get,
     }
 
@@ -614,14 +614,14 @@ def data_table(request):
             query = Q(member__name__icontains=search_text) | Q(
                 member__email__icontains=search_text
             )
-            if table_context != "all":
-                content_list = content_list.filter(query)
-            else:
+            if not context or context and context != "all":
                 content_list = (
                     savings_credit.filter(query)
                     .union(savings_debit.filter(query))
                     .order_by("-created_at")
                 )
+            else:
+                content_list = content_list.filter(query)
 
         if search_date:
             date_range = search_date.split(",")
