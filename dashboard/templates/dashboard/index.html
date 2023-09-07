@@ -240,17 +240,6 @@
         }
     });
 
-    const resetDateTime = () => $('input.datetime').each(function () {
-        let datetime = $(this);
-        let value = datetime.val();
-        if (value !== "") {
-            let new_value = moment(value, 'YYYY-MM-DD hh:mm:ss')
-            datetime.data("daterangepicker").setStartDate(new_value);
-            datetime.data("daterangepicker").setEndDate(new_value);
-            datetime.val(new_value.format('MMM DD, YYYY, hh:mm a'));
-        }
-    });
-
     const resetDateRange = () => $('input.daterange').each(function () {
         let daterange = $(this);
         let value = daterange.val();
@@ -267,7 +256,8 @@
     const clearForm = container => {
         container.find("form")[0].reset();
         create_custom_dropdowns();
-        resetDateTime();
+        container.find('input.datetime').data('daterangepicker').setStartDate(moment());
+        container.find('input.datetime').data('daterangepicker').setEndDate(moment());
     }
 
     const setCalenders = () => {
@@ -289,6 +279,25 @@
                 `${start.format('Do MMM YYYY')} - ${ end.format('Do MMM YYYY')}`);
         }).prop("readonly", true);
 
+        $('input.daterange+span').on('click', e => {
+            e.stopPropagation();
+            $(".drp-buttons>.cancelBtn").click();
+        });
+        resetDateRange();
+    }
+
+    $(".offcanvas").on("hide.bs.offcanvas", function () {
+        clearForm($(this))
+    })
+    $(".modal").on("hidden.bs.modal", function () {
+        clearForm($(this))
+    })
+
+
+
+
+    $(document).ready(function () {
+        setTable();
         $(`input.date`).daterangepicker({
             "drops": "auto",
             "opens": "left",
@@ -307,35 +316,22 @@
         $(`input.datetime`).daterangepicker({
             "drops": "auto",
             "opens": "left",
-            "timePicker": true,
+            "timePicker": false,
             "showDropdowns": true,
-            "autoUpdateInput": false,
+            "autoUpdateInput": true,
             "singleDatePicker": true,
             "alwaysShowCalendars": true,
             "locale": {
                 "cancelLabel": 'Clear',
-                "format": 'MMM DD, YYYY, hh:mm a'
+                "format": 'MMM DD, YYYY'
             }
         }, function (start, end, label) {
-            this.element.val(start.format('MMM DD, YYYY, hh:mm a'));
+            this.element.val(start.format('MMM DD, YYYY'));
         }).prop("readonly", true);
 
         $('input.date, input.daterange, input.datetime').on('cancel.daterangepicker', function (ev, picker) {
             $(this).val('');
         });
-        $('input.daterange+span').on('click', e => {
-            e.stopPropagation();
-            $(".drp-buttons>.cancelBtn").click();
-        });
-
-        resetDateTime();
-        resetDateRange();
-    }
-
-
-
-    $(document).ready(function () {
-        setTable();
         $('#sidebarMenu .nav-item').each(function () {
             var context = "{{ dashboard.context }}";
             if ($(this).attr("data-context") == context) {
@@ -995,10 +991,6 @@
         $("#outAmt2").val(outstanding_amount_str);
 
     })
-
-    $(".offcanvas").on("shown.bs.offcanvas", function () {
-        setCalenders()
-    })
     $(".offcanvas#lrc").on("shown.bs.offcanvas", function () {
         let offcanvas = $(this);
         let value = offcanvas.find("#id_member").val();
@@ -1037,8 +1029,6 @@
                     form[0].reset();
                     DISPLAY.removeClass("show");
                     $(".offcanvas-backdrop, .modal-backdrop").removeClass("show");
-                    resetDateTime();
-
                     btnData[0].html(btnData[1]);
                     btnData[0].prop("disabled", false);
                 },
@@ -1228,17 +1218,9 @@
                 });
                 CANVAS.show();
                 create_custom_dropdowns();
-                resetDateTime();
             }
         });
     });
-
-    $(".offcanvas").on("hidden.bs.offcanvas", function () {
-        clearForm($(this))
-    })
-    $(".modal").on("hidden.bs.modal", function () {
-        clearForm($(this))
-    })
 
     // TABLE
     // TABLE HEADER

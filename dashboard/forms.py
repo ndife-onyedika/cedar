@@ -4,7 +4,8 @@ from email_validator import EmailNotValidError, validate_email
 from phonenumbers.phonenumberutil import NumberParseException
 
 from accounts.models import Member, User
-from django.utils.timezone import now
+from django.utils.timezone import now, datetime, make_aware
+from datetime import time
 
 
 class ServiceForm(forms.ModelForm):
@@ -25,15 +26,21 @@ class ServiceForm(forms.ModelForm):
             self.fields["member"].widget.attrs = {"readonly": True}
 
         if self.fields.get("created_at"):
-            self.fields["created_at"].label = "Timestamp"
+            self.fields["created_at"].initial = None
+            self.fields["created_at"].label = "Date"
 
     def clean(self):
         data = super(ServiceForm, self).clean()
         data["amount"] = _validate_amount(
             form=self, field="amount", amount=data.get("amount")
         )
-        if (created_at := data.get("created_at")) and created_at.date() == now().date():
-            data["created_at"] = now()
+        if created_at := data.get("created_at"):
+            data["created_at"] = (
+                now()
+                if created_at.date() == now().date()
+                else make_aware(datetime.combine(created_at.date(), time(2, 0)))
+            )
+        raise Exception("a")
         return data
 
 

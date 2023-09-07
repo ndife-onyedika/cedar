@@ -54,15 +54,14 @@
 
     function mediaSize() {
       /* Set the matchMedia */
-      const matches_800 = window.matchMedia("(max-width: 991.98px)").matches;
-      var ctx = matches_800 ? document.querySelector("#chart") : document.querySelector("#chart");
-
+      // const matches_800 = window.matchMedia("(max-width: 991.98px)").matches;
+      var ctx = document.querySelector("#chart");
       ctx.height = 250;
+
       $(document).ready(() => $.ajax({
         dataType: 'json',
         url: "{% url 'ajax:gc' %}",
         success: function (data) {
-          console.log(data)
           const createGradient = (ctx, color) => {
             const chart = ctx.chart;
             if (!chart.chartArea) return color;
@@ -83,17 +82,17 @@
                   fill: "start",
                   lineTension: 0.5,
                   borderWidth: 1.5,
-                  borderColor: "#ffa600",
-                  label: "Loans Requested",
-                  data: data.chart.map(item => item["loans"]),
-                  backgroundColor: ctx => createGradient(ctx, "#ffa60090"),
+                  borderColor: "#0dcaf0",
+                  label: "Total Shares Added",
+                  data: data.chart.map(item => item["shares"]),
+                  backgroundColor: ctx => createGradient(ctx, "#0dcaf090"),
                 },
                 {
                   fill: "start",
                   lineTension: 0.5,
                   borderWidth: 1.5,
                   borderColor: "#2bc179",
-                  label: "Deposits Made",
+                  label: "Total Deposits Made",
                   data: data.chart.map(item => item["deposits"]),
                   backgroundColor: ctx => createGradient(ctx, "#2bc17990"),
                 },
@@ -102,20 +101,64 @@
                   lineTension: 0.5,
                   borderWidth: 1.5,
                   borderColor: "#b168bc",
-                  label: "Withdrawals Done",
+                  label: "Total Withdrawals Done",
                   data: data.chart.map(item => item["withdrawals"]),
                   backgroundColor: ctx => createGradient(ctx, "#b168bc90"),
-                }
+                },
+                {
+                  fill: "start",
+                  lineTension: 0.5,
+                  borderWidth: 1.5,
+                  borderColor: "#ffa600",
+                  label: "Total Loans Requested",
+                  data: data.chart.map(item => item["loans"]),
+                  backgroundColor: ctx => createGradient(ctx, "#ffa60090"),
+                },
               ],
             },
-            option: {
+            options: {
               maintainAspectRatio: false,
               responsive: true,
               plugins: {
                 legend: {
-                  display: !matches_800,
                   position: "top",
                 },
+              },
+              tooltips: {
+                callbacks: {
+                  label: function (tooltipItem, data) {
+                    var label = data.datasets[tooltipItem.datasetIndex].label || '';
+                    if (label) {
+                      label += ': ';
+                    }
+                    label += `₦${parseFloat(tooltipItem.yLabel ?? 0).toLocaleString("en-US")}`;
+                    return label;
+                  }
+                }
+              },
+              scales: {
+                xAxes: [{
+                  gridLines: {
+                    display: false,
+                  },
+                }],
+                yAxes: [{
+                  gridLines: {
+                    display: false,
+                    drawBorder: false,
+                  },
+                  ticks: {
+                    min: 0,
+                    beginAtZero: true,
+                    callback: (label, index, labels) => {
+                      // when the floored value is the same as the value we have a whole number
+                      if (Math.floor(label) === label) {
+                        return `₦${parseFloat(label ?? 0).toLocaleString("en-US")}`;
+                      }
+
+                    },
+                  },
+                }]
               },
             }
           });

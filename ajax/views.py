@@ -463,19 +463,38 @@ def get_chart(request):
         data["chart"].append(
             {
                 "month": month_abbr[month],
-                "loans": LoanRequest.objects.filter(
-                    created_at__month=month, created_at__year=year
-                ).count(),
-                "deposits": SavingsCredit.objects.filter(
-                    created_at__month=month,
-                    created_at__year=year,
-                    reason="credit-deposit",
-                ).count(),
-                "withdrawals": SavingsDebit.objects.filter(
-                    created_at__month=month,
-                    created_at__year=year,
-                    reason="debit-withdrawal",
-                ).count(),
+                "shares": (
+                    Shares.objects.filter(
+                        created_at__month=month, created_at__year=year
+                    ).aggregate(Sum("amount"))["amount__sum"]
+                    or 0
+                )
+                / 100,
+                "deposits": (
+                    SavingsCredit.objects.filter(
+                        created_at__month=month,
+                        created_at__year=year,
+                        reason="credit-deposit",
+                    ).aggregate(Sum("amount"))["amount__sum"]
+                    or 0
+                )
+                / 100,
+                "withdrawals": (
+                    SavingsDebit.objects.filter(
+                        created_at__month=month,
+                        created_at__year=year,
+                        reason="debit-withdrawal",
+                    ).aggregate(Sum("amount"))["amount__sum"]
+                    or 0
+                )
+                / 100,
+                "loans": (
+                    LoanRequest.objects.filter(
+                        created_at__month=month, created_at__year=year
+                    ).aggregate(Sum("amount"))["amount__sum"]
+                    or 0
+                )
+                / 100,
             }
         )
 
