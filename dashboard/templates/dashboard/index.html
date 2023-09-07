@@ -904,6 +904,8 @@
                 $('#notification_btn').addClass("d-none");
             }
             $("#notifications").html(messages);
+            if (data.count == $("#notifications>li").length)
+                $('#notification_btn>button#loadBtn').prop("disabled", true);
         }
     });
 
@@ -945,12 +947,6 @@
 
     $(document).on("click", "#notifications-main .btn-close-main", () => bootstrap.Dropdown
         .getInstance($(".not-drpdwn")).hide());
-
-    /*setInterval(() => $.ajax({
-        type: 'GET',
-        url: "{% url 'ajax:notify.unread_count' %}",
-        success: data => $('#bubble').css("display", data.count > 0 ? "block" : "none")
-    }), 2000);*/
 
     const performLoanFetch = (context, offcanvas, value) => {
         if (value != "") $.ajax({
@@ -1000,6 +996,9 @@
 
     })
 
+    $(".offcanvas").on("shown.bs.offcanvas", function () {
+        setCalenders()
+    })
     $(".offcanvas#lrc").on("shown.bs.offcanvas", function () {
         let offcanvas = $(this);
         let value = offcanvas.find("#id_member").val();

@@ -847,23 +847,18 @@ def notify_list(request):
     notifications = Notification.objects.filter(
         recipient=request.user,
     ).exclude(deleted=True)
-    count = int(
-        count
-        if count != "*" and int(count) <= notifications.count()
-        else notifications.count()
-        if count == "*"
-        else 10
-    )
+    data["count"] = notifications.count()
+    count = int(count) if int(count) <= notifications.count() else notifications.count()
     notifications = notifications[:count]
     for notification in notifications:
         data["list"].append(
             {
                 "id": notification.id,
-                "unread": notification.unread,
                 "verb": notification.verb,
-                "description": notification.description,
-                "timestamp": notification.timestamp,
                 "level": notification.level,
+                "unread": notification.unread,
+                "timestamp": notification.timestamp,
+                "description": notification.description,
             }
         )
     return JsonResponse(data)
