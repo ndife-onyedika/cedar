@@ -8715,6 +8715,7 @@ button.btn.nav-profile {
   padding-top: 1.625rem;
   padding-bottom: 0.625rem; }
 
+.search > .dropdown-toggle,
 .custom_dropdown-select + select {
   display: block;
   border: 0 !important;

@@ -264,7 +264,7 @@
         $('input.daterange').daterangepicker({
             "drops": "auto",
             "opens": "left",
-            "autoApply": true,
+            "autoApply": false,
             "showDropdowns": true,
             "autoUpdateInput": false,
             "linkedCalendars": false,
@@ -279,9 +279,8 @@
                 `${start.format('Do MMM YYYY')} - ${ end.format('Do MMM YYYY')}`);
         }).prop("readonly", true);
 
-        $('input.daterange+span').on('click', e => {
-            e.stopPropagation();
-            $(".drp-buttons>.cancelBtn").click();
+        $('input.daterange').on('cancel.daterangepicker', function (ev, picker) {
+            $(this).val('');
         });
         resetDateRange();
     }
@@ -664,9 +663,8 @@
                         : ''
                     }
                     <div class="search dropdown">
-                        <button style="font-size:small"
-                            class="btn btn-lg btn-outline-light bg-white border text-muted dropdown-toggle hstack gap-2"
-                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                        <button type="button" style="font-size:small" 
+                            class="btn btn-lg btn-outline-light bg-white border text-muted hstack gap-2">
                             <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-2.5 -2.5 24 24" width="32"
                                 fill="currentColor">
                                 <path
@@ -675,6 +673,7 @@
                             </svg>
                             Search
                         </button>
+                        <span class="dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="false" aria-expanded="false"></span>
                         <div style="min-width: 17.5rem;" class="dropdown-menu border-0 shadow py-3 px-2">
                             <form class="vstack gap-2">
                                 <div id="filter_fields" class="vstack gap-2">
@@ -692,12 +691,7 @@
                                                         ${item.type == "text"
                                                             ? `<input type="text" class="form-control rounded-2 small" value="${kwargs[item.name] || ""}" name="${item.name}" id="${item.name}_filter" placeholder="Search..." aria-label="${item.label}" />`
                                                             : item.type == "date"
-                                                                ? `<div class="position-relative">
-                                                                    <input readonly type="text" value="${date_range}" name="${item.name}" class="form-control daterange small" id="${item.name}_filter" placeholder="Start Date - End Date" aria-label="${item.label}" />
-                                                                    <span style="cursor:pointer;top: 50%;right:0;transform: translate(-50%,-50%)" class="rounded-circle bg-danger bg-opacity-25 p-1 position-absolute d-flex align-items-center justify-content-center">
-                                                                        <svg style="fill: var(--bs-danger);" class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 24 24" width="24" fill="currentColor"><path d="M11.414 10l2.829-2.828a1 1 0 1 0-1.415-1.415L10 8.586 7.172 5.757a1 1 0 0 0-1.415 1.415L8.586 10l-2.829 2.828a1 1 0 0 0 1.415 1.415L10 11.414l2.828 2.829a1 1 0 0 0 1.415-1.415L11.414 10zM10 20C4.477 20 0 15.523 0 10S4.477 0 10 0s10 4.477 10 10-4.477 10-10 10z"></path></svg>
-                                                                    </span>
-                                                                </div>`
+                                                                ? `<input readonly type="text" value="${date_range}" name="${item.name}" class="form-control daterange small" id="${item.name}_filter" placeholder="Start Date - End Date" aria-label="${item.label}" />`
                                                                 : item.type == "select"
                                                                     ? `<select name="${item.name}" data-class="small" id="${item.name}_filter" class="search-select" data-menu-class="w-auto" aria-label="Show per page">
                                                                             ${item.options.map((option, i) => `<option value="${option[0]}" ${`${option[0]}` === (kwargs[item.name] || "null") ? "selected": ""}>${option[1]}</option>`).join("")}
@@ -821,6 +815,13 @@
                 $(`[data-table-name='${table_name}'] .txn-foot`).html(table_foot);
                 create_custom_dropdowns();
                 setCalenders();
+
+                const myDropdown = $(`[data-table-name='${table_name}'] .search>button`);
+                myDropdown.on("click", function () {
+                    bootstrap.Dropdown
+                        .getOrCreateInstance($(this).next(".dropdown-toggle"))
+                        .toggle();
+                });
             }
         });
     }
