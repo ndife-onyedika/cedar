@@ -102,15 +102,15 @@ $("#passShow").on("click", function () {
 // ------------------------------------------------------
 // SELECT DROPDOWN
 // ------------------------------------------------------
-const setSelectCurrent = ({ context, select, selected }) => {
+const setSelectCurrent = ({ select, ...kwargs }) => {
     if (!select.nextElementSibling.hasAttribute("multiple")) {
-        if (context == "click") {
-            let text = selected.getAttribute("data-text") || selected.innerText;
-            selected.closest("ul").querySelector(".active").classList.remove("active");
-            selected.classList.add("active");
+        if (kwargs.context == "click") {
+            let text = kwargs.selected.getAttribute("data-text") || kwargs.selected.innerText;
+            kwargs.selected.closest("ul").querySelector(".active").classList.remove("active");
+            kwargs.selected.classList.add("active");
 
             select.querySelector(".current").innerText = text.trim();
-            select.nextElementSibling.value = selected.getAttribute("data-value");
+            select.nextElementSibling.value = kwargs.selected.getAttribute("data-value");
             select.nextElementSibling.dispatchEvent(new Event("change", { bubbles: true }));
         }
     } else {
@@ -303,6 +303,7 @@ $(document).on("click", ".custom_dropdown-select .current button", function (e) 
             }
         });
     button.parent().remove();
+    setSelectCurrent({ select: select[0] });
 });
 
 // Keyboard events

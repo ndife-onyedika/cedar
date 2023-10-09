@@ -153,7 +153,15 @@
                     callback: (label, index, labels) => {
                       // when the floored value is the same as the value we have a whole number
                       if (Math.floor(label) === label) {
-                        return `₦${parseFloat(label ?? 0).toLocaleString("en-US")}`;
+                        let new_label = label.toString();
+                        if (new_label.length === 1) new_label = new_label
+                        if (new_label.length === 4) new_label = new_label.substr(0, 1) + "K";
+                        if (new_label.length === 5) new_label = new_label.substr(0, 2) + "K";
+                        if (new_label.length === 6) new_label = new_label.substr(0, 3) + "K";
+                        if (new_label.length === 7) new_label = new_label.substr(0, 1) + "M";
+                        if (new_label.length === 8) new_label = new_label.substr(0, 2) + "M";
+                        if (new_label.length === 9) new_label = new_label.substr(0, 3) + "M";
+                        return `${new_label}`;
                       }
 
                     },
