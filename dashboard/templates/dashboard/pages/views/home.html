@@ -61,7 +61,7 @@
       $(document).ready(() => $.ajax({
         dataType: 'json',
         url: "{% url 'ajax:gc' %}",
-        success: function (data) {
+        success: data => {
           const createGradient = (ctx, color) => {
             const chart = ctx.chart;
             if (!chart.chartArea) return color;
@@ -80,6 +80,7 @@
               labels: data.chart.map(item => item["month"]),
               datasets: [{
                   fill: "start",
+                  pointRadius: 0,
                   lineTension: 0.5,
                   borderWidth: 1.5,
                   borderColor: "#0dcaf0",
@@ -89,6 +90,7 @@
                 },
                 {
                   fill: "start",
+                  pointRadius: 0,
                   lineTension: 0.5,
                   borderWidth: 1.5,
                   borderColor: "#2bc179",
@@ -98,6 +100,7 @@
                 },
                 {
                   fill: "start",
+                  pointRadius: 0,
                   lineTension: 0.5,
                   borderWidth: 1.5,
                   borderColor: "#b168bc",
@@ -107,6 +110,7 @@
                 },
                 {
                   fill: "start",
+                  pointRadius: 0,
                   lineTension: 0.5,
                   borderWidth: 1.5,
                   borderColor: "#ffa600",
@@ -125,6 +129,7 @@
                 },
               },
               tooltips: {
+                intersect: false,
                 callbacks: {
                   label: function (tooltipItem, data) {
                     var label = data.datasets[tooltipItem.datasetIndex].label || '';
