@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import IntegrityError, transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render, resolve_url
 from django.views.decorators.http import require_http_methods
@@ -48,20 +49,31 @@ class LoanListView(LoginRequiredMixin, TemplateView):
         status = "error"
         form = LoanRequestForm(data=request.POST)
         if form.is_valid():
-            code = 200
-            status = "success"
-            loan_request = form.save()
-            message = "Transaction recorded successfully"
-            notify.send(
-                User.objects.get(is_superuser=True),
-                level="success",
-                recipient=User.objects.exclude(is_superuser=False),
-                verb="Loan: Disbursed - {}".format(loan_request.member.name),
-                description="{}'s loan request of {} has been disbursed.".format(
-                    loan_request.member.name, get_amount(loan_request.amount)
-                ),
-            )
+            try:
+                with transaction.atomic():
+                    loan_request = form.save()
+            except IntegrityError as e:
+                print(f"LOAN-CREATE-ERROR: {e}")
+                code = 500
+                status = "error"
+                message = "Error recording transaction"
+            else:
+                code = 200
+                status = "success"
+                message = "Transaction recorded successfully"
+                notify.send(
+                    User.objects.get(is_superuser=True),
+                    level="success",
+                    recipient=User.objects.exclude(is_superuser=False),
+                    verb="Loan: Disbursed - {}".format(loan_request.member.name),
+                    description="{}'s loan request of {} has been disbursed.".format(
+                        loan_request.member.name, get_amount(loan_request.amount)
+                    ),
+                )
         else:
+            code = 400
+            status = "error"
+            message = None
             data = {
                 field: error[0]["message"]
                 for field, error in form.errors.get_json_data(escape_html=True).items()
@@ -156,8 +168,18 @@ class LoanView(LoginRequiredMixin, TemplateView):
             form = LoanRequestForm(instance=loan, data=request.POST)
             print(form.errors)
             if form.is_valid():
-                loan = form.save()
-                message = "Transaction updated successfully"
+                try:
+                    with transaction.atomic():
+                        loan = form.save()
+                except IntegrityError as e:
+                    print(f"LOAN-UPDATE-ERROR: {e}")
+                    code = 500
+                    status = "error"
+                    message = "Error updating transaction"
+                else:
+                    code = 200
+                    status = "success"
+                    message = "Transaction updated successfully"
             else:
                 code = 400
                 message = None
@@ -204,9 +226,22 @@ class LoanRepaymentView(LoginRequiredMixin, TemplateView):
         if repay:
             form = LoanRepaymentForm(instance=repay, data=request.POST)
             if form.is_valid():
-                repay = form.save()
-                message = "Transaction updated successfully"
+                try:
+                    with transaction.atomic():
+                        repay = form.save()
+                except IntegrityError as e:
+                    print(f"LOAN-REPAYMENT-UPDATE-ERROR: {e}")
+                    code = 500
+                    status = "error"
+                    message = "Error updating transaction"
+                else:
+                    code = 200
+                    status = "success"
+                    message = "Transaction updated successfully"
             else:
+                code = 400
+                status = "error"
+                message = None
                 data = {
                     field: error[0]["message"]
                     for field, error in form.errors.get_json_data(
@@ -224,24 +259,35 @@ def loan_repayment_view(request, *args, **kwargs):
     form = LoanRepaymentForm(data=request.POST)
     print(form.errors)
     if form.is_valid():
-        code = 200
-        status = "success"
-        loan_repayment = form.save()
-        message = "Transaction recorded successfully"
-        notify.send(
-            User.objects.get(is_superuser=True),
-            level="success",
-            recipient=User.objects.exclude(is_superuser=False),
-            verb="Loan: Repayment - {}".format(loan_repayment.member.name),
-            description="{}'s loan repayment of {} has been recorded. Outstanding Amount: {}".format(
-                loan_repayment.member.name,
-                get_amount(loan_repayment.amount),
-                get_amount(loan_repayment.loan.outstanding_amount)
-                if hasattr(loan_repayment, "loan")
-                else "",
-            ),
-        )
+        try:
+            with transaction.atomic():
+                loan_repayment = form.save()
+        except IntegrityError as e:
+            print(f"LOAN-REPAYMENT-CREATE-ERROR: {e}")
+            code = 500
+            status = "error"
+            message = "Error recording transaction"
+        else:
+            code = 200
+            status = "success"
+            message = "Transaction recorded successfully"
+            notify.send(
+                User.objects.get(is_superuser=True),
+                level="success",
+                recipient=User.objects.exclude(is_superuser=False),
+                verb="Loan: Repayment - {}".format(loan_repayment.member.name),
+                description="{}'s loan repayment of {} has been recorded. Outstanding Amount: {}".format(
+                    loan_repayment.member.name,
+                    get_amount(loan_repayment.amount),
+                    get_amount(loan_repayment.loan.outstanding_amount)
+                    if hasattr(loan_repayment, "loan")
+                    else "",
+                ),
+            )
     else:
+        code = 400
+        status = "error"
+        message = None
         data = {
             field: error[0]["message"]
             for field, error in form.errors.get_json_data(escape_html=True).items()

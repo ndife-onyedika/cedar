@@ -1,11 +1,12 @@
+from datetime import time
+
 import phonenumbers
 from django import forms
+from django.utils.timezone import datetime, make_aware, now
 from email_validator import EmailNotValidError, validate_email
 from phonenumbers.phonenumberutil import NumberParseException
 
 from accounts.models import Member, User
-from django.utils.timezone import now, datetime, make_aware
-from datetime import time
 
 
 class ServiceForm(forms.ModelForm):
@@ -40,7 +41,6 @@ class ServiceForm(forms.ModelForm):
                 if created_at.date() == now().date()
                 else make_aware(datetime.combine(created_at.date(), time(2, 0)))
             )
-        raise Exception("a")
         return data
 
 

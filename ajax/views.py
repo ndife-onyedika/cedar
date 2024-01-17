@@ -1,6 +1,6 @@
+import io
 from calendar import month_abbr
 from datetime import date
-import io
 
 from django.conf import settings as dj_sett
 from django.contrib.auth.decorators import login_required
@@ -14,25 +14,13 @@ from django.views.decorators.http import require_http_methods
 from notifications.models import Notification
 
 from accounts.models import Member
-from cedar.mixins import (
-    display_duration,
-    display_rate,
-    exportPDF,
-    get_amount,
-    get_data_equivalent,
-    get_savings_total,
-)
+from cedar.mixins import (display_duration, display_rate, exportPDF,
+                          get_amount, get_data_equivalent, get_savings_total)
 from loans.models import LoanRepayment, LoanRequest
-from savings.models import (
-    SavingsCredit,
-    SavingsDebit,
-    SavingsInterest,
-    SavingsInterestTotal,
-    YearEndBalance,
-)
+from savings.models import (SavingsCredit, SavingsDebit, SavingsInterest,
+                            SavingsInterestTotal, YearEndBalance)
 from settings.models import AccountChoice
 from shares.models import Shares
-
 
 # Create your views here.
 
@@ -83,14 +71,13 @@ def service_create(request, context: str):
         "savings.credit": savings_credit_view,
         "loans.repayment": loan_repayment_view,
     }
-    print(request.POST)
 
     try:
         code, data["status"], data["message"], data["data"] = contexts[context](
             request=request
         )
     except Exception as e:
-        print(f"{e}")
+        print("ERROR",f"{e}")
         code = 400
         data["status"] = "error"
         data["message"] = "Invalid Context"

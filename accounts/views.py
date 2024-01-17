@@ -1,10 +1,12 @@
 import json
+
 from django.contrib import messages as flash_messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import IntegrityError, transaction
-from django.http import Http404
+from django.db.models.aggregates import Sum
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render, resolve_url
 from django.urls import reverse
 from django.views.generic import TemplateView
@@ -13,19 +15,15 @@ from accounts.models import Member, NextOfKin
 from cedar.decorators import redirect_authenticated
 from cedar.mixins import (
     get_amount,
+    get_data_equivalent,
     get_savings_total,
     get_shares_total,
-    get_data_equivalent,
 )
 from loans.forms import LoanRepaymentForm, LoanRequestForm
 from savings.forms import SavingsCreditForm, SavingsDebitForm
 from savings.models import SavingsCredit, SavingsDebit, SavingsTotal
 from settings.models import AccountChoice
-from django.db.models.aggregates import Sum
-from django.http import JsonResponse
-
 from shares.forms import ShareAddForm
-
 
 from .forms import CustomPasswordResetForm, EditMemberForm, LoginForm, RegistrationForm
 
@@ -109,11 +107,19 @@ class MemberView(MemberListView):
         form = EditMemberForm(instance=member, data=request.POST, files=request.FILES)
 
         if form.is_valid():
-            code = 200
-            status = "success"
-            member = form.save()
-            data["message"] = "{} profile updated successfully".format(member.name)
+            try:
+                with transaction.atomic():
+                    member = form.save()
+            except IntegrityError as e:
+                print(f"MEMBER-UPDATE-ERROR: {e}")
+                code = 500
+                data["message"] = "Error recording transaction"
+            else:
+                code = 200
+                status = "success"
+                data["message"] = "{} profile updated successfully".format(member.name)
         else:
+            code = 400
             data["data"] = {
                 field: error[0]["message"]
                 for field, error in form.errors.get_json_data(escape_html=True).items()

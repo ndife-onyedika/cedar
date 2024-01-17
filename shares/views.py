@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import IntegrityError, transaction
 from django.db.models.aggregates import Sum
 from django.db.models.query_utils import Q
 from django.shortcuts import get_object_or_404, render
@@ -40,35 +41,45 @@ class ShareListView(LoginRequiredMixin, TemplateView):
         isMember = request.POST.get("isMember", "").lower() == "true"
         print(form.errors)
         if form.is_valid():
-            code = 200
-            status = "success"
-            share = form.save()
-            message = "Transaction recorded successfully"
-            notify.send(
-                User.objects.get(is_superuser=True),
-                level="success",
-                recipient=User.objects.exclude(is_superuser=False),
-                verb="Shares: Share Added - {}".format(share.member.name),
-                description="{}'s share of {} has been recorded. Total Shares: {}".format(
-                    share.member.name,
-                    get_amount(share.amount),
-                    get_amount(get_shares_total(share.member)),
-                ),
-            )
-            total_shares = (
-                SharesTotal.objects.filter(
-                    Q(member=share.member) if isMember else Q()
-                ).aggregate(Sum("amount"))["amount__sum"]
-                or 0
-            )
-            data = {
-                "id": share.id,
-                "created_at": share.created_at,
-                "total": get_amount(total_shares),
-                "amount": get_amount(share.amount),
-                "member": {"id": share.member.id, "name": share.member.name},
-            }
+            try:
+                with transaction.atomic():
+                    share = form.save()
+            except IntegrityError as e:
+                print(f"SHARES-CREATE-ERROR: {e}")
+                code = 500
+                status = "error"
+                message = "Error recording transaction"
+            else:
+                code = 200
+                status = "success"
+                message = "Transaction recorded successfully"
+                notify.send(
+                    User.objects.get(is_superuser=True),
+                    level="success",
+                    recipient=User.objects.exclude(is_superuser=False),
+                    verb="Shares: Share Added - {}".format(share.member.name),
+                    description="{}'s share of {} has been recorded. Total Shares: {}".format(
+                        share.member.name,
+                        get_amount(share.amount),
+                        get_amount(get_shares_total(share.member)),
+                    ),
+                )
+                total_shares = (
+                    SharesTotal.objects.filter(
+                        Q(member=share.member) if isMember else Q()
+                    ).aggregate(Sum("amount"))["amount__sum"]
+                    or 0
+                )
+                data = {
+                    "id": share.id,
+                    "created_at": share.created_at,
+                    "total": get_amount(total_shares),
+                    "amount": get_amount(share.amount),
+                    "member": {"id": share.member.id, "name": share.member.name},
+                }
         else:
+            code = 400
+            status = "error"
             data = {
                 field: error[0]["message"]
                 for field, error in form.errors.get_json_data(escape_html=True).items()
@@ -109,22 +120,34 @@ class ShareView(LoginRequiredMixin, TemplateView):
             form = ShareAddForm(instance=share, data=request.POST)
             isMember = request.POST.get("isMember", "").lower() == "true"
             if form.is_valid():
-                share = form.save()
-                message = "Transaction updated successfully"
-                total_shares = (
-                    SharesTotal.objects.filter(
-                        Q(member=share.member) if isMember else Q()
-                    ).aggregate(Sum("amount"))["amount__sum"]
-                    or 0
-                )
-                data = {
-                    "id": share.id,
-                    "created_at": share.created_at,
-                    "total": get_amount(total_shares),
-                    "amount": get_amount(share.amount),
-                    "member": {"id": share.member.id, "name": share.member.name},
-                }
+                try:
+                    with transaction.atomic():
+                        share = form.save()
+                except IntegrityError as e:
+                    print(f"SHARES-UPDATE-ERROR: {e}")
+                    code = 500
+                    status = "error"
+                    message = "Error updating transaction"
+                else:
+                    code = 200
+                    status = "success"
+                    message = "Transaction updated successfully"
+                    total_shares = (
+                        SharesTotal.objects.filter(
+                            Q(member=share.member) if isMember else Q()
+                        ).aggregate(Sum("amount"))["amount__sum"]
+                        or 0
+                    )
+                    data = {
+                        "id": share.id,
+                        "created_at": share.created_at,
+                        "total": get_amount(total_shares),
+                        "amount": get_amount(share.amount),
+                        "member": {"id": share.member.id, "name": share.member.name},
+                    }
             else:
+                code = 400
+                status = "error"
                 data = {
                     field: error[0]["message"]
                     for field, error in form.errors.get_json_data(

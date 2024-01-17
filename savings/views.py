@@ -1,6 +1,8 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import IntegrityError, transaction
 from django.db.models.aggregates import Sum
+from django.db.models.query_utils import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
@@ -11,8 +13,6 @@ from accounts.models import Member, User
 from cedar.mixins import get_amount, get_savings_total
 from savings.forms import SavingsCreditForm, SavingsDebitForm
 from savings.models import SavingsCredit, SavingsDebit, SavingsTotal
-
-from django.db.models.query_utils import Q
 
 
 # Create your views here.
@@ -55,7 +55,7 @@ class YearEndBalanceListView(LoginRequiredMixin, TemplateView):
 
 
 class SavingsCreditView(LoginRequiredMixin, TemplateView):
-    def getSavingsCredit(self, id):
+    def __getSavingsCredit(self, id):
         credit = None
         try:
             credit = SavingsCredit.objects.get(id=id)
@@ -70,7 +70,7 @@ class SavingsCreditView(LoginRequiredMixin, TemplateView):
         return code, status, message, credit
 
     def get(self, request, id, *args, **kwargs):
-        code, status, message, credit = self.getSavingsCredit(id)
+        code, status, message, credit = self.__getSavingsCredit(id)
         data = {}
         if credit:
             data = {
@@ -82,28 +82,41 @@ class SavingsCreditView(LoginRequiredMixin, TemplateView):
         return code, status, message, data
 
     def post(self, request, id, *args, **kwargs):
-        code, status, message, credit = self.getSavingsCredit(id)
+        code, status, message, credit = self.__getSavingsCredit(id)
         data = {}
         if credit:
             form = SavingsCreditForm(instance=credit, data=request.POST)
             isMember = request.POST.get("isMember", "").lower() == "true"
             if form.is_valid():
-                credit = form.save()
-                message = "Transaction updated successfully"
-                total_savings = (
-                    SavingsTotal.objects.filter(
-                        Q(member=credit.member) if isMember else Q()
-                    ).aggregate(Sum("amount"))["amount__sum"]
-                    or 0
-                )
-                data = {
-                    "id": credit.id,
-                    "created_at": credit.created_at,
-                    "amount": get_amount(credit.amount),
-                    "total": get_amount(amount=total_savings),
-                    "member": {"id": credit.member.id, "name": credit.member.name},
-                }
+                try:
+                    with transaction.atomic():
+                        credit = form.save()
+                except IntegrityError as e:
+                    print(f"SAVINGS-CREDIT-UPDATE-ERROR: {e}")
+                    code = 500
+                    status = "error"
+                    message = "Error updating transaction"
+                else:
+                    code = 200
+                    status = "success"
+                    message = "Transaction updated successfully"
+                    total_savings = (
+                        SavingsTotal.objects.filter(
+                            Q(member=credit.member) if isMember else Q()
+                        ).aggregate(Sum("amount"))["amount__sum"]
+                        or 0
+                    )
+                    data = {
+                        "id": credit.id,
+                        "created_at": credit.created_at,
+                        "amount": get_amount(credit.amount),
+                        "total": get_amount(amount=total_savings),
+                        "member": {"id": credit.member.id, "name": credit.member.name},
+                    }
             else:
+                code = 400
+                status = "error"
+                message = None
                 data = {
                     field: error[0]["message"]
                     for field, error in form.errors.get_json_data(
@@ -147,22 +160,35 @@ class SavingsDebitView(LoginRequiredMixin, TemplateView):
             form = SavingsDebitForm(instance=debit, data=request.POST)
             isMember = request.POST.get("isMember", "").lower() == "true"
             if form.is_valid():
-                debit = form.save()
-                message = "Transaction updated successfully"
-                total_savings = (
-                    SavingsTotal.objects.filter(
-                        Q(member=debit.member) if isMember else Q()
-                    ).aggregate(Sum("amount"))["amount__sum"]
-                    or 0
-                )
-                data = {
-                    "id": debit.id,
-                    "created_at": debit.created_at,
-                    "amount": get_amount(debit.amount),
-                    "total": get_amount(amount=total_savings),
-                    "member": {"id": debit.member.id, "name": debit.member.name},
-                }
+                try:
+                    with transaction.atomic():
+                        debit = form.save()
+                except IntegrityError as e:
+                    print(f"SAVINGS-DEBIT-UPDATE-ERROR: {e}")
+                    code = 500
+                    status = "error"
+                    message = "Error updating transaction"
+                else:
+                    code = 200
+                    status = "success"
+                    message = "Transaction updated successfully"
+                    total_savings = (
+                        SavingsTotal.objects.filter(
+                            Q(member=debit.member) if isMember else Q()
+                        ).aggregate(Sum("amount"))["amount__sum"]
+                        or 0
+                    )
+                    data = {
+                        "id": debit.id,
+                        "created_at": debit.created_at,
+                        "amount": get_amount(debit.amount),
+                        "total": get_amount(amount=total_savings),
+                        "member": {"id": debit.member.id, "name": debit.member.name},
+                    }
             else:
+                code = 400
+                status = "error"
+                message = None
                 data = {
                     field: error[0]["message"]
                     for field, error in form.errors.get_json_data(
@@ -181,35 +207,45 @@ def savings_credit_view(request, *args, **kwargs):
     form = SavingsCreditForm(data=request.POST)
     print(form.errors)
     if form.is_valid():
-        code = 200
-        status = "success"
-        credit = form.save()
-        message = "Transaction recorded successfully"
-        notify.send(
-            User.objects.get(is_superuser=True),
-            level="success",
-            recipient=User.objects.exclude(is_superuser=False),
-            verb="Savings: Credit - {}".format(credit.member.name),
-            description="{}'s deposit of {} has been recorded. Total Savings: {}".format(
-                credit.member.name,
-                get_amount(credit.amount),
-                get_amount(get_savings_total(credit.member).amount),
-            ),
-        )
-        total_savings = (
-            SavingsTotal.objects.filter(
-                Q(member=credit.member) if isMember else Q()
-            ).aggregate(Sum("amount"))["amount__sum"]
-            or 0
-        )
-        data = {
-            "id": credit.id,
-            "created_at": credit.created_at,
-            "amount": get_amount(credit.amount),
-            "total": get_amount(amount=total_savings),
-            "member": {"id": credit.member.id, "name": credit.member.name},
-        }
+        try:
+            with transaction.atomic():
+                credit = form.save()
+        except IntegrityError as e:
+            print(f"SAVINGS-CREDIT-CREATE-ERROR: {e}")
+            code = 500
+            message = "Error recording transaction"
+        else:
+            code = 200
+            status = "success"
+            message = "Transaction recorded successfully"
+            notify.send(
+                User.objects.get(is_superuser=True),
+                level="success",
+                recipient=User.objects.exclude(is_superuser=False),
+                verb="Savings: Credit - {}".format(credit.member.name),
+                description="{}'s deposit of {} has been recorded. Total Savings: {}".format(
+                    credit.member.name,
+                    get_amount(credit.amount),
+                    get_amount(get_savings_total(credit.member).amount),
+                ),
+            )
+            total_savings = (
+                SavingsTotal.objects.filter(
+                    Q(member=credit.member) if isMember else Q()
+                ).aggregate(Sum("amount"))["amount__sum"]
+                or 0
+            )
+            data = {
+                "id": credit.id,
+                "created_at": credit.created_at,
+                "amount": get_amount(credit.amount),
+                "total": get_amount(amount=total_savings),
+                "member": {"id": credit.member.id, "name": credit.member.name},
+            }
     else:
+        code = 400
+        status = "error"
+        message = None
         data = {
             field: error[0]["message"]
             for field, error in form.errors.get_json_data(escape_html=True).items()
@@ -226,36 +262,46 @@ def savings_debit_view(request, *args, **kwargs):
     form = SavingsDebitForm(data=request.POST)
     print(form.errors)
     if form.is_valid():
-        code = 200
-        status = "success"
-        debit = form.save()
-        message = "Transaction recorded successfully"
-        notify.send(
-            User.objects.get(is_superuser=True),
-            level="success",
-            recipient=User.objects.exclude(is_superuser=False),
-            verb="Savings: Debit - {}".format(debit.member.name),
-            description="{}'s withdrawal of {} has been recorded. Total Savings: {}".format(
-                debit.member.name,
-                get_amount(debit.amount),
-                get_amount(get_savings_total(debit.member).amount),
-            ),
-        )
+        try:
+            with transaction.atomic():
+                debit = form.save()
+        except IntegrityError as e:
+            print(f"SAVINGS-DEBIT-CREATE-ERROR: {e}")
+            code = 500
+            message = "Error recording transaction"
+        else:
+            code = 200
+            status = "success"
+            message = "Transaction recorded successfully"
+            notify.send(
+                User.objects.get(is_superuser=True),
+                level="success",
+                recipient=User.objects.exclude(is_superuser=False),
+                verb="Savings: Debit - {}".format(debit.member.name),
+                description="{}'s withdrawal of {} has been recorded. Total Savings: {}".format(
+                    debit.member.name,
+                    get_amount(debit.amount),
+                    get_amount(get_savings_total(debit.member).amount),
+                ),
+            )
 
-        total_savings = (
-            SavingsTotal.objects.filter(
-                Q(member=debit.member) if isMember else Q()
-            ).aggregate(Sum("amount"))["amount__sum"]
-            or 0
-        )
-        data = {
-            "id": debit.id,
-            "created_at": debit.created_at,
-            "amount": get_amount(debit.amount),
-            "total": get_amount(amount=total_savings),
-            "member": {"id": debit.member.id, "name": debit.member.name},
-        }
+            total_savings = (
+                SavingsTotal.objects.filter(
+                    Q(member=debit.member) if isMember else Q()
+                ).aggregate(Sum("amount"))["amount__sum"]
+                or 0
+            )
+            data = {
+                "id": debit.id,
+                "created_at": debit.created_at,
+                "amount": get_amount(debit.amount),
+                "total": get_amount(amount=total_savings),
+                "member": {"id": debit.member.id, "name": debit.member.name},
+            }
     else:
+        code = 400
+        status = "error"
+        message = None
         data = {
             field: error[0]["message"]
             for field, error in form.errors.get_json_data(escape_html=True).items()

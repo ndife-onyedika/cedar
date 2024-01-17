@@ -240,6 +240,30 @@
         }
     });
 
+    const resetDate = () => $(`input.date`).each(function () {
+        let date = $(this);
+        let value = date.val();
+        if (value !== "") {
+            let timestamp = moment(value, 'YYYY-MM-DD');
+            timestamp = timestamp.format('DD MMM, YYYY')
+            date.data("daterangepicker").setStartDate(timestamp);
+            date.data("daterangepicker").setEndDate(timestamp);
+            date.val(timestamp);
+        }
+    });
+
+    const resetDateTime = () => $(`input.datetime`).each(function () {
+        let datetime = $(this);
+        let value = datetime.val();
+        if (value !== "") {
+            let timestamp = moment(value, 'YYYY-MM-DD hh:mm:ss');
+            timestamp = timestamp.format('MMM DD, YYYY, h:mm a')
+            datetime.data("daterangepicker").setStartDate(timestamp);
+            datetime.data("daterangepicker").setEndDate(timestamp);
+            datetime.val(timestamp);
+        }
+    });
+
     const resetDateRange = () => $('input.daterange').each(function () {
         let daterange = $(this);
         let value = daterange.val();
@@ -254,11 +278,24 @@
     });
 
     const clearForm = container => {
-        container.find("form")[0].reset();
+        if (container.find("form").length) {
+            container.find("form")[0].reset();
+            container.find("form").attr("data-context", "create");
+            $(".is-invalid").removeClass("is-invalid");
+            $(".invalid-feedback").removeClass("d-block");
+            $(".invalid-feedback").html();
+        };
+        if (container.find(".carousel").length) {
+            let carouselEl = container.find(".carousel");
+            const carousel = bootstrap.Carousel.getOrCreateInstance(carouselEl);
+            carousel.to(0);
+        }
+        if (container.find('input.datetime').length) {
+            container.find('input.datetime').data('daterangepicker').setStartDate(moment());
+            container.find('input.datetime').data('daterangepicker').setEndDate(moment());
+        }
         create_custom_dropdowns();
-        container.find('input.datetime').data('daterangepicker').setStartDate(moment());
-        container.find('input.datetime').data('daterangepicker').setEndDate(moment());
-    }
+    };
 
     const setCalenders = () => {
         $('input.daterange').daterangepicker({
@@ -1219,6 +1256,8 @@
                 });
                 CANVAS.show();
                 create_custom_dropdowns();
+                resetDateTime();
+                resetDate();
             }
         });
     });
