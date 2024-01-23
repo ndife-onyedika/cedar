@@ -1,10 +1,10 @@
 from accounts.models import Member
 from cedar.mixins import (
-    get_amount,
-    get_data_equivalent,
     display_duration,
     display_rate,
     format_date_model,
+    get_amount,
+    get_data_equivalent,
 )
 from dashboard.forms import ServiceForm
 from loans.mixins import check_loan_eligibility
@@ -12,78 +12,94 @@ from loans.models import LoanRepayment, LoanRequest
 
 
 class LoanRequestForm(ServiceForm):
-    class Meta:
+    class Meta(ServiceForm.Meta):
         model = LoanRequest
-        fields = ["member", "amount", "guarantors", "created_at"]
+        fields = ServiceForm.Meta.fields + ["guarantors"]
 
-    def __init__(self, *args, **kwargs):
-        member = kwargs.get("initial", {}).get("member")
-        super(LoanRequestForm, self).__init__(*args, **kwargs)
-        if member:
-            self.fields["guarantors"].choices = [
-                item
-                for item in self.fields["guarantors"].choices
-                if item[0] != member.id
-            ]
-
-    def clean(self):
-        data = super(LoanRequestForm, self).clean()
+    def clean(self) -> dict:
+        data = self.cleaned_data
 
         member = data["member"]
         guarantors = data["guarantors"]
 
-        if not self.instance and not member.is_active:
+        if not member.is_active:
             self.add_error("member", "Member Inactive")
 
-        if len(guarantors) > 2 or len(guarantors) < 2:
+        if len(guarantors) != 2:
             self.add_error("guarantors", "Select only two guarantors")
 
         is_eligible = check_loan_eligibility(member, data["amount"])
-        if not self.instance and not is_eligible:
+        if not is_eligible:
             self.add_error(
                 "amount",
                 "Member does not have {}% of loan in savings.".format(
                     member.account_type.lsr
                 ),
             )
+        return data
+
+    def save(self):
+        data = self.cleaned_data
+        member = data.get("member")
+
+        loan = LoanRequest(
+            member=member,
+            amount=data["amount"],
+            duration=member.account_type.ld,
+            interest_rate=member.account_type.lir,
+        )
+        loan.save()
+        loan.guarantors.clear()
+        [loan.guarantors.add(guarantor) for guarantor in data.get("guarantors")]
+
+        return loan
+
+
+class LoanRequestEditForm(ServiceForm):
+    class Meta(ServiceForm.Meta):
+        model = LoanRequest
+        fields = ServiceForm.Meta.fields + ["guarantors"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance = kwargs.get("instance")
+        self.fields["guarantors"].choices = [
+            item
+            for item in self.fields["guarantors"].choices
+            if item[0] != self.instance.member.id
+        ]
+
+    def clean(self) -> dict:
+        data = self.cleaned_data
+        guarantors = data["guarantors"]
+        if len(guarantors) != 2:
+            self.add_error("guarantors", "Select only two guarantors")
 
         return data
 
     def save(self):
         data = self.cleaned_data
-        print(data)
-        print(self.instance)
         member = data.get("member")
-        if self.instance:
-            loan = self.instance
-            loan.member = data.get("member", loan.member)
-            loan.amount = data.get("amount", loan.amount)
-            loan.save()
-            [
-                loan.guarantors.add(guarantor)
-                for guarantor in data.get("guarantors", loan.guarantors.all())
-            ]
-        else:
-            loan = LoanRequest(
-                amount=data.get("amount"),
-                member=data.get("member"),
-                duration=member.account_type.ld,
-                interest_rate=member.account_type.lir,
-            )
-            loan.save()
-            [loan.guarantors.add(guarantor) for guarantor in data.get("guarantors")]
+        loan = self.instance
+        loan.member = member
+        loan.amount = data["amount"]
+        loan.save()
+        loan.guarantors.clear()
+        [loan.guarantors.add(guarantor) for guarantor in data.get("guarantors")]
 
         return loan
 
 
 class LoanRepaymentForm(ServiceForm):
-    class Meta:
+    class Meta(ServiceForm.Meta):
         model = LoanRepayment
-        fields = ["member", "loan", "amount", "created_at"]
+        fields = ServiceForm.Meta.fields + ["loan"]
 
     def __init__(self, *args, **kwargs):
-        loan = kwargs.get("initial", {}).get("loan")
         super(ServiceForm, self).__init__(*args, **kwargs)
+        initial = kwargs.get("initial", {})
+        loan = initial.get("loan")
+
         self.fields["member"].choices = [(None, "Choose one")] + [
             (loan.member.id, loan.member.name)
             for loan in LoanRequest.objects.filter(status="disbursed").order_by(

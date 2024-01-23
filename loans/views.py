@@ -15,7 +15,7 @@ from cedar.mixins import (
     get_data_equivalent,
     get_daycount_nextdate,
 )
-from loans.forms import LoanRepaymentForm, LoanRequestForm
+from loans.forms import LoanRepaymentForm, LoanRequestEditForm, LoanRequestForm
 
 from .models import LoanRepayment, LoanRequest
 
@@ -55,7 +55,6 @@ class LoanListView(LoginRequiredMixin, TemplateView):
             except IntegrityError as e:
                 print(f"LOAN-CREATE-ERROR: {e}")
                 code = 500
-                status = "error"
                 message = "Error recording transaction"
             else:
                 code = 200
@@ -71,9 +70,6 @@ class LoanListView(LoginRequiredMixin, TemplateView):
                     ),
                 )
         else:
-            code = 400
-            status = "error"
-            message = None
             data = {
                 field: error[0]["message"]
                 for field, error in form.errors.get_json_data(escape_html=True).items()
@@ -165,7 +161,7 @@ class LoanView(LoginRequiredMixin, TemplateView):
         data = {}
         code, status, message, loan = self.getLoan(id)
         if loan:
-            form = LoanRequestForm(instance=loan, data=request.POST)
+            form = LoanRequestEditForm(instance=loan, data=request.POST)
             print(form.errors)
             if form.is_valid():
                 try:

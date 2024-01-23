@@ -1,7 +1,8 @@
-from re import T
 import re
+from re import T
 
 from django.db import IntegrityError, models, transaction
+from django.db.models.aggregates import Sum
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch.dispatcher import receiver
 from django.utils import timezone
@@ -12,11 +13,10 @@ from cedar.constants import LOAN_STATUS_CHOICES
 from cedar.mixins import (
     display_duration,
     display_rate,
+    format_date_model,
     get_amount,
     get_data_equivalent,
-    format_date_model,
 )
-from django.db.models.aggregates import Sum
 
 
 # Create your models here.

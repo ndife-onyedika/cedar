@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.forms import (
     AuthenticationForm,
     PasswordResetForm,
+    ReadOnlyPasswordHashField,
     SetPasswordForm,
 )
 from django.contrib.sites.models import Site
@@ -19,8 +20,8 @@ from dashboard.forms import (
     _validate_name,
     _validate_phone,
 )
+
 from .models import Member, NextOfKin, User
-from django.contrib.auth.forms import ReadOnlyPasswordHashField
 
 
 class UserCreationForm(forms.ModelForm):
@@ -122,7 +123,7 @@ class MemberForm(forms.ModelForm):
 
 class RegistrationForm(MemberForm):
     def __init__(self, *args, **kwargs):
-        super(RegistrationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         del self.fields["is_active"]
 
     def is_valid(self) -> bool:
@@ -133,14 +134,14 @@ class RegistrationForm(MemberForm):
         return result
 
     def clean(self):
-        data = super(RegistrationForm, self).clean()
+        data = self.cleaned_data
 
         name = data["name"] = _validate_name(
             form=self, name=data.get("name"), field="name"
         )
-        if phone := str(data.get("phone")):
+        if phone := data.get("phone"):
             data["phone"] = _validate_phone(
-                form=self, phone=phone, field="phone", check_exist=True
+                form=self, phone=str(phone), field="phone", check_exist=True
             )
         if email := data.get("email"):
             data["email"] = _validate_email(

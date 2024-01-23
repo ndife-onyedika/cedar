@@ -1,11 +1,13 @@
-from dashboard.forms import ServiceForm, _validate_amount
-from .models import SavingsCredit, SavingsDebit
 from django import forms
+
+from dashboard.forms import ServiceForm, _validate_amount
+
+from .models import SavingsCredit, SavingsDebit
 
 
 class BaseForm(ServiceForm):
-    class Meta:
-        fields = ["member", "amount", "created_at"]
+    class Meta(ServiceForm.Meta):
+        pass
 
 
 class SavingsCreditForm(BaseForm):

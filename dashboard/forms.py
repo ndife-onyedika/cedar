@@ -10,20 +10,21 @@ from accounts.models import Member, User
 
 
 class ServiceForm(forms.ModelForm):
-    amount = forms.FloatField(
-        required=True, widget=forms.NumberInput(attrs={"min": 0, "step": 0.01})
-    )
+    amount = forms.FloatField(widget=forms.NumberInput(attrs={"min": 0, "step": 0.01}))
+
+    class Meta:
+        fields = ["member", "created_at"]
 
     def __init__(self, *args, **kwargs):
-        member = kwargs.get("initial", {}).get("member")
-        super(ServiceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+        initial = kwargs.get("initial", {})
         self.fields["member"].choices = [
             (None, "Choose one"),
-            *list(self.fields["member"].choices)[1:],
+            *[*self.fields["member"].choices][1:],
         ]
-        if member:
+        if initial and initial.get("member"):
             self.fields["member"].disabled = True
-            self.fields["member"].initial = member
+            self.fields["member"].initial = initial["member"]
             self.fields["member"].widget.attrs = {"readonly": True}
 
         if self.fields.get("created_at"):
@@ -31,7 +32,7 @@ class ServiceForm(forms.ModelForm):
             self.fields["created_at"].label = "Date"
 
     def clean(self):
-        data = super(ServiceForm, self).clean()
+        data = self.cleaned_data
         data["amount"] = _validate_amount(
             form=self, field="amount", amount=data.get("amount")
         )

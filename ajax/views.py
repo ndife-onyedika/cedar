@@ -14,11 +14,22 @@ from django.views.decorators.http import require_http_methods
 from notifications.models import Notification
 
 from accounts.models import Member
-from cedar.mixins import (display_duration, display_rate, exportPDF,
-                          get_amount, get_data_equivalent, get_savings_total)
+from cedar.mixins import (
+    display_duration,
+    display_rate,
+    exportPDF,
+    get_amount,
+    get_data_equivalent,
+    get_savings_total,
+)
 from loans.models import LoanRepayment, LoanRequest
-from savings.models import (SavingsCredit, SavingsDebit, SavingsInterest,
-                            SavingsInterestTotal, YearEndBalance)
+from savings.models import (
+    SavingsCredit,
+    SavingsDebit,
+    SavingsInterest,
+    SavingsInterestTotal,
+    YearEndBalance,
+)
 from settings.models import AccountChoice
 from shares.models import Shares
 
@@ -56,6 +67,9 @@ def total_context_exec(
     return data, _date_range, interest
 
 
+import traceback
+
+
 @login_required
 @require_http_methods(["POST"])
 def service_create(request, context: str):
@@ -77,7 +91,8 @@ def service_create(request, context: str):
             request=request
         )
     except Exception as e:
-        print("ERROR",f"{e}")
+        traceback.print_exc()
+        print("ERROR", f"{e}")
         code = 400
         data["status"] = "error"
         data["message"] = "Invalid Context"
