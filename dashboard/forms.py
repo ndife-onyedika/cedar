@@ -10,14 +10,13 @@ from accounts.models import Member, User
 
 
 class ServiceForm(forms.ModelForm):
-    amount = forms.FloatField(widget=forms.NumberInput(attrs={"min": 0, "step": 0.01}))
-
     class Meta:
-        fields = ["member", "created_at"]
+        fields = ["member", "amount", "created_at"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         initial = kwargs.get("initial", {})
+        self.fields["amount"].widget = forms.NumberInput(attrs={"min": 0, "step": 0.01})
         self.fields["member"].choices = [
             (None, "Choose one"),
             *[*self.fields["member"].choices][1:],
