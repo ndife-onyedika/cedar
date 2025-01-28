@@ -384,11 +384,15 @@ def service_export(request, context: str):
         buffer.seek(0)
         response = FileResponse(buffer, as_attachment=True)
         response.headers["Content-Type"] = "application/pdf"
-        response.headers[
-            "Content-Disposition"
-        ] = 'attachment; filename="export_{}{}.pdf"'.format(
-            "".join(context.split(".")),
-            "_{}".format("_".join(member.name.lower().split(" "))) if member else "",
+        response.headers["Content-Disposition"] = (
+            'attachment; filename="export_{}{}.pdf"'.format(
+                "".join(context.split(".")),
+                (
+                    "_{}".format("_".join(member.name.lower().split(" ")))
+                    if member
+                    else ""
+                ),
+            )
         )
     return response
 
@@ -710,7 +714,7 @@ def data_table(request):
             if table_context != "total":
                 content_list = content_list.filter(created_at__date__range=date_range)
             else:
-                content_list, _date_range, tintr = total_context_exec(
+                content_list, _date_range, total_interest = total_context_exec(
                     date_range=date_range
                 )
 
