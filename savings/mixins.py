@@ -156,10 +156,11 @@ def check_activity_exec(member, date: datetime):
     admin = User.objects.get(is_superuser=True)
     recipients = User.objects.exclude(is_superuser=False)
 
-    def _set_inactive(member, status: bool):
+    def set_activity(member, status: bool):
         is_active: bool = member.is_active
         member.is_active = status
         member.save()
+
         if is_active and not status:
             notify.send(
                 admin,
@@ -176,17 +177,19 @@ def check_activity_exec(member, date: datetime):
     aad_days = account_activity_duration * 30
     last_savings_txn = member.savingscredit_set.filter(
         reason="credit-deposit", created_at__date__lte=specified_date
-    ).last()
+    ).first()
     has_savings = last_savings_txn is not None
 
     active_6mth = (specified_date - member.date_joined.date()).days >= aad_days
-    deposited_6mth = (
-        (specified_date - last_savings_txn.created_at.date()).days <= aad_days
-        if has_savings
-        else False
-    )
+    days_since_last_deposit = aad_days + 1
+    if has_savings:
+        days_since_last_deposit = (
+            specified_date - last_savings_txn.created_at.date()
+        ).days
+    has_deposited_within_last_6mth = days_since_last_deposit < aad_days
+
     if active_6mth:
-        return _set_inactive(member, deposited_6mth)
+        return set_activity(member, has_deposited_within_last_6mth)
     return False
 
 

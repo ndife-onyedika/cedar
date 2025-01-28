@@ -537,6 +537,10 @@ def data_table(request):
     if table == "members":
         content_list = Member.objects.all()
 
+        is_active = request.GET.get("is_active")
+        account_type = request.GET.get("account_type")
+        account_number = request.GET.get("account_number")
+
         if search_text:
             content_list = content_list.filter(
                 Q(name__icontains=search_text) | Q(email__icontains=search_text)
@@ -546,18 +550,14 @@ def data_table(request):
                 date_joined__date__range=search_date.split(",")
             )
 
-        if (is_active := request.GET.get("is_active")) and is_active.lower() != "null":
+        if is_active and is_active.lower() != "null":
             is_active = is_active.lower() == "true"
             content_list = content_list.filter(is_active=is_active)
 
-        if (
-            account_number := request.GET.get("account_number")
-        ) and account_number.lower() != "null":
+        if account_number and account_number.lower() != "null":
             content_list = content_list.filter(account_number__icontains=account_number)
 
-        if (
-            account_type := request.GET.get("account_type")
-        ) and account_type.lower() != "null":
+        if account_type and account_type.lower() != "null":
             acc_choice = AccountChoice.objects.filter(name__icontains=account_type)
             if len(acc_choice) > 0:
                 content_list = content_list.filter(account_type=acc_choice[0])
@@ -580,6 +580,8 @@ def data_table(request):
         if member:
             content_list = content_list.filter(member=member)
 
+        updated_at = request.GET.get("updated_at")
+
         if search_text:
             content_list = content_list.filter(
                 Q(member__name__icontains=search_text)
@@ -590,7 +592,7 @@ def data_table(request):
                 created_at__date__range=search_date.split(",")
             )
 
-        if updated_at := request.GET.get("updated_at"):
+        if updated_at:
             content_list = content_list.filter(
                 updated_at__date__range=updated_at.split(",")
             )
@@ -625,43 +627,48 @@ def data_table(request):
             "all": savings_credit.union(savings_debit).order_by("-created_at"),
         }
 
-        content_list = contexts["all"]
+        reason = request.GET.get("reason")
+        context = request.GET.get("context", "all").lower()
 
-        if (context := request.GET.get("context")) and context.lower() != "null":
-            try:
-                content_list = contexts[context]
-            except KeyError:
-                content_list = contexts["all"]
+        if context not in ("all", "debit", "credit"):
+            context = "all"
+        content_list = contexts[context]
 
         if search_text:
             query = Q(member__name__icontains=search_text) | Q(
                 member__email__icontains=search_text
             )
-            if not context or context and context != "all":
+            if context != "all":
+                content_list = contexts[context].filter(query)
+            if context == "all":
                 content_list = (
                     savings_credit.filter(query)
                     .union(savings_debit.filter(query))
                     .order_by("-created_at")
                 )
-            else:
-                content_list = content_list.filter(query)
 
         if search_date:
             date_range = search_date.split(",")
-            if table_context != "all":
-                content_list = content_list.filter(created_at__date__range=date_range)
-            else:
-                savings_credit.filter(created_at__date__range=date_range).union(
-                    savings_debit.filter(created_at__date__range=date_range)
-                ).order_by("-created_at")
+            if context != "all":
+                content_list = contexts[context].filter(
+                    created_at__date__range=date_range
+                )
+            if context == "all":
+                content_list = (
+                    savings_credit.filter(created_at__date__range=date_range)
+                    .union(savings_debit.filter(created_at__date__range=date_range))
+                    .order_by("-created_at")
+                )
 
-        if (reason := request.GET.get("reason")) and reason.lower() != "null":
+        if reason and reason.lower() != "null":
             if table_context != "all":
-                content_list = content_list.filter(reason__icontains=reason)
-            else:
-                savings_credit.filter(reason__icontains=reason).union(
-                    savings_debit.filter(reason__icontains=reason)
-                ).order_by("-created_at")
+                content_list = contexts[context].filter(reason__icontains=reason)
+            if table_context == "all":
+                content_list = (
+                    savings_credit.filter(reason__icontains=reason)
+                    .union(savings_debit.filter(reason__icontains=reason))
+                    .order_by("-created_at")
+                )
 
         content = paginator_exec(page, per_page, content_list)
 
