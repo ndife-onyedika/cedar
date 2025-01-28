@@ -152,8 +152,7 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
 
 
 def check_activity_exec(member, date: datetime):
-    from savings.models import SavingsCredit
-
+    specified_date = date.date()
     admin = User.objects.get(is_superuser=True)
     recipients = User.objects.exclude(is_superuser=False)
 
@@ -175,19 +174,20 @@ def check_activity_exec(member, date: datetime):
 
     account_activity_duration = member.account_type.aad
     aad_days = account_activity_duration * 30
-    last_savings_txn = SavingsCredit.objects.filter(
-        member=member, reason="credit-deposit", created_at__date__lte=date.date()
+    last_savings_txn = member.savingscredit_set.filter(
+        reason="credit-deposit", created_at__date__lte=specified_date
     ).last()
+    has_savings = last_savings_txn is not None
 
+    active_6mth = (specified_date - member.date_joined.date()).days >= aad_days
     deposited_6mth = (
-        (date.date() - last_savings_txn.created_at.date()).days <= aad_days
-        if last_savings_txn
+        (specified_date - last_savings_txn.created_at.date()).days <= aad_days
+        if has_savings
         else None
     )
-    active_6mth = (date.date() - member.date_joined.date()).days >= aad_days
-    if last_savings_txn and not deposited_6mth or not last_savings_txn and active_6mth:
+    if not deposited_6mth and (active_6mth or not active_6mth):
         return _set_inactive(member, False)
-    if last_savings_txn and deposited_6mth or not last_savings_txn and not active_6mth:
+    if deposited_6mth and not active_6mth:
         return _set_inactive(member, True)
 
 
