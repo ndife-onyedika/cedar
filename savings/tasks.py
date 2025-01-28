@@ -1,3 +1,5 @@
+import logging
+
 from celery import shared_task
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -13,6 +15,8 @@ from savings.mixins import (
 from settings.models import BusinessYear
 
 from .models import SavingsInterest, SavingsInterestTotal
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task
@@ -46,9 +50,10 @@ def daily_interest_calculation_task():
                             )
 
     except IntegrityError as e:
-        return f"ERROR: Savings Interest Calculation!\nERROR_DESC: {e}"
-    else:
-        return f"SUCCESS: Savings Interest Calculation!"
+        error = f"ERROR: Savings Interest Calculation!\nERROR_DESC: {e}"
+        logger.error(error, exc_info=1)
+        return error
+    return f"SUCCESS: Savings Interest Calculation!"
 
 
 @shared_task
@@ -58,6 +63,7 @@ def calc_old_interest():
             # calculate_interest(2024, 2025)
             calculate_interest(2015, 2024)
     except IntegrityError as e:
-        return f"ERROR: Interest Calculation (OLD)\nERROR_DESC: {e}"
-    else:
-        return f"SUCCESS: Interest Calculation (OLD)"
+        error = f"ERROR: Interest Calculation (OLD)\nERROR_DESC: {e}"
+        logger.error(error, exc_info=1)
+        return error
+    return f"SUCCESS: Interest Calculation (OLD)"

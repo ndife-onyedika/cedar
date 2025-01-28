@@ -1,4 +1,5 @@
 import csv
+import logging
 from datetime import time
 
 from celery import shared_task
@@ -17,6 +18,8 @@ from shares.models import Shares
 
 from .models import Member, NextOfKin, User
 
+logger = logging.getLogger(__name__)
+
 
 @shared_task
 def check_activity():
@@ -28,9 +31,10 @@ def check_activity():
             for member in members:
                 check_activity_exec(member, today)
     except IntegrityError as e:
-        return f"ERROR: Member Activity Check Task!\nERROR_DESC: {e}"
-    else:
-        return f"SUCCESS: Member Activity Check Task!"
+        error = f"ERROR: Member Activity Check Task!\nERROR_DESC: {e}"
+        logger.error(error, exc_info=1)
+        return error
+    return f"SUCCESS: Member Activity Check Task!"
 
 
 @shared_task
@@ -146,6 +150,7 @@ def import_csv():
                                     #         amount=convert_amt(row["LOAN REPAY"]),
                                     #     )
     except IntegrityError as e:
-        return f"ERROR: CSV Import Task!\nERROR_DESC: {e}"
-    else:
-        return f"SUCCESS: CSV Import Task!"
+        error = f"ERROR: CSV Import Task!\nERROR_DESC: {e}"
+        logger.error(error, exc_info=1)
+        return error
+    return f"SUCCESS: CSV Import Task!"

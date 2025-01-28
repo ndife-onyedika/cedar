@@ -1,16 +1,17 @@
-from accounts.models import Member, User
-from cedar.mixins import (
-    get_amount,
-    display_duration,
-    get_savings_total,
-    months_between,
-    get_last_day_month,
-)
-from django.utils.timezone import make_aware, datetime, timedelta, now
 from datetime import time
 
-from notifications.signals import notify
 from django.db.models.query_utils import Q
+from django.utils.timezone import datetime, make_aware, now, timedelta
+from notifications.signals import notify
+
+from accounts.models import Member, User
+from cedar.mixins import (
+    display_duration,
+    get_amount,
+    get_last_day_month,
+    get_savings_total,
+    months_between,
+)
 
 
 def update_savings_total(member):
@@ -68,7 +69,7 @@ def handle_withdrawal(context, instance):
 
 
 def calculate_yearEndBalance(member, date_range: list):
-    from .models import SavingsInterestTotal, SavingsCredit
+    from .models import SavingsCredit, SavingsInterestTotal
 
     end_date = make_aware(datetime.combine(date_range[1], time(2, 0)))
     date_range = [date_range[0], date_range[1] - timedelta(days=1)]
@@ -186,14 +187,12 @@ def check_activity_exec(member, date: datetime):
     active_6mth = (date.date() - member.date_joined.date()).days >= aad_days
     if last_savings_txn and not deposited_6mth or not last_savings_txn and active_6mth:
         return _set_inactive(member, False)
-    elif (
-        last_savings_txn and deposited_6mth or not last_savings_txn and not active_6mth
-    ):
+    if last_savings_txn and deposited_6mth or not last_savings_txn and not active_6mth:
         return _set_inactive(member, True)
 
 
 def calculate_interest(start_year, end_year):
-    from .models import SavingsInterestTotal, SavingsDebit, YearEndBalance
+    from .models import SavingsDebit, SavingsInterestTotal, YearEndBalance
 
     # members = Member.objects.filter(name__icontains="Adaku Onam")
     # members = Member.objects.filter(~Q(name__icontains="Longinus Amuchie"))

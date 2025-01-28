@@ -11,8 +11,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config
 
+from decouple import config
 
 SITE_ID = 1
 ADMINS = [("Onyedika Ndife", "ndifetest+cedar@gmail.com")]
@@ -82,7 +82,7 @@ INSTALLED_APPS = [
     "sass_processor",
     "notifications",
     # apps
-    "settings",
+    "settings.apps.SettingsConfig",
     "accounts",
     "ajax",
     "dashboard",
@@ -207,11 +207,14 @@ if not DEBUG:
 
     LOGGING = {
         "version": 1,
-        "disable_existing_loggers": True,
+        "disable_existing_loggers": False,
         "formatters": {
-            "verbose": {"format": "%(levelname)s [%(asctime)s] %(module)s %(message)s"},
+            "verbose": {
+                "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+                "style": "{",
+            },
             "simple": {
-                "format": "{levelname} {message}",
+                "format": "{levelname} {asctime} {message}",
                 "style": "{",
             },
         },
@@ -222,33 +225,43 @@ if not DEBUG:
             "file": {
                 "class": "logging.handlers.RotatingFileHandler",
                 "formatter": "verbose",
-                "filename": "./logs/cedar.log",
+                "filename": "./logs/runtime.log",
                 "maxBytes": 1024000,
                 "backupCount": 3,
+                "level": "INFO",
             },
             "mail_admins": {
                 "level": "ERROR",
                 "filters": ["require_debug_false"],
-                "class": "cedar.reporter.CustomAdminEmailHandler",
+                "class": "utils.reporter.CustomAdminEmailHandler",
             },
             "celery": {
                 "level": "INFO",
                 "class": "logging.handlers.RotatingFileHandler",
-                "filename": "./logs/cedar_celery.log",
+                "filename": "./logs/celery.log",
                 "formatter": "verbose",
                 "maxBytes": 1024000,
             },
         },
         "loggers": {
+            "": {
+                "handlers": ["file", "mail_admins"],
+                "level": "INFO",
+            },
             "django": {
                 "handlers": ["file", "mail_admins"],
+                "propagate": True,
+                "level": "INFO",
+            },
+            "django.request": {
+                "handlers": ["file", "mail_admins"],
+                "propagate": True,
                 "level": "ERROR",
-                "propagate": False,
             },
             "celery": {
                 "handlers": ["celery"],
-                "level": "INFO",
                 "propagate": False,
+                "level": "INFO",
             },
         },
     }

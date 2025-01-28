@@ -1,4 +1,5 @@
 import io
+import traceback
 from calendar import month_abbr
 from datetime import date
 
@@ -65,9 +66,6 @@ def total_context_exec(
     )
     interest = data.aggregate(Sum("t_interest"))["t_interest__sum"] or 0
     return data, _date_range, interest
-
-
-import traceback
 
 
 @login_required
