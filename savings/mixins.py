@@ -183,12 +183,11 @@ def check_activity_exec(member, date: datetime):
     deposited_6mth = (
         (specified_date - last_savings_txn.created_at.date()).days <= aad_days
         if has_savings
-        else None
+        else False
     )
-    if not deposited_6mth and (active_6mth or not active_6mth):
-        return _set_inactive(member, False)
-    if deposited_6mth and not active_6mth:
-        return _set_inactive(member, True)
+    if active_6mth:
+        return _set_inactive(member, deposited_6mth)
+    return False
 
 
 def calculate_interest(start_year, end_year):
