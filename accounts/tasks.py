@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 @shared_task
 def check_activity():
     today = timezone.now()
-    members = Member.objects.filter(is_active=True)
+    members = Member.objects.all()
 
     try:
         with transaction.atomic():
