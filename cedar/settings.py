@@ -234,7 +234,7 @@ if not DEBUG:
             "mail_admins": {
                 "level": "ERROR",
                 "filters": ["require_debug_false"],
-                "class": "cedar.reporter.CustomAdminEmailHandler",
+                "class": "utils.reporter.CustomAdminEmailHandler",
             },
             "celery": {
                 "level": "INFO",
