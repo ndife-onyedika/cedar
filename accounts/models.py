@@ -58,6 +58,7 @@ class Member(models.Model):
 
     class Meta:
         ordering = ["name"]
+        unique_together = [("name", "account_number")]
 
     def __str__(self):
         return "{} ({})".format(self.name, "Active" if self.is_active else "Inactive")
