@@ -1,8 +1,8 @@
 from django.contrib import admin
-from cedar.mixins import get_amount
 
-from shares.models import Shares, SharesTotal
 from cedar.admin import CustomAdmin
+from shares.models import Shares, SharesTotal
+from utils.helpers import get_amount
 
 
 # Register your models here.

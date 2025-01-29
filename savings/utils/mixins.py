@@ -5,7 +5,7 @@ from django.utils.timezone import datetime, make_aware, now, timedelta
 from notifications.signals import notify
 
 from accounts.models import Member, User
-from cedar.mixins import (
+from utils.helpers import (
     display_duration,
     get_amount,
     get_last_day_month,
@@ -15,7 +15,7 @@ from cedar.mixins import (
 
 
 def update_savings_total(member):
-    from .models import SavingsInterestTotal, SavingsTotal
+    from ..models import SavingsInterestTotal, SavingsTotal
 
     savings_intrs = SavingsInterestTotal.objects.filter(
         member=member, disabled=False
@@ -34,7 +34,7 @@ def update_savings_total(member):
 
 
 def handle_withdrawal(context, instance):
-    from .models import SavingsInterestTotal
+    from ..models import SavingsInterestTotal
 
     member = instance.member
     amount = instance.amount
@@ -69,7 +69,7 @@ def handle_withdrawal(context, instance):
 
 
 def calculate_yearEndBalance(member, date_range: list):
-    from .models import SavingsCredit, SavingsInterestTotal
+    from ..models import SavingsCredit, SavingsInterestTotal
 
     end_date = make_aware(datetime.combine(date_range[1], time(2, 0)))
     date_range = [date_range[0], date_range[1] - timedelta(days=1)]
@@ -95,7 +95,7 @@ def calculate_yearEndBalance(member, date_range: list):
 
 
 def calculate_interest_exec(admin, member: Member, instance, date: datetime):
-    from .models import SavingsInterest
+    from ..models import SavingsInterest
 
     interest_rate = member.account_type.sir / 100
     rate_day = interest_rate / 365
@@ -119,7 +119,9 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
         days_elapsed = (date.date() - instance.created_at.date()).days
         months_elapsed = int(days_elapsed / 30)
         is_eligible = months_elapsed >= pre_savings_interest_duration
-        if is_eligible:
+        if not is_eligible:
+            instance.save()
+        else:
             interest = instance.amount * rate_day * days_elapsed
             instance.start_comp = True
             instance.interest += interest
@@ -147,8 +149,6 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
                     display_duration(pre_savings_interest_duration),
                 ),
             )
-        else:
-            instance.save()
 
 
 def check_activity_exec(member, date: datetime):
@@ -165,9 +165,9 @@ def check_activity_exec(member, date: datetime):
             notify.send(
                 admin,
                 level="error",
-                timestamp=date,
+                # timestamp=date,
                 recipient=recipients,
-                # timestamp=make_aware(date),
+                timestamp=make_aware(date),
                 verb=f"Account: Activity - {member.name}",
                 description=f"{member.name} account has been set INACTIVE due to none operation for {display_duration(account_activity_duration)}.",
             )
@@ -194,7 +194,7 @@ def check_activity_exec(member, date: datetime):
 
 
 def calculate_interest(start_year, end_year):
-    from .models import SavingsDebit, SavingsInterestTotal, YearEndBalance
+    from ..models import SavingsDebit, SavingsInterestTotal, YearEndBalance
 
     # members = Member.objects.filter(name__icontains="Adaku Onam")
     # members = Member.objects.filter(~Q(name__icontains="Longinus Amuchie"))
@@ -210,7 +210,7 @@ def calculate_interest(start_year, end_year):
         for month in months_between(start_date, end_date):
             for day in range(1, get_last_day_month(month.month, month.year) + 1):
                 current_date = datetime.combine(
-                    datetime(month.year, month.month, day), time(2, 0)
+                    datetime(month.year, month.month, day), time(10, 0)
                 )
                 print(f"Count Timestamp: {current_date.date()}")
                 if (
@@ -254,9 +254,8 @@ def calculate_interest(start_year, end_year):
                                         )
 
                     if (
-                        current_date.date()
-                        == end_date
-                        # and current_date.date() != datetime(2023, 4, 1).date()
+                        current_date.date() == end_date
+                        and current_date.date() != datetime(2023, 4, 1).date()
                     ):
                         notify.send(
                             admin,

@@ -44,7 +44,12 @@
             ["disbursed", "Disbursed"],
             ["terminated", "Terminated"]
         ],
-        "savings_interest": [
+        savings: [
+            ["all", "All"],
+            ["credit", "Credit"],
+            ["debit", "Debit"]
+        ],
+        savings_interest: [
             ["total", "Total Interests"],
             ["all", "Interests"],
             ["each", "Savings Interests"],
@@ -68,7 +73,11 @@
         eoy: ["Dated Created"],
         shares: ["Dated Created", ""],
         "loans.repayment": ["Date Paid", ""],
-        savings: ["Reason", "Date Created", ""],
+        savings: {
+            all: ["Reason", "Date Created", ""],
+            credit: ["Reason", "Date Created", ""],
+            debit: ["Reason", "Date Created", ""]
+        },
         members: ["Name", "Balance", "Status", "Account Type", "Account Number", "Date Registered", ""],
     }
 
@@ -138,16 +147,6 @@
             },
             {
                 type: "select",
-                name: "context",
-                label: "Context",
-                options: [
-                    [null, "Select..."],
-                    ["credit", "Credit"],
-                    ["debit", "Debit"]
-                ],
-            },
-            {
-                type: "select",
                 name: "reason",
                 label: "Reason",
                 options: [
@@ -205,38 +204,38 @@
     const setTable = () => $("[data-table-name]").each(function () {
         let table = $(this);
         let table_name = table.attr("data-table-name");
+        let hasQueryParam = window.location.search !== "";
         let table_attr = JSON.parse(table.attr("data-table-attr"));
         table_attr = {
             ...table_attr,
-            ...(["loans", "savings_interest"].includes(table_name) ? {
+            ...(["loans", "savings", "savings_interest"].includes(table_name) ? {
                 table_context: table_tabs[table_name][0][0]
             } : {})
         }
 
-        tabulate(table_name, table_attr);
 
-        if (!member_id) {
-            let hasQueryParam = window.location.search !== "";
-            if (hasQueryParam) {
-                let query = window.location.search.slice(1)
-                let query1 = query.split("&");
-                let query2 = query1.map(item => item.split("="));
-                query2 = Object.fromEntries(query2)
-                $(`.txn-head .btn-group input`).each(function () {
-                    let value = $(this).val();
-                    $(this).prop("checked", value == query2.tab);
-                    if (value == query2.tab) {
-                        table_attr.table_context = value;
-                        if (table_name == "savings_interest") {
-                            if (value == "total") $("#tid").removeClass("d-none");
-                            else $("#tid").addClass("d-none");
-                            setTimeout(() => {
-                                tabulate(table_name, table_attr);
-                            }, 1000)
-                        }
-                    }
-                })
+        tabulate(table_name, table_attr);
+        if (hasQueryParam) {
+            let query = window.location.search.slice(1)
+            let query1 = query.split("&");
+            let query2 = query1.map(item => item.split("="));
+            query2 = Object.fromEntries(query2)
+            table_attr.table_context = query2.tab;
+
+            if (table_name == "savings_interest") {
+                if (query2.tab == "total") $("#tid").removeClass("d-none");
+                else $("#tid").addClass("d-none");
             }
+
+            const url = new URL(window.location);
+            for (let i = 0; i < table_filters[table_name].length; i++) {
+                const item = table_filters[table_name][i];
+                if (url.searchParams.has(item.name)) table_attr[item.name] = url.searchParams.get(item.name);
+            }
+
+            setTimeout(() => {
+                tabulate(table_name, table_attr);
+            }, 1000)
         }
     });
 
@@ -369,7 +368,7 @@
             $(this).val('');
         });
         $('#sidebarMenu .nav-item').each(function () {
-            var context = "{{ dashboard.context }}";
+            let context = "{{ dashboard.context }}";
             if ($(this).attr("data-context") == context) {
                 $(this).children().addClass("active");
                 $(this).children().attr("aria-current", "page");
@@ -384,12 +383,12 @@
         } = table_attr;
         populateTable({
             ...new_table_attr,
-            table_name: table_name,
+            table_name,
             ...(member_id ? {
-                member_id: member_id
+                member_id
             } : {}),
             ...(loan_id ? {
-                loan_id: loan_id
+                loan_id
             } : {})
         });
         let table_attr_stringify = JSON.stringify(new_table_attr);
@@ -407,6 +406,7 @@
         let table_tab = table_tabs[table_name];
         let table_head = !table_context ?
             table_heads[table_name] : table_heads[table_name][table_context];
+
 
         table_head = [
             "#",
@@ -456,7 +456,7 @@
                                         <td>${item.balance}</td>
                                         <td>
                                             <span 
-                                                class="p-1 px-2 small bg-opacity-25 rounded-2 text-${item.is_active ? "primary" : "danger"} bg-${item.is_active ? "primary" : "danger"}">
+                                                class="p-1 px-2 small bg-opacity-25 rounded-pill text-${item.is_active ? "primary" : "danger"} bg-${item.is_active ? "primary" : "danger"}">
                                                 ${item.is_active?"active":"inactive"}
                                             </span>
                                         </td>
@@ -631,20 +631,47 @@
                     `<tr class="text-center"><td colspan="${table_head.length + 1}"><p class="fw-semibold text-muted mb-0">No data</p></td></tr>`
                 );
 
+                let tab_text = null;
+                let filter_count = 0;
+                let filter_text = `
+                    <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-2.5 -2.5 24 24" width="32"
+                        fill="currentColor">
+                        <path
+                            d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zm6.32-1.094l3.58 3.58a1 1 0 1 1-1.415 1.413l-3.58-3.58a8 8 0 1 1 1.414-1.414z">
+                        </path>
+                    </svg>
+                    Filter
+                `;
+
+                const url = new URL(window.location);
+                for (let i = 0; i < table_filters[table_name].length; i++) {
+                    const item = table_filters[table_name][i];
+                    if (url.searchParams.has(item.name)) filter_count += 1;
+                }
+
+                let hasQueryParam = window.location.search !== "";
+                if (hasQueryParam) {
+                    let query = window.location.search.slice(1)
+                    let query1 = query.split("&");
+                    let query2 = query1.map(item => item.split("="));
+                    query2 = Object.fromEntries(query2)
+                    tab_text = query2.tab;
+                }
+
                 let table_header = `
-                    ${["loans", "savings_interest"].includes(table_name)
+                    ${["loans", "savings", "savings_interest"].includes(table_name)
                         ? `<div class="btn-group col-12 col-sm-auto mt-2 mt-sm-0 flex-wrap" role="group"
                             aria-label="Table Tabs">
                             ${(table_tab.map((tab, i) => `
-                                <input type="radio" class="btn-check" value="${tab[0]}" name='${table_name}_tab' id="tab${i}_${table_name}" autocomplete="off" ${table_context == tab[0] ? 'checked' : ''} />
+                                <input type="radio" class="btn-check" value="${tab[0]}" name='${table_name}_tab' id="tab${i}_${table_name}" autocomplete="off" ${tab_text && tab_text == tab[0] || table_context == tab[0] ? 'checked' : ''} />
                                 <label class="btn btn-outline-primary btn-lg rounded-2 border-0 d-inline-flex align-items-center justify-content-center" for="tab${i}_${table_name}">${tab[1]}</label>`)).join("")
                             }
                         </div>`
                         : ""
                     }
                     ${isStaff 
-                        ? `<div class="action dropdown ${["loans", "savings_interest"].includes(table_name)?"ms-auto":""}">
-                            <button disabled style="font-size:small" class="btn btn-lg btn-primary dropdown-toggle hstack gap-1"
+                        ? `<div class="action dropdown ${["loans", "savings", "savings_interest"].includes(table_name)?"ms-auto":""}">
+                            <button disabled style="font-size:small" class="btn btn-lg btn-primary rounded-2 dropdown-toggle hstack gap-1"
                                 type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                 <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-9 -2 24 24" width="32"
                                     fill="currentColor">
@@ -701,14 +728,8 @@
                     }
                     <div class="search dropdown">
                         <button type="button" style="font-size:small" 
-                            class="btn btn-lg btn-outline-light bg-white border text-muted hstack gap-2">
-                            <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-2.5 -2.5 24 24" width="32"
-                                fill="currentColor">
-                                <path
-                                    d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zm6.32-1.094l3.58 3.58a1 1 0 1 1-1.415 1.413l-3.58-3.58a8 8 0 1 1 1.414-1.414z">
-                                </path>
-                            </svg>
-                            Search
+                            class="btn btn-lg btn-outline-light rounded-2 hstack gap-2 ${!filter_count ? " bg-white text-dark border" : " text-bg-dark"}">
+                            ${filter_count ? `<span>Filter Applied: </span><span>${filter_count}</span>` : filter_text}
                         </button>
                         <span class="dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="false" aria-expanded="false"></span>
                         <div style="min-width: 17.5rem;" class="dropdown-menu border-0 shadow py-3 px-2">
@@ -762,7 +783,7 @@
                                                 d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zm6.32-1.094l3.58 3.58a1 1 0 1 1-1.415 1.413l-3.58-3.58a8 8 0 1 1 1.414-1.414z">
                                             </path>
                                         </svg>
-                                        Search
+                                        Filter
                                     </button>
                                 </div>
                             </form>
@@ -1316,12 +1337,13 @@
 
         tabulate(table_name, table_attr);
 
-        if (member_id) window.history.pushState(null, null,
-            `${window.location.origin}${window.location.pathname}?tab=${table_name}&sub_tab=${value}`
-        );
-        else window.history.pushState(null, null,
-            `${window.location.origin}${window.location.pathname}?tab=${value}`
-        );
+        const url = new URL(window.location);
+        url.searchParams.set("tab", value);
+        if (member_id) {
+            url.searchParams.set("tab", table_name);
+            url.searchParams.set("sub_tab", value);
+        }
+        window.history.pushState(null, null, url);
     })
     // EXPORT
     $(document).on("click", "button[data-action='export']", function () {
@@ -1382,6 +1404,18 @@
             }
         });
         tabulate(table_name, table_attr);
+
+        const url = new URL(window.location);
+        for (let i = 0; i < table_filters[table_name].length; i++) {
+            const item = table_filters[table_name][i];
+            if (
+                table_attr.hasOwnProperty(item.name) &&
+                (table_attr[item.name] != "" &&
+                    table_attr[item.name] != "null" &&
+                    table_attr[item.name] != null)
+            ) url.searchParams.set(item.name, table_attr[item.name]);
+        }
+        window.history.pushState(null, null, url);
     });
     $(document).on("click", ".search #clear_search", function () {
         let form = $(this).closest("form");
@@ -1392,7 +1426,14 @@
             table_attr[$(this).attr("name")] = null;
         });
         form[0].reset();
+
         tabulate(table_name, table_attr);
+        const url = new URL(window.location);
+        for (let i = 0; i < table_filters[table_name].length; i++) {
+            const item = table_filters[table_name][i];
+            if (url.searchParams.has(item.name)) url.searchParams.delete(item.name);
+        }
+        window.history.pushState(null, null, url);
     });
     $(document).on("change", ".tableChkMaster", function () {
         let self = $(this);

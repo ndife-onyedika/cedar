@@ -9,14 +9,8 @@ from django.utils import timezone
 from notifications.signals import notify
 
 from accounts.models import Member, User
-from cedar.constants import LOAN_STATUS_CHOICES
-from cedar.mixins import (
-    display_duration,
-    display_rate,
-    format_date_model,
-    get_amount,
-    get_data_equivalent,
-)
+from utils.choices import LoanStatusChoice
+from utils.helpers import display_duration, display_rate, format_date_model, get_amount
 
 
 # Create your models here.
@@ -28,7 +22,9 @@ class LoanRequest(models.Model):
     duration = models.IntegerField()
     interest_rate = models.FloatField()
     status = models.CharField(
-        max_length=50, choices=LOAN_STATUS_CHOICES, default="disbursed"
+        max_length=50,
+        choices=LoanStatusChoice.choices,
+        default=LoanStatusChoice.DISBURSED,
     )
     guarantors = models.ManyToManyField(
         Member, blank=True, related_name="loan_guarantors"
@@ -45,14 +41,34 @@ class LoanRequest(models.Model):
     def __str__(self):
         return "({}, {}, {}, {}, {}, {}, {}, {})".format(
             self.member.name,
-            get_amount(self.amount),
-            get_amount(self.outstanding_amount),
-            display_duration(self.duration),
-            display_rate(self.interest_rate),
-            get_data_equivalent(self.status, "lsc"),
+            self.amount_display,
+            self.outstanding_amount_display,
+            self.duration_display,
+            self.interest_rate_display,
+            self.status_display,
             format_date_model(self.created_at),
             format_date_model(self.updated_at),
         )
+
+    @property
+    def status_display(self):
+        return self.get_status_display()
+
+    @property
+    def duration_display(self):
+        return display_duration(self.duration)
+
+    @property
+    def interest_rate_display(self):
+        return display_rate(self.interest_rate)
+
+    @property
+    def amount_display(self):
+        return get_amount(self.amount)
+
+    @property
+    def outstanding_amount_display(self):
+        return get_amount(self.outstanding_amount)
 
 
 class LoanRepayment(models.Model):

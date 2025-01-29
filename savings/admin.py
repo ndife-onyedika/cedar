@@ -1,7 +1,13 @@
 from django.contrib import admin
+from django.shortcuts import reverse
+from django.utils.html import format_html
+from django.utils.http import urlencode
+from import_export.admin import ImportMixin
 
-from cedar.admin import CustomAdmin
-from cedar.mixins import get_amount, format_date_model
+from cedar.admin import CustomAdmin, CustomImportExportAdmin
+from savings.utils.resources import SavingsCreditResource, SavingsDebitResource
+from utils.helpers import format_date_model, get_amount
+
 from .models import (
     SavingsCredit,
     SavingsDebit,
@@ -10,102 +16,66 @@ from .models import (
     SavingsTotal,
     YearEndBalance,
 )
-from django.shortcuts import reverse
-from django.utils.http import urlencode
-from django.utils.html import format_html
 
 
 # Register your models here.
 @admin.register(SavingsCredit)
-class SavingsCreditAdmin(CustomAdmin):
-    list_display = ("member", "view_amount", "reason", "created_at")
-    list_display_links = ("member",)
+class SavingsCreditAdmin(CustomImportExportAdmin, CustomAdmin):
+    resource_class = SavingsCreditResource
 
-    search_fields = ("member__name", "member__email")
-    ordering = ("-created_at",)
-    list_filter = (
-        # "amount",
-        "reason",
-        "created_at",
-    )
+    date_hierarchy = "created_at"
     autocomplete_fields = ["member"]
 
-    def view_amount(self, obj):
-        return get_amount(obj.amount)
-
-    view_amount.short_description = "Amount"
+    ordering = ("-created_at",)
+    list_display_links = ("member",)
+    list_filter = ("reason", "created_at")
+    search_fields = ("member__name", "member__email")
+    list_display = ("member", "amount_display", "reason", "created_at")
 
 
 @admin.register(SavingsDebit)
-class SavingsDebitAdmin(CustomAdmin):
-    list_display = ("member", "view_amount", "reason", "created_at")
-    list_display_links = ("member",)
+class SavingsDebitAdmin(CustomImportExportAdmin, CustomAdmin):
+    resource_class = SavingsDebitResource
 
-    search_fields = ("member__name", "member__email")
-    ordering = ("-created_at",)
-    list_filter = ("reason", "created_at")
+    date_hierarchy = "created_at"
     autocomplete_fields = ["member"]
 
-    def view_amount(self, obj):
-        return get_amount(obj.amount)
-
-    view_amount.short_description = "Amount"
+    ordering = ("-created_at",)
+    list_display_links = ("member",)
+    list_filter = ("reason", "created_at")
+    search_fields = ("member__name", "member__email")
+    list_display = ("member", "amount_display", "reason", "created_at")
 
 
 @admin.register(SavingsTotal)
 class SavingsTotalAdmin(CustomAdmin):
-    list_display = ("member", "view_amount", "created_at", "updated_at")
-    list_display_links = ("member",)
-
-    search_fields = ("member__name", "member__email")
-    ordering = ("member__name",)
-    list_filter = (
-        # "amount",
-        "created_at",
-        "updated_at",
-    )
+    date_hierarchy = "created_at"
     autocomplete_fields = ["member"]
 
-    def view_amount(self, obj):
-        return get_amount(obj.amount)
-
-    view_amount.short_description = "Amount"
+    ordering = ("member__name",)
+    list_display_links = ("member",)
+    list_filter = ("created_at", "updated_at")
+    search_fields = ("member__name", "member__email")
+    list_display = ("member", "amount_display", "created_at", "updated_at")
 
 
 @admin.register(SavingsInterest)
 class SavingsInterestAdmin(CustomAdmin):
+    date_hierarchy = "created_at"
+    autocomplete_fields = ["member"]
+
     list_display = (
         "member",
         "view_savings",
-        "view_amount",
-        "view_interest",
-        "view_interest_total",
+        "amount_display",
+        "interest_display",
+        "total_interest_display",
         "created_at",
     )
+    list_filter = ("created_at",)
     list_display_links = ("member",)
-
     search_fields = ("member__name", "member__email")
     ordering = ("-created_at", "member__name", "-total_interest")
-    autocomplete_fields = ["member"]
-    list_filter = (
-        # "amount",
-        "created_at",
-    )
-
-    def view_amount(self, obj):
-        return get_amount(obj.amount)
-
-    view_amount.short_description = "Amount"
-
-    def view_interest(self, obj):
-        return get_amount(obj.interest)
-
-    view_interest.short_description = "Interest"
-
-    def view_interest_total(self, obj):
-        return get_amount(obj.total_interest)
-
-    view_interest_total.short_description = "Total Interest"
 
     def view_savings(self, obj):
         # count = obj.person_set.count()
@@ -127,11 +97,14 @@ class SavingsInterestAdmin(CustomAdmin):
 
 @admin.register(SavingsInterestTotal)
 class SavingsInterestTotalAdmin(CustomAdmin):
+    date_hierarchy = "created_at"
+    autocomplete_fields = ["member"]
+
     list_display = (
         "member",
         "view_savings",
-        "view_amount",
-        "view_interest",
+        "amount_display",
+        "interest_display",
         "is_comp",
         "start_comp",
         "disabled",
@@ -139,28 +112,9 @@ class SavingsInterestTotalAdmin(CustomAdmin):
         "updated_at",
     )
     list_display_links = ("member",)
-
-    search_fields = ("member__name", "member__email")
     ordering = ("member__name", "-created_at")
-    autocomplete_fields = ["member"]
-    list_filter = (
-        # "amount",
-        "is_comp",
-        "start_comp",
-        "disabled",
-        "created_at",
-        "updated_at",
-    )
-
-    def view_amount(self, obj):
-        return get_amount(obj.amount)
-
-    view_amount.short_description = "Amount"
-
-    def view_interest(self, obj):
-        return get_amount(obj.interest)
-
-    view_interest.short_description = "Interest"
+    search_fields = ("member__name", "member__email")
+    list_filter = ("is_comp", "start_comp", "disabled", "created_at", "updated_at")
 
     def view_savings(self, obj):
         # count = obj.person_set.count()
@@ -182,12 +136,9 @@ class SavingsInterestTotalAdmin(CustomAdmin):
 
 @admin.register(YearEndBalance)
 class YearEndBalanceAdmin(CustomAdmin):
-    list_display = ("member", "view_amount", "created_at")
+    date_hierarchy = "created_at"
+
     ordering = ("-created_at",)
-    search_fields = ("member__name", "member__email")  #
     list_filter = ("created_at",)
-
-    def view_amount(self, obj):
-        return get_amount(obj.amount)
-
-    view_amount.short_description = "Amount"
+    search_fields = ("member__name", "member__email")  #
+    list_display = ("member", "amount_display", "created_at")

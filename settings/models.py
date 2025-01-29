@@ -1,6 +1,6 @@
 from django.db import models
 
-from cedar.constants import MONTH_CHOICES
+from utils.choices import MONTH_CHOICES
 
 
 # Create your models here.

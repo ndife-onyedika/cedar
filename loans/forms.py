@@ -1,14 +1,8 @@
 from accounts.models import Member
-from cedar.mixins import (
-    display_duration,
-    display_rate,
-    format_date_model,
-    get_amount,
-    get_data_equivalent,
-)
 from dashboard.forms import ServiceForm
 from loans.mixins import check_loan_eligibility
 from loans.models import LoanRepayment, LoanRequest
+from utils.helpers import display_duration, display_rate, format_date_model, get_amount
 
 
 class LoanRequestForm(ServiceForm):

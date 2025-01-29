@@ -1,11 +1,11 @@
 from django.db import models
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch.dispatcher import receiver
+from django.utils import timezone
 
 from accounts.models import Member
-from cedar.mixins import CustomAbstractTable, get_amount, format_date_model
 from shares.mixins import update_shares_total
-from django.utils import timezone
+from utils.helpers import CustomAbstractTable, format_date_model, get_amount
 
 
 # Create your models here.

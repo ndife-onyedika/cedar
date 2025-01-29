@@ -4,11 +4,11 @@ from django.db import IntegrityError, transaction
 from django.db.models.aggregates import Sum
 from django.utils import timezone
 from django.utils.timezone import timedelta
-from accounts.models import User
-from cedar.mixins import get_savings_total
-from loans.models import LoanRequest
-
 from notifications.signals import notify
+
+from accounts.models import User
+from loans.models import LoanRequest
+from utils.helpers import get_savings_total
 
 
 def get_loan_details(loan: LoanRequest):

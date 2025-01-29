@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.utils.timezone import datetime, timedelta
 
 from accounts.models import Member, User
-from savings.mixins import (
+from savings.utils.mixins import (
     calculate_interest,
     calculate_interest_exec,
     calculate_yearEndBalance,
@@ -61,7 +61,7 @@ def calc_old_interest():
     try:
         with transaction.atomic():
             # calculate_interest(2024, 2025)
-            calculate_interest(2015, 2024)
+            calculate_interest(2015, 2025)
     except IntegrityError as e:
         error = f"ERROR: Interest Calculation (OLD)\nERROR_DESC: {e}"
         logger.error(error, exc_info=1)

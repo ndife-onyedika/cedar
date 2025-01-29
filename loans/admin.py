@@ -1,29 +1,30 @@
 from django.contrib import admin
 from django.urls import reverse
-from cedar.admin import CustomAdmin
-from cedar.mixins import display_duration, get_amount, format_date_model, display_rate
-from django.utils.http import urlencode
-from loans.models import LoanRepayment, LoanRequest
 from django.utils.html import format_html
+from django.utils.http import urlencode
+
+from cedar.admin import CustomAdmin
+from loans.models import LoanRepayment, LoanRequest
+from utils.helpers import display_duration, display_rate, format_date_model, get_amount
 
 
 # Register your models here.
 @admin.register(LoanRequest)
 class LoanRequestAdmin(CustomAdmin):
+    autocomplete_fields = ["member"]
     search_fields = ["member__name", "member__email"]
 
     list_display = (
         "member",
-        "new_amount",
+        "amount_display",
         "set_duration",
         "amount_outstanding",
         "status",
         "created_at",
     )
+    ordering = ("-created_at",)
     list_display_links = ("member",)
     list_filter = ("status", "created_at")
-    ordering = ("-created_at",)
-    autocomplete_fields = ["member"]
 
     fieldsets = (
         ("Details", {"fields": ("member", "amount", "duration", "status")}),
@@ -31,11 +32,6 @@ class LoanRequestAdmin(CustomAdmin):
         ("Calculation", {"fields": ("outstanding_amount",)}),
         ("Advanced Options", {"classes": ("collapse",), "fields": ("terminated_at",)}),
     )
-
-    def new_amount(self, obj):
-        return get_amount(amount=obj.amount)
-
-    new_amount.short_description = "Amount Requested"
 
     def amount_outstanding(self, obj):
         return get_amount(amount=obj.outstanding_amount)

@@ -1,19 +1,19 @@
+from django.contrib import messages as flash_messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models.aggregates import Sum
 from django.shortcuts import redirect, render, resolve_url
 from django.urls import reverse
 from django.views.generic import TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
+
 from accounts.forms import RegistrationForm
 from accounts.models import Member
-
-from cedar.mixins import get_amount, get_data_equivalent
-from savings.models import SavingsTotal, SavingsCredit, SavingsDebit
-from django.db.models.aggregates import Sum
 from loans.models import LoanRequest
 from savings.forms import SavingsCreditForm, SavingsDebitForm
+from savings.models import SavingsCredit, SavingsDebit, SavingsTotal
+from settings.forms import AccountChoiceFormSet, BusinessYearForm
 from settings.models import AccountChoice, BusinessYear
 from shares.models import SharesTotal
-from settings.forms import AccountChoiceFormSet, BusinessYearForm
-from django.contrib import messages as flash_messages
+from utils.helpers import get_amount
 
 
 # Create your views here.
@@ -60,7 +60,7 @@ class Dashboard(LoginRequiredMixin, TemplateView):
                     "+" if txn.reason.startswith("credit-") else "-",
                     get_amount(txn.amount),
                 ),
-                "reason": get_data_equivalent(txn.reason, "src"),
+                "reason": txn.reason_display,
                 "timestamp": txn.created_at,
                 "member": txn.member.name,
             }

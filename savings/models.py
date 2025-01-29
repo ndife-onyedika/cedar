@@ -4,15 +4,9 @@ from django.dispatch.dispatcher import receiver
 from django.utils import timezone
 
 from accounts.models import Member
-from cedar.constants import CREDIT_REASON_CHOICES, DEBIT_REASON_CHOICES
-from cedar.mixins import (
-    CustomAbstractTable,
-    get_amount,
-    format_date_model,
-    get_data_equivalent,
-    get_savings_total,
-)
-from savings.mixins import handle_withdrawal, update_savings_total
+from savings.utils.mixins import handle_withdrawal, update_savings_total
+from utils.choices import CreditReasonChoice, DebitReasonChoice
+from utils.helpers import CustomAbstractTable, format_date_model, get_amount
 
 
 # Create your models here.
@@ -24,13 +18,25 @@ class Savings(models.Model):
     class Meta:
         abstract = True
 
+    @property
+    def amount_display(self):
+        return get_amount(self.amount)
+
+    @property
+    def reason_display(self):
+        choices = CreditReasonChoice.choices + DebitReasonChoice.choices
+        for choice in choices:
+            if self.reason == choice[0]:
+                return choice[1]
+        return ""
+
 
 class SavingsCredit(Savings):
     reason = models.CharField(
         "Reason for Credit",
         max_length=50,
-        default="credit-deposit",
-        choices=CREDIT_REASON_CHOICES,
+        choices=CreditReasonChoice.choices,
+        default=CreditReasonChoice.DEPOSIT,
     )
 
     class Meta:
@@ -40,8 +46,8 @@ class SavingsCredit(Savings):
     def __str__(self):
         return "SC({}, {}, {}, {})".format(
             self.member.name,
-            get_amount(self.amount),
-            get_data_equivalent(self.reason, "src"),
+            self.amount_display,
+            self.reason_display,
             format_date_model(self.created_at),
         )
 
@@ -50,8 +56,8 @@ class SavingsDebit(Savings):
     reason = models.CharField(
         "Reason for Debit",
         max_length=50,
-        default="debit-withdrawal",
-        choices=DEBIT_REASON_CHOICES,
+        choices=DebitReasonChoice.choices,
+        default=DebitReasonChoice.WITHDRAWAL,
     )
 
     class Meta:
@@ -61,8 +67,8 @@ class SavingsDebit(Savings):
     def __str__(self):
         return "SD({}, {}, {}, {})".format(
             self.member.name,
-            get_amount(self.amount),
-            get_data_equivalent(self.reason, "src"),
+            self.amount_display,
+            self.reason_display,
             format_date_model(self.created_at),
         )
 
@@ -77,11 +83,15 @@ class SavingsTotal(CustomAbstractTable):
     def __str__(self):
         return "ST({}, {}, {}, {}, {})".format(
             self.member.name,
-            get_amount(self.amount),
-            get_amount(self.interest),
+            self.amount_display,
+            self.interest_display,
             format_date_model(self.created_at),
             format_date_model(self.updated_at),
         )
+
+    @property
+    def interest_display(self):
+        return get_amount(self.interest)
 
 
 class YearEndBalance(CustomAbstractTable):
@@ -96,7 +106,7 @@ class YearEndBalance(CustomAbstractTable):
     def __str__(self):
         return "YEB({}, {}, {})".format(
             self.member.name,
-            get_amount(self.amount),
+            self.amount_display,
             format_date_model(self.created_at),
         )
 
@@ -114,11 +124,19 @@ class SavingsInterest(Savings):
         return "SI({}, {}, {}, {}, {}, {})".format(
             self.member.name,
             self.savings.__str__(),
-            get_amount(self.amount),
-            get_amount(self.interest),
-            get_amount(self.total_interest),
+            self.amount_display,
+            self.interest_display,
+            self.total_interest_display,
             format_date_model(self.created_at),
         )
+
+    @property
+    def interest_display(self):
+        return get_amount(self.interest)
+
+    @property
+    def total_interest_display(self):
+        return get_amount(self.total_interest)
 
 
 class SavingsInterestTotal(Savings):
@@ -137,14 +155,18 @@ class SavingsInterestTotal(Savings):
         return "SIT({}, {}, {}, {}, is: {}, sc: {}, dis: {}, {}, {})".format(
             self.member.name,
             self.savings.__str__(),
-            get_amount(self.amount),
-            get_amount(self.interest),
+            self.amount_display,
+            self.interest_display,
             self.is_comp,
             self.start_comp,
             self.disabled,
             format_date_model(self.created_at),
             format_date_model(self.updated_at),
         )
+
+    @property
+    def interest_display(self):
+        return get_amount(self.interest)
 
 
 @receiver(post_save, sender=SavingsCredit)
@@ -189,12 +211,12 @@ def post_savings_debit_delete(sender, instance: SavingsDebit, **kwargs):
     handle_withdrawal(context="delete", instance=instance)
 
 
-@receiver(post_save, sender=SavingsInterestTotal)
+# @receiver(post_save, sender=SavingsInterestTotal)
 def post_savings_interest_total_save(sender, instance: SavingsInterestTotal, **kwargs):
     update_savings_total(member=instance.member)
 
 
-@receiver(post_delete, sender=SavingsInterestTotal)
+# @receiver(post_delete, sender=SavingsInterestTotal)
 def post_savings_interest_total_delete(
     sender, instance: SavingsInterestTotal, **kwargs
 ):

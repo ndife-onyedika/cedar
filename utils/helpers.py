@@ -10,16 +10,15 @@ from django.conf import settings as dj_sett
 from django.db import OperationalError, models, transaction
 from django.utils import timezone
 from django.utils.timezone import datetime
-
-from .constants import (
-    CREDIT_REASON_CHOICES,
-    DEBIT_REASON_CHOICES,
-    LOAN_STATUS_CHOICES,
-    RELATIONSHIP_CHOICE,
-)
 from fpdf import FPDF
 from fpdf.fonts import FontFace
 
+from .choices import (
+    CreditReasonChoice,
+    DebitReasonChoice,
+    LoanStatusChoice,
+    RelationshipChoice,
+)
 
 redis_instance = redis.StrictRedis(
     host=dj_sett.REDIS_HOST, port=dj_sett.REDIS_PORT, db=0
@@ -38,15 +37,15 @@ return_month_int = lambda _month: int(
     _month.lower().replace("months", "").replace("month", "").strip()
 )
 
-convert_month_2_days = (
-    lambda _month: f"{(return_month_int(_month=_month) * 30)} days"
+convert_month_2_days = lambda _month: (
+    f"{(return_month_int(_month=_month) * 30)} days"
     if _month and _month != "-"
     else "-"
 )
 display_duration = lambda duration: f"{duration} Month{'s' if duration > 1 else ''}"
 display_rate = lambda rate: f"{rate}%"
-format_date_model = (
-    lambda date: datetime.strftime(date, "%d %b %y") if not date is None else "-"
+format_date_model = lambda date: (
+    datetime.strftime(date, "%d %b %y") if not date is None else "-"
 )
 
 
@@ -131,16 +130,18 @@ def convert_month_2_year(_month):
 
 
 def get_loan_status_info(context, **kwargs):
-    from cedar.constants import LOAN_STATUS_CHOICES
+    from utils.choices import LoanStatusChoice
 
     if context == "check":
         data = False
-        if kwargs["status"] in list(map(lambda status: status[0], LOAN_STATUS_CHOICES)):
+        if kwargs["status"] in list(
+            map(lambda status: status[0], LoanStatusChoice.choices)
+        ):
             data = True
         return data
     else:
         data = []
-        for loan in LOAN_STATUS_CHOICES:
+        for loan in LoanStatusChoice.choices:
             data.append({"name": loan[1], "name_short": loan[0]})
         return data
 
@@ -152,36 +153,7 @@ def loan_eligibility(member, amount):
 
 def get_amount(amount):
     amount = amount if amount else 0
-    return "{}{:,}".format("\u20A6", round(float(amount / 100), 2))
-
-
-def get_data_equivalent(data, context):
-    # TODO:this is still very error prone as a small mistake in key name will result to unwanted results and the dictionary
-    # might become extremly large overtime for such large choices : what is really important here is the later operations
-    # on your word i'll remove this and find where they are used and fix stuff
-    choices_ = {
-        "rc": RELATIONSHIP_CHOICE,
-        "lsc": LOAN_STATUS_CHOICES,
-        "src": CREDIT_REASON_CHOICES + DEBIT_REASON_CHOICES,
-    }
-
-    choices = choices_[context]
-    # NOTE:json.dumps(choices) is done because lru_cache only accept hashable object to store in cache
-    data_str = human_readable_string_frm_tuple_list(data, json.dumps(choices))
-
-    if not data_str:
-        return " ".join([data_item.capitalize() for data_item in data.split("-")])
-
-    return data_str
-
-
-@lru_cache(maxsize=1000)
-def human_readable_string_frm_tuple_list(data, tuple_list_str):
-    tuple_list = json.loads(tuple_list_str)
-    for tuple_ in tuple_list:
-        if data == tuple_[0]:
-            return tuple_[1]
-    return ""
+    return "{} {:,}".format("\u20A6", round(float(amount / 100), 2))
 
 
 def get_interval(seconds):
@@ -219,7 +191,7 @@ def chunks(lst, n):
 
 
 def send_mass_html_mail(datalist, context):
-    from .tasks import send_mail
+    from cedar.tasks import send_mail
 
     """
     Given a datatuple of (subject, text_content, html_content, from_email,
@@ -248,6 +220,10 @@ class CustomAbstractTable(models.Model):
 
     class Meta:
         abstract = True
+
+    @property
+    def amount_display(self):
+        return get_amount(self.amount)
 
 
 class HandleAtomicTransactionException:

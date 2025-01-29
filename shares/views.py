@@ -7,9 +7,9 @@ from django.views.generic import TemplateView
 from notifications.signals import notify
 
 from accounts.models import Member, User
-from cedar.mixins import get_amount, get_shares_total
 from shares.forms import ShareAddForm
 from shares.models import Shares, SharesTotal
+from utils.helpers import get_amount, get_shares_total
 
 
 # Create your views here.

@@ -8,14 +8,8 @@ from django.views.generic import TemplateView
 from notifications.signals import notify
 
 from accounts.models import Member, User
-from cedar.mixins import (
-    display_duration,
-    display_rate,
-    get_amount,
-    get_data_equivalent,
-    get_daycount_nextdate,
-)
 from loans.forms import LoanRepaymentForm, LoanRequestEditForm, LoanRequestForm
+from utils.helpers import display_duration, display_rate, get_amount
 
 from .models import LoanRepayment, LoanRequest
 
@@ -87,20 +81,22 @@ class LoanOverview(LoginRequiredMixin, TemplateView):
                 "back": True,
                 "context": "loans",
                 "title": "Loan Overview",
-                "buttons": [
-                    {
-                        "target": "#lrc",
-                        "title": "Repay Loan",
-                        "class": "btn-primary",
-                    }
-                ]
-                if loan.status == "disbursed"
-                else [],
+                "buttons": (
+                    [
+                        {
+                            "target": "#lrc",
+                            "title": "Repay Loan",
+                            "class": "btn-primary",
+                        }
+                    ]
+                    if loan.status == "disbursed"
+                    else []
+                ),
             },
         }
 
         context["data"] = [
-            {"title": "Status", "detail": get_data_equivalent(loan.status, "lsc")},
+            {"title": "Status", "detail": loan.status_display},
             {"title": "Member", "detail": loan.member.name},
             {"title": "Amount", "detail": get_amount(amount=loan.amount)},
             {
@@ -109,11 +105,11 @@ class LoanOverview(LoginRequiredMixin, TemplateView):
             },
             {
                 "title": "Guarantors",
-                "detail": ", ".join(
-                    [guarantor.name for guarantor in loan.guarantors.all()]
-                )
-                if loan.guarantors.all().count() > 0
-                else "N/A",
+                "detail": (
+                    ", ".join([guarantor.name for guarantor in loan.guarantors.all()])
+                    if loan.guarantors.all().count() > 0
+                    else "N/A"
+                ),
             },
             {"title": "Interest Rate", "detail": display_rate(loan.interest_rate)},
             {"title": "Tenor", "detail": display_duration(loan.duration)},
@@ -151,9 +147,11 @@ class LoanView(LoginRequiredMixin, TemplateView):
                 "member": loan.member.id,
                 "amount": loan.amount / 100,
                 "guarantors": [guarantor.id for guarantor in loan.guarantors.all()],
-                "created_at": loan.created_at.strftime("%Y-%m-%d %H:%M:%S")
-                if loan.created_at
-                else "",
+                "created_at": (
+                    loan.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                    if loan.created_at
+                    else ""
+                ),
             }
         return code, status, message, data
 
@@ -275,9 +273,11 @@ def loan_repayment_view(request, *args, **kwargs):
                 description="{}'s loan repayment of {} has been recorded. Outstanding Amount: {}".format(
                     loan_repayment.member.name,
                     get_amount(loan_repayment.amount),
-                    get_amount(loan_repayment.loan.outstanding_amount)
-                    if hasattr(loan_repayment, "loan")
-                    else "",
+                    (
+                        get_amount(loan_repayment.loan.outstanding_amount)
+                        if hasattr(loan_repayment, "loan")
+                        else ""
+                    ),
                 ),
             )
     else:

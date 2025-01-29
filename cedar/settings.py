@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     "widget_tweaks",
     "sass_processor",
     "notifications",
+    "import_export",
     # apps
     "settings.apps.SettingsConfig",
     "accounts",

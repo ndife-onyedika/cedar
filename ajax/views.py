@@ -15,14 +15,6 @@ from django.views.decorators.http import require_http_methods
 from notifications.models import Notification
 
 from accounts.models import Member
-from cedar.mixins import (
-    display_duration,
-    display_rate,
-    exportPDF,
-    get_amount,
-    get_data_equivalent,
-    get_savings_total,
-)
 from loans.models import LoanRepayment, LoanRequest
 from savings.models import (
     SavingsCredit,
@@ -33,6 +25,13 @@ from savings.models import (
 )
 from settings.models import AccountChoice
 from shares.models import Shares
+from utils.helpers import (
+    display_duration,
+    display_rate,
+    exportPDF,
+    get_amount,
+    get_savings_total,
+)
 
 # Create your views here.
 
@@ -204,6 +203,8 @@ def service_export(request, context: str):
         "members": Member,
         "loans": LoanRequest,
         "eoy": YearEndBalance,
+        "savings.credit": SavingsCredit,
+        "savings.debit": SavingsInterest,
         "loans.repayment": LoanRepayment,
         "savings_interest.all": SavingsInterest,
         "savings_interest.each": SavingsInterestTotal,
@@ -216,31 +217,35 @@ def service_export(request, context: str):
 
     if range_:
         range_ = range_.split(",")
-        range_ = [
+        range_dates = [
             timezone.datetime.strptime(range_[0], "%Y-%m-%d").date(),
             timezone.datetime.strptime(range_[1], "%Y-%m-%d").date(),
         ]
-        if context == "savings" or context not in ("savings", "savings_interest.total"):
+        if context not in ("savings.all", "savings_interest.total"):
             range_ = "{} - {}".format(
-                range_[0].strftime("%d %b, %Y"), range_[1].strftime("%d %b, %Y")
+                range_dates[0].strftime("%d %b, %Y"),
+                range_dates[1].strftime("%d %b, %Y"),
             )
 
-    if context not in ("savings", "savings_interest.total"):
+    if context not in ("savings.all", "savings_interest.total"):
         model = contexts[context]
         exports = (
             model.objects.all() if id_[0] == "*" else model.objects.filter(id__in=id_)
         )
-    elif context == "savings":
+    if context == "savings.all":
         savings_credit = SavingsCredit.objects.all()
         savings_debit = SavingsDebit.objects.all()
+        attr = {}
+        if id_[0] != "*":
+            attr["id__in"] = id_
+        if range_:
+            attr["created_at__date__range"] = range_dates
         exports = (
-            savings_credit.union(savings_debit).order_by("-created_at")
-            if id_[0] == "*"
-            else savings_credit.filter(id__in=id_)
-            .union(savings_debit.filter(id__in=id_))
+            savings_credit.filter(**attr)
+            .union(savings_debit.filter(**attr))
             .order_by("-created_at")
         )
-    elif context == "savings_interest.total":
+    if context == "savings_interest.total":
         exports, range_, total_interest = total_context_exec(
             **({} if id_[0] == "*" else {"id": id_}),
             **({"date_range": range_} if range_ else {}),
@@ -267,23 +272,24 @@ def service_export(request, context: str):
                         "account_number": item.account_number,
                         "account_type": item.account_type.name,
                         "status": "Active" if item.is_active else "Inactive",
-                        "balance": get_amount(get_savings_total(item).amount)[1:],
-                        "date_joined": item.date_joined.strftime("%b %d, %y, %H:%M %p"),
+                        "balance": "NGN "
+                        + get_amount(get_savings_total(item).amount)[1:],
+                        "date_joined": item.date_joined.strftime("%d %b %Y, %H:%M %p"),
                     }
                 )
             if context == "shares":
                 data.append(
                     {
                         **({} if member else {"name": item.member.name}),
-                        "amount": get_amount(amount=item.amount)[1:],
-                        "created_at": item.created_at.strftime("%b %d, %y, %H:%M %p"),
+                        "amount": "NGN " + get_amount(amount=item.amount)[1:],
+                        "created_at": item.created_at.strftime("%d %b %Y, %H:%M %p"),
                     }
                 )
             if context == "loans":
                 data.append(
                     {
                         **({} if member else {"name": item.member.name}),
-                        "amount": get_amount(amount=item.amount)[1:],
+                        "amount": "NGN " + get_amount(amount=item.amount)[1:],
                         "rate": display_rate(item.interest_rate),
                         "duration": display_duration(item.duration),
                         "guarantors": [
@@ -293,9 +299,8 @@ def service_export(request, context: str):
                         ],
                         **(
                             {
-                                "outstanding_amount": get_amount(
-                                    item.outstanding_amount
-                                )[1:]
+                                "outstanding_amount": "NGN "
+                                + get_amount(item.outstanding_amount)[1:]
                             }
                             if item.status == "disbursed"
                             else {
@@ -304,25 +309,16 @@ def service_export(request, context: str):
                                 )
                             }
                         ),
-                        "created_at": item.created_at.strftime("%b %d, %y, %H:%M %p"),
-                        "updated_at": item.updated_at.strftime("%b %d, %y, %H:%M %p"),
-                    }
-                )
-            if context == "savings":
-                data.append(
-                    {
-                        **({} if member else {"name": item.member.name}),
-                        "amount": get_amount(amount=item.amount)[1:],
-                        "reason": get_data_equivalent(item.reason, "src"),
-                        "created_at": item.created_at.strftime("%b %d, %y, %H:%M %p"),
+                        "created_at": item.created_at.strftime("%d %b %Y, %H:%M %p"),
+                        "updated_at": item.updated_at.strftime("%d %b %Y, %H:%M %p"),
                     }
                 )
             if context == "loans.repayment":
                 data.append(
                     {
                         "name": item.member.name,
-                        "amount": get_amount(amount=item.amount)[1:],
-                        "created_at": item.created_at.strftime("%b %d, %y, %H:%M %p"),
+                        "amount": "NGN " + get_amount(amount=item.amount)[1:],
+                        "created_at": item.created_at.strftime("%d %b %Y, %H:%M %p"),
                     }
                 )
             if context == "eoy":
@@ -330,10 +326,20 @@ def service_export(request, context: str):
                     {
                         **({} if member else {"name": item.member.name}),
                         "name": item.member.name,
-                        "amount": get_amount(amount=item.amount)[1:],
-                        "created_at": item.created_at.strftime("%b %d, %y, %H:%M %p"),
+                        "amount": "NGN " + get_amount(amount=item.amount)[1:],
+                        "created_at": item.created_at.strftime("%d %b %Y, %H:%M %p"),
                     }
                 )
+            if context in ("savings.all", "savings.debit", "savings.credit"):
+                data.append(
+                    {
+                        **({} if member else {"name": item.member.name}),
+                        "amount": "NGN " + get_amount(amount=item.amount)[1:],
+                        "reason": item.reason_display,
+                        "created_at": item.created_at.strftime("%d %b %Y, %H:%M %p"),
+                    }
+                )
+
             if context in (
                 "savings_interest.all",
                 "savings_interest.each",
@@ -346,16 +352,17 @@ def service_export(request, context: str):
                             {
                                 **({} if member else {"name": item.name}),
                                 "date_range": range_,
-                                "interest": get_amount(amount=item.t_interest)[1:],
+                                "interest": "NGN "
+                                + get_amount(amount=item.t_interest)[1:],
                             }
                             if sub_context == "total"
                             else {
                                 **({} if member else {"name": item.member.name}),
-                                "amount": get_amount(amount=item.amount)[1:],
-                                "savings_amount": get_amount(
-                                    amount=item.savings.amount
-                                )[1:],
-                                "interest": get_amount(amount=item.interest)[1:],
+                                "amount": "NGN " + get_amount(amount=item.amount)[1:],
+                                "savings_amount": "NGN "
+                                + get_amount(amount=item.savings.amount)[1:],
+                                "interest": "NGN "
+                                + get_amount(amount=item.interest)[1:],
                                 "created_at": item.created_at.strftime(
                                     "%b %d, %y, %H:%M %p"
                                 ),
@@ -367,9 +374,8 @@ def service_export(request, context: str):
                                     }
                                     if sub_context != "all"
                                     else {
-                                        "total_interest": get_amount(
-                                            amount=item.total_interest
-                                        )[1:]
+                                        "total_interest": "NGN "
+                                        + get_amount(amount=item.total_interest)[1:]
                                     }
                                 ),
                             }
@@ -628,19 +634,19 @@ def data_table(request):
         }
 
         reason = request.GET.get("reason")
-        context = request.GET.get("context", "all").lower()
+        table_context = request.GET.get("table_context", "all").lower()
 
-        if context not in ("all", "debit", "credit"):
-            context = "all"
-        content_list = contexts[context]
+        if table_context not in ("all", "debit", "credit"):
+            table_context = "all"
+        content_list = contexts[table_context]
 
         if search_text:
             query = Q(member__name__icontains=search_text) | Q(
                 member__email__icontains=search_text
             )
-            if context != "all":
-                content_list = contexts[context].filter(query)
-            if context == "all":
+            if table_context != "all":
+                content_list = contexts[table_context].filter(query)
+            if table_context == "all":
                 content_list = (
                     savings_credit.filter(query)
                     .union(savings_debit.filter(query))
@@ -649,11 +655,11 @@ def data_table(request):
 
         if search_date:
             date_range = search_date.split(",")
-            if context != "all":
-                content_list = contexts[context].filter(
+            if table_context != "all":
+                content_list = contexts[table_context].filter(
                     created_at__date__range=date_range
                 )
-            if context == "all":
+            if table_context == "all":
                 content_list = (
                     savings_credit.filter(created_at__date__range=date_range)
                     .union(savings_debit.filter(created_at__date__range=date_range))
@@ -662,7 +668,7 @@ def data_table(request):
 
         if reason and reason.lower() != "null":
             if table_context != "all":
-                content_list = contexts[context].filter(reason__icontains=reason)
+                content_list = contexts[table_context].filter(reason__icontains=reason)
             if table_context == "all":
                 content_list = (
                     savings_credit.filter(reason__icontains=reason)
@@ -676,7 +682,7 @@ def data_table(request):
             c = {
                 "id": i.id,
                 "created_at": i.created_at,
-                "reason": get_data_equivalent(i.reason, "src"),
+                "reason": i.reason_display,
                 "amount": "{}{}".format(
                     "+" if i.reason.startswith("credit") else "-",
                     get_amount(amount=i.amount),

@@ -1,5 +1,5 @@
 $primary: #198754;
-$border-radius: 0.5rem;
+
 @font-face {
     font-family: Poppins;
     src: url(/static/fonts/Poppins-Regular.ttf);
@@ -28,7 +28,7 @@ body {
 }
 
 .notify {
-    > span {
+    >span {
         top: 0.5rem;
         right: 0.5rem;
         position: absolute;
@@ -68,19 +68,20 @@ body {
         cursor: pointer;
         transition: all 0.5s;
 
-        > svg {
+        >svg {
             width: 1.6rem;
             height: 1.6rem;
             fill: currentColor;
         }
     }
 
-    @each $color, $value in $theme-colors {
+    @each $color,
+    $value in $theme-colors {
         &-#{$color} {
             --bs-bg-opacity: 0.25;
             // background-color: rgba(to-rgb($value), var(--bs-bg-opacity));
 
-            > svg {
+            >svg {
                 fill: #{$value} !important;
             }
         }
@@ -93,6 +94,7 @@ body {
 
         &-icon {
             --bs-bg-opacity: 0.25;
+
             // background-color: rgba(to-rgb($value), var(--bs-bg-opacity));
             &:hover {
                 background-color: #{$value};
@@ -200,6 +202,7 @@ input::-webkit-inner-spin-button {
     -webkit-appearance: none !important;
     margin: 0 !important;
 }
+
 input[type="number"] {
     -moz-appearance: textfield !important;
 }
@@ -238,7 +241,7 @@ ul.collapsing {
 }
 
 .nav-pills .nav-link.active,
-.nav-pills .show > .nav-link {
+.nav-pills .show>.nav-link {
     font-weight: bold;
     color: var(--bs-primary) !important;
     background-color: rgba(var(--bs-primary-rgb), 0.25) !important;

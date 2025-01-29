@@ -1,8 +1,9 @@
 from django.contrib import admin
 
 from cedar.admin import CustomAdmin
+from utils.helpers import display_duration, display_rate
+
 from .models import AccountChoice, BusinessYear
-from cedar.mixins import display_duration, display_rate
 
 
 # Register your models here.

@@ -8,7 +8,7 @@ from notifications.signals import notify
 def set_nok(modeladmin, request, queryset):
     from savings.models import SavingsInterestTotal
 
-    from .models import NextOfKin
+    from ..models import NextOfKin
 
     for instance in queryset:
         try:
@@ -24,13 +24,13 @@ def set_nok(modeladmin, request, queryset):
 
 def run_task(modeladmin, request, queryset):
     from accounts.models import Member, User
-    from savings.mixins import (
+    from savings.models import SavingsDebit, SavingsInterestTotal
+    from savings.utils.mixins import (
         calculate_interest_exec,
         calculate_yearEndBalance,
         check_activity_exec,
         handle_withdrawal,
     )
-    from savings.models import SavingsDebit, SavingsInterestTotal
 
     members = Member.objects.all()
     admin = User.objects.get(is_superuser=True)

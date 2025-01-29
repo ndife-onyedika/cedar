@@ -12,18 +12,13 @@ from django.urls import reverse
 from django.views.generic import TemplateView
 
 from accounts.models import Member, NextOfKin
-from cedar.decorators import redirect_authenticated
-from cedar.mixins import (
-    get_amount,
-    get_data_equivalent,
-    get_savings_total,
-    get_shares_total,
-)
 from loans.forms import LoanRepaymentForm, LoanRequestForm
 from savings.forms import SavingsCreditForm, SavingsDebitForm
 from savings.models import SavingsCredit, SavingsDebit, SavingsTotal
 from settings.models import AccountChoice
 from shares.forms import ShareAddForm
+from utils.decorators import redirect_authenticated
+from utils.helpers import get_amount, get_savings_total, get_shares_total
 
 from .forms import CustomPasswordResetForm, EditMemberForm, LoginForm, RegistrationForm
 
@@ -91,7 +86,7 @@ class MemberView(MemberListView):
                     "+" if txn.reason.startswith("credit-") else "-",
                     get_amount(txn.amount),
                 ),
-                "reason": get_data_equivalent(txn.reason, "src"),
+                "reason": txn.reason_display,
                 "timestamp": txn.created_at,
             }
             for txn in savings_credit.union(savings_debit).order_by("-created_at")[:10]

@@ -22,12 +22,12 @@
 				{% for btn in dashboard.buttons %}
 				{% if btn.url %}
 				<a href="{{btn.url}}" {% if btn.disabled %}disabled{% endif %}
-					class="btn btn-lg hstack gap-2 {{btn.class}}">
+					class="btn btn-lg rounded-2 hstack gap-2 {{btn.class}}">
 					{{btn.title}}
 				</a>
 				{% else %}
 				<button type="button" {% if btn.disabled %}disabled{% endif %}
-					class="btn btn-lg hstack gap-2 {{btn.class}}" data-bs-toggle="offcanvas"
+					class="btn btn-lg rounded-2 hstack gap-2 {{btn.class}}" data-bs-toggle="offcanvas"
 					data-bs-target="{{btn.target}}">
 					{{btn.title}}
 				</button>

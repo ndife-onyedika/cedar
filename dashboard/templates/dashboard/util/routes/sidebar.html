@@ -21,6 +21,12 @@
             Overview
           </a>
         </li>
+        <li class="nav-item" data-context="settings">
+          <a class="nav-link rounded-2" href="{% url 'dashboard:settings' %}">
+            Settings
+          </a>
+        </li>
+
         <li class="nav-item" data-context="members">
           <a class="nav-link rounded-2" href="{% url 'dashboard:members' %}">
             Members
@@ -31,12 +37,6 @@
             Shares
           </a>
         </li>
-        <li class="nav-item" data-context="settings">
-          <a class="nav-link rounded-2" href="{% url 'dashboard:settings' %}">
-            Settings
-          </a>
-        </li>
-
       </ul>
 
       <h6 class="sidebar-heading fw-bold d-flex justify-content-between align-items-center mb-1 mt-4">

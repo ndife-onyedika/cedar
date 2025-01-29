@@ -12,14 +12,14 @@ from django.template.loader import get_template
 from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import ugettext as _
 
-from cedar.constants import RELATIONSHIP_CHOICE
-from cedar.mixins import TokenGenerator, get_account_choices, send_mass_html_mail
 from dashboard.forms import (
     _validate_email,
     _validate_empty,
     _validate_name,
     _validate_phone,
 )
+from utils.choices import RelationshipChoice
+from utils.helpers import TokenGenerator, get_account_choices, send_mass_html_mail
 
 from .models import Member, NextOfKin, User
 
@@ -90,7 +90,7 @@ class MemberForm(forms.ModelForm):
     nok_relationship = forms.ChoiceField(
         required=False,
         label="Relationship",
-        choices=[(None, "Choose one"), *RELATIONSHIP_CHOICE],
+        choices=[(None, "Choose one"), *RelationshipChoice.choices],
     )
 
     class Meta:
@@ -187,7 +187,7 @@ class EditMemberForm(MemberForm):
         member = kwargs.get("instance")
         updated_initial["nok_name"] = member.nextofkin.name
         updated_initial["nok_email"] = member.nextofkin.email
-        updated_initial["nok_phone"] = member.nextofkin.get_phone
+        updated_initial["nok_phone"] = member.nextofkin.phone_display
         updated_initial["nok_address"] = member.nextofkin.address
         updated_initial["nok_relationship"] = member.nextofkin.relationship
         # Finally update the kwargs initial reference

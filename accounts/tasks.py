@@ -8,13 +8,13 @@ from django.utils import timezone
 from django.utils.timezone import datetime, make_aware
 from notifications.signals import notify
 
-from cedar.mixins import display_duration
 from cedar.settings import STATIC_ROOT
 from loans.models import LoanRepayment, LoanRequest
-from savings.mixins import check_activity_exec
 from savings.models import SavingsCredit, SavingsDebit
+from savings.utils.mixins import check_activity_exec
 from settings.models import AccountChoice
 from shares.models import Shares
+from utils.helpers import display_duration
 
 from .models import Member, NextOfKin, User
 

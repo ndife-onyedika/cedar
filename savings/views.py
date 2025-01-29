@@ -10,9 +10,9 @@ from django.views.generic import TemplateView
 from notifications.signals import notify
 
 from accounts.models import Member, User
-from cedar.mixins import get_amount, get_savings_total
 from savings.forms import SavingsCreditForm, SavingsDebitForm
 from savings.models import SavingsCredit, SavingsDebit, SavingsTotal
+from utils.helpers import get_amount, get_savings_total
 
 
 # Create your views here.

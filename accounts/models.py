@@ -7,9 +7,9 @@ from django_fields import DefaultStaticImageField
 from phonenumber_field.modelfields import PhoneNumberField
 
 from accounts.manager import UserManager
-from cedar.constants import RELATIONSHIP_CHOICE
-from cedar.mixins import create_tables
 from settings.models import AccountChoice
+from utils.choices import RelationshipChoice
+from utils.helpers import create_tables
 
 
 # Create your models here.
@@ -63,7 +63,7 @@ class Member(models.Model):
         return "{} ({})".format(self.name, "Active" if self.is_active else "Inactive")
 
     @property
-    def get_phone(self) -> str:
+    def phone_display(self) -> str:
         """The Member's Phone"""
         return self.phone.as_e164 if self.phone else ""
 
@@ -79,7 +79,7 @@ class NextOfKin(models.Model):
         null=True,
         blank=True,
         max_length=100,
-        choices=RELATIONSHIP_CHOICE,
+        choices=RelationshipChoice.choices,
     )
 
     class Meta:
@@ -87,9 +87,13 @@ class NextOfKin(models.Model):
         verbose_name_plural = "Next Of Kins"
 
     @property
-    def get_phone(self):
+    def phone_display(self):
         """The Next of KIn's Phone"""
         return self.phone.as_e164 if self.phone else ""
+
+    @property
+    def relationship_display(self) -> str:
+        return self.get_relationship_display()
 
 
 @receiver(post_save, sender=Member)
