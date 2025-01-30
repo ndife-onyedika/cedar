@@ -40,23 +40,37 @@
 
 
     const table_tabs = {
-        loans: [
-            ["disbursed", "Disbursed"],
-            ["terminated", "Terminated"]
+        members: [
+            ["all", "All"],
+            ["true", "Active"],
+            ["false", "Inactive"]
         ],
         savings: [
             ["all", "All"],
             ["credit", "Credit"],
             ["debit", "Debit"]
         ],
+        loans: [
+            ["disbursed", "Disbursed"],
+            ["terminated", "Terminated"]
+        ],
         savings_interest: [
             ["total", "Total Interests"],
             ["all", "Interests"],
             ["each", "Savings Interests"],
         ],
+
     }
 
     const table_heads = {
+        eoy: ["Dated Created"],
+        shares: ["Dated Created", ""],
+        "loans.repayment": ["Date Paid", ""],
+        savings: {
+            all: ["Reason", "Date Created", ""],
+            credit: ["Reason", "Date Created", ""],
+            debit: ["Reason", "Date Created", ""]
+        },
         savings_interest: {
             total: ["Total Interest", "Date Range"],
             all: ["Interest", "Total Interest", "Date Created"],
@@ -70,15 +84,11 @@
                 "Date Terminated", ""
             ]
         },
-        eoy: ["Dated Created"],
-        shares: ["Dated Created", ""],
-        "loans.repayment": ["Date Paid", ""],
-        savings: {
-            all: ["Reason", "Date Created", ""],
-            credit: ["Reason", "Date Created", ""],
-            debit: ["Reason", "Date Created", ""]
+        members: {
+            all: ["Name", "Balance", "Status", "Account Type", "Account Number", "Date Registered", ""],
+            true: ["Name", "Balance", "Status", "Account Type", "Account Number", "Date Registered", ""],
+            false: ["Name", "Balance", "Status", "Account Type", "Account Number", "Date Registered", ""]
         },
-        members: ["Name", "Balance", "Status", "Account Type", "Account Number", "Date Registered", ""],
     }
 
     const table_filters = {
@@ -106,17 +116,7 @@
                     ["normal", "Normal"],
                     ["staff", "Staff"]
                 ],
-            },
-            {
-                type: "select",
-                label: "Status",
-                name: "is_active",
-                options: [
-                    [null, "Select..."],
-                    [true, "Active"],
-                    [false, "Inactive"]
-                ],
-            },
+            }
         ],
         shares: [{
                 type: "text",
@@ -208,7 +208,7 @@
         let table_attr = JSON.parse(table.attr("data-table-attr"));
         table_attr = {
             ...table_attr,
-            ...(["loans", "savings", "savings_interest"].includes(table_name) ? {
+            ...(["loans", "members", "savings", "savings_interest"].includes(table_name) ? {
                 table_context: table_tabs[table_name][0][0]
             } : {})
         }
@@ -407,6 +407,7 @@
         let table_head = !table_context ?
             table_heads[table_name] : table_heads[table_name][table_context];
 
+        let hasTabs = ["loans", "members", "savings", "savings_interest"].includes(table_name);
 
         table_head = [
             "#",
@@ -659,7 +660,7 @@
                 }
 
                 let table_header = `
-                    ${["loans", "savings", "savings_interest"].includes(table_name)
+                    ${hasTabs
                         ? `<div class="btn-group col-12 col-sm-auto mt-2 mt-sm-0 flex-wrap" role="group"
                             aria-label="Table Tabs">
                             ${(table_tab.map((tab, i) => `
@@ -670,7 +671,7 @@
                         : ""
                     }
                     ${isStaff 
-                        ? `<div class="action dropdown ${["loans", "savings", "savings_interest"].includes(table_name)?"ms-auto":""}">
+                        ? `<div class="action dropdown ${hasTabs ? "ms-auto" : ""}">
                             <button disabled style="font-size:small" class="btn btn-lg btn-primary rounded-2 dropdown-toggle hstack gap-1"
                                 type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                 <svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="-9 -2 24 24" width="32"

@@ -200,9 +200,11 @@ def service_export(request, context: str):
     data = []
     contexts = {
         "shares": Shares,
-        "members": Member,
         "loans": LoanRequest,
         "eoy": YearEndBalance,
+        "members.all": Member,
+        "members.true": Member,
+        "members.false": Member,
         "savings.credit": SavingsCredit,
         "savings.debit": SavingsInterest,
         "loans.repayment": LoanRepayment,
@@ -229,17 +231,18 @@ def service_export(request, context: str):
 
     if context not in ("savings.all", "savings_interest.total"):
         model = contexts[context]
-        exports = (
-            model.objects.all() if id_[0] == "*" else model.objects.filter(id__in=id_)
-        )
+        exports = model.objects.filter(**({"id__in": id_} if id_[0] != "*" else {}))
+
     if context == "savings.all":
-        savings_credit = SavingsCredit.objects.all()
-        savings_debit = SavingsDebit.objects.all()
         attr = {}
+        savings_debit = SavingsDebit.objects.all()
+        savings_credit = SavingsCredit.objects.all()
+
         if id_[0] != "*":
             attr["id__in"] = id_
         if range_:
             attr["created_at__date__range"] = range_dates
+
         exports = (
             savings_credit.filter(**attr)
             .union(savings_debit.filter(**attr))
@@ -265,7 +268,7 @@ def service_export(request, context: str):
 
     if len(exports) > 0:
         for item in exports:
-            if context == "members":
+            if context in ("members.all" "members.true" "members.false"):
                 data.append(
                     {
                         "name": item.name,
@@ -530,7 +533,6 @@ def data_table(request):
     data = {"content": [], "attr": {}}
 
     page = request.GET.get("page")
-    sort_by = request.GET.get("sort_by")
     table = request.GET.get("table_name")
     per_page = request.GET.get("per_page")
     member_id = request.GET.get("member_id")
@@ -543,9 +545,16 @@ def data_table(request):
     if table == "members":
         content_list = Member.objects.all()
 
-        is_active = request.GET.get("is_active")
         account_type = request.GET.get("account_type")
         account_number = request.GET.get("account_number")
+
+        table_context = request.GET.get("table_context", "all").lower()
+        if table_context not in ("all", "true", "false"):
+            table_context = "all"
+
+        content_list = content_list.filter(
+            **({"is_active": table_context == "true"} if table_context != "all" else {})
+        )
 
         if search_text:
             content_list = content_list.filter(
@@ -555,10 +564,6 @@ def data_table(request):
             content_list = content_list.filter(
                 date_joined__date__range=search_date.split(",")
             )
-
-        if is_active and is_active.lower() != "null":
-            is_active = is_active.lower() == "true"
-            content_list = content_list.filter(is_active=is_active)
 
         if account_number and account_number.lower() != "null":
             content_list = content_list.filter(account_number__icontains=account_number)
