@@ -4,7 +4,7 @@ from django.dispatch.dispatcher import receiver
 from django.utils import timezone
 
 from accounts.models import Member
-from savings.utils.mixins import handle_withdrawal, update_savings_total
+from savings.utils.helpers import handle_withdrawal, update_savings_total
 from utils.choices import CreditReasonChoice, DebitReasonChoice
 from utils.helpers import CustomAbstractTable, format_date_model, get_amount
 
@@ -190,6 +190,17 @@ def post_savings_credit_save(sender, instance: SavingsCredit, **kwargs):
     si.save()
 
 
+@receiver(post_save, sender=SavingsInterestTotal)
+def post_savings_interest_total_save(sender, instance: SavingsInterestTotal, **kwargs):
+    update_savings_total(member=instance.member)
+
+
+@receiver(post_save, sender=SavingsDebit)
+def post_savings_debit_save(sender, instance: SavingsDebit, **kwargs):
+    if kwargs["created"]:
+        handle_withdrawal(context="create", instance=instance)
+
+
 # @receiver(post_delete, sender=SavingsCredit)
 def post_savings_credit_delete(sender, instance: SavingsCredit, **kwargs):
     if instance.reason == "credit-eoy":
@@ -200,20 +211,9 @@ def post_savings_credit_delete(sender, instance: SavingsCredit, **kwargs):
         ).delete()
 
 
-@receiver(post_save, sender=SavingsDebit)
-def post_savings_debit_save(sender, instance: SavingsDebit, **kwargs):
-    if kwargs["created"]:
-        handle_withdrawal(context="create", instance=instance)
-
-
 # @receiver(post_delete, sender=SavingsDebit)
 def post_savings_debit_delete(sender, instance: SavingsDebit, **kwargs):
     handle_withdrawal(context="delete", instance=instance)
-
-
-# @receiver(post_save, sender=SavingsInterestTotal)
-def post_savings_interest_total_save(sender, instance: SavingsInterestTotal, **kwargs):
-    update_savings_total(member=instance.member)
 
 
 # @receiver(post_delete, sender=SavingsInterestTotal)

@@ -25,7 +25,7 @@ def set_nok(modeladmin, request, queryset):
 def run_task(modeladmin, request, queryset):
     from accounts.models import Member, User
     from savings.models import SavingsDebit, SavingsInterestTotal
-    from savings.utils.mixins import (
+    from savings.utils.helpers import (
         calculate_interest_exec,
         calculate_yearEndBalance,
         check_activity_exec,

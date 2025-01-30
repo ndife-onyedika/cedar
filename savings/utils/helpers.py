@@ -1,13 +1,12 @@
 from datetime import time
 
-from django.db.models.query_utils import Q
 from django.utils.timezone import datetime, make_aware, now, timedelta
 from notifications.signals import notify
 
 from accounts.models import Member, User
+from utils.choices import CreditReasonChoice
 from utils.helpers import (
     display_duration,
-    get_amount,
     get_last_day_month,
     get_savings_total,
     months_between,
@@ -90,7 +89,10 @@ def calculate_yearEndBalance(member, date_range: list):
         sum_total = total_amount + total_interest
 
         SavingsCredit.objects.create(
-            member=member, amount=sum_total, reason="credit-eoy", created_at=end_date
+            member=member,
+            amount=sum_total,
+            created_at=end_date,
+            reason=CreditReasonChoice.END_OF_YEAR,
         )
 
 
@@ -145,7 +147,7 @@ def calculate_interest_exec(admin, member: Member, instance, date: datetime):
                 recipient=User.objects.exclude(is_superuser=False),
                 description="{} savings deposit of {} has past the {} period and started accumulating interest.".format(
                     member.name,
-                    get_amount(instance.amount),
+                    instance.amount_display,
                     display_duration(pre_savings_interest_duration),
                 ),
             )
@@ -165,9 +167,9 @@ def check_activity_exec(member, date: datetime):
             notify.send(
                 admin,
                 level="error",
-                # timestamp=date,
+                timestamp=date,
                 recipient=recipients,
-                timestamp=make_aware(date),
+                # timestamp=make_aware(date),
                 verb=f"Account: Activity - {member.name}",
                 description=f"{member.name} account has been set INACTIVE due to none operation for {display_duration(account_activity_duration)}.",
             )
@@ -176,7 +178,7 @@ def check_activity_exec(member, date: datetime):
     account_activity_duration = member.account_type.aad
     aad_days = account_activity_duration * 30
     last_savings_txn = member.savingscredit_set.filter(
-        reason="credit-deposit", created_at__date__lte=specified_date
+        reason=CreditReasonChoice.DEPOSIT, created_at__date__lte=specified_date
     ).first()
     has_savings = last_savings_txn is not None
 
@@ -203,8 +205,8 @@ def calculate_interest(start_year, end_year):
 
     for year in range(start_year, end_year):
         prev_year = year - 1
-        # start_date = datetime(2023, 4, 1).date()
-        # end_date = datetime(2023, 8, 23).date()
+        # start_date = datetime(2024, 4, 1).date()
+        # end_date = datetime(2025, 1, 30).date()
         start_date = datetime(prev_year, 4, 1).date()
         end_date = datetime(year, 4, 1).date()
         for month in months_between(start_date, end_date):
@@ -254,8 +256,9 @@ def calculate_interest(start_year, end_year):
                                         )
 
                     if (
-                        current_date.date() == end_date
-                        and current_date.date() != datetime(2023, 4, 1).date()
+                        current_date.date()
+                        == end_date
+                        # and current_date.date() != datetime(2024, 4, 1).date()
                     ):
                         notify.send(
                             admin,

@@ -49,8 +49,8 @@ class UserAdmin(CustomAdmin):
 
 @admin.register(Member)
 class MemberAdmin(CustomImportExportAdmin, CustomAdmin):
+    # actions = [set_nok, run_task]
     resource_class = MemberResource
-    actions = [set_nok, run_task]
 
     date_hierarchy = "date_joined"
 
