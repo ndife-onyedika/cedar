@@ -9,7 +9,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "cedar.settings")
 
 # Using a string here means the worker will not have to
 # pickle the object when using Windows.
-app = Celery("voluthr")
+app = Celery("cedar")
 app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
